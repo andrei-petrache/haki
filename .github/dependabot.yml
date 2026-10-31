@@ -1,0 +1,105 @@
+# Dependabot: weekly pull requests for everything pinned in this repository.
+# Options: https://docs.github.com/en/code-security/dependabot/working-with-dependabot/dependabot-options-reference
+#
+# Common pattern below: minor and patch updates are grouped into one pull
+# request per ecosystem; anything not matching a group (majors) gets its own.
+# The cooldown waits a few days after a release before proposing it: broken
+# releases are usually fixed or yanked within days. Security updates ignore it.
+version: 2
+
+updates:
+  # Backend Python packages (requirements.txt and requirements-dev.txt)
+  - package-ecosystem: pip
+    directory: /backend
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Europe/Bucharest
+    cooldown:
+      default-days: 7
+      semver-major-days: 14
+    groups:
+      backend-minor-patch:
+        patterns: ["*"]
+        update-types: [minor, patch]
+    commit-message:
+      prefix: deps(backend)
+
+  # Frontend npm packages (package.json and package-lock.json)
+  - package-ecosystem: npm
+    directory: /frontend
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Europe/Bucharest
+    cooldown:
+      default-days: 7
+      semver-major-days: 14
+    groups:
+      frontend-minor-patch:
+        patterns: ["*"]
+        update-types: [minor, patch]
+    commit-message:
+      prefix: deps(frontend)
+      prefix-development: deps-dev(frontend)
+
+  # Base images in the Dockerfiles (python, node, nginx-unprivileged).
+  # Only patches are grouped: a minor bump of an image tag can be a big change
+  # (python 3.14 -> 3.15, nginx 1.28 stable -> 1.29 mainline), so it gets its
+  # own pull request. Docker supports only default-days for the cooldown.
+  - package-ecosystem: docker
+    directories: [/backend, /frontend]
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Europe/Bucharest
+    cooldown:
+      default-days: 7
+    groups:
+      docker-patch:
+        patterns: ["*"]
+        update-types: [patch]
+    commit-message:
+      prefix: deps(docker)
+
+  # Images in compose.yaml (postgres)
+  - package-ecosystem: docker-compose
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Europe/Bucharest
+    cooldown:
+      default-days: 7
+    ignore:
+      # Our own images, built locally by compose; they are not in any registry
+      - dependency-name: haki-*
+      # A new PostgreSQL major cannot read the existing db-data volume: it needs
+      # a planned dump and restore, never a routine merge. CI would not catch
+      # it, because CI does not run PostgreSQL.
+      - dependency-name: postgres
+        update-types: [version-update:semver-major]
+    commit-message:
+      prefix: deps(compose)
+
+  # Actions in .github/workflows, pinned to commit SHAs with a version comment;
+  # Dependabot updates both the SHA and the comment
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Europe/Bucharest
+    cooldown:
+      default-days: 7
+    groups:
+      actions-minor-patch:
+        patterns: ["*"]
+        update-types: [minor, patch]
+    commit-message:
+      prefix: ci(actions)
