@@ -8,15 +8,44 @@ from local development to a production-grade deployment on AWS.
 - **Backend:** FastAPI (Python), SQLAlchemy, Alembic, PostgreSQL
 - **Frontend:** React + TypeScript (Vite)
 - **Auth:** Argon2 password hashing, JWT access tokens
-- **Coming next:** Docker images, GitHub Actions CI, Kubernetes, ArgoCD, Terraform on AWS
+- **Containers:** Docker images for backend and frontend (Nginx), Docker Compose
+- **Coming next:** GitHub Actions CI, Kubernetes, ArgoCD, Terraform on AWS
 
-## Run locally
+## Configuration
+
+```bash
+cp .env.example .env              # then set real values
+```
+
+Both modes below read `.env`. Compose refuses to start if `POSTGRES_*` or
+`JWT_SECRET_KEY` is missing. Its containers build their own `DATABASE_URL`
+with host `db`; the `DATABASE_URL` in `.env` (host `localhost`) is only for
+the backend running on your machine.
+
+## Run the full stack in containers
+
+Requirements: Docker.
+
+```bash
+docker compose up -d --build      # http://127.0.0.1:8080
+docker compose ps                 # all services healthy, migrate "Exited (0)"
+docker compose logs -f backend    # follow the backend logs
+docker compose down               # stop; data stays in the db-data volume
+```
+
+Services start in order: `db` (healthy) → `migrate` (runs `alembic upgrade
+head`, then exits) → `backend` (healthy) → `frontend`. Only the frontend is
+published; Nginx serves the app and proxies `/api/` to the backend.
+
+Never run `docker compose down -v` unless you mean to delete the database:
+`-v` removes the `db-data` volume.
+
+## Develop locally
 
 Requirements: Docker, Python 3.14, Node.js 22+.
 
 ```bash
-cp .env.example .env              # then set real values
-docker compose up -d              # PostgreSQL
+docker compose up -d db           # PostgreSQL only
 
 cd backend
 python3 -m venv ../.venv && source ../.venv/bin/activate

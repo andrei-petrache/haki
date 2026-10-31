@@ -40,6 +40,11 @@ cd backend
 ../.venv/bin/uvicorn app.main:app --reload      # http://localhost:8000/docs
 ```
 
+Docker Compose: `docker compose up -d db` for local development (database
+only), `docker compose up -d --build` for the full stack on
+http://127.0.0.1:8080. **Never run `docker compose down -v`**: it deletes the
+`db-data` volume with Andrei's data.
+
 ## Backend conventions
 
 - One router module per resource (`app/auth.py`, `app/foods.py`), registered in
