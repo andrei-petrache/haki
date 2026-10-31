@@ -1,9 +1,19 @@
-import { useEffect, useState } from 'react'
-import { ApiError, fetchMe, login, signup } from './api'
+import { useCallback, useEffect, useState } from 'react'
+import { ApiError, fetchMe, login, setUnauthorizedHandler, signup } from './api'
 import type { User } from './api'
+import FoodsPage from './FoodsPage'
+import TodayPage from './TodayPage'
 import './App.css'
 
 const TOKEN_KEY = 'haki_token'
+
+type Tab = 'today' | 'foods' | 'profile'
+
+const TABS: { id: Tab; label: string }[] = [
+  { id: 'today', label: 'Today' },
+  { id: 'foods', label: 'Foods' },
+  { id: 'profile', label: 'Profile' },
+]
 
 type Mode = 'login' | 'signup'
 
@@ -106,22 +116,63 @@ function Profile({ user, onLogout }: { user: User; onLogout: () => void }) {
   )
 }
 
+function Header({
+  tab,
+  onTabChange,
+  onLogout,
+}: {
+  tab: Tab
+  onTabChange: (tab: Tab) => void
+  onLogout: () => void
+}) {
+  return (
+    <header className="app-header">
+      <span className="brand">Haki</span>
+      <nav className="tabs">
+        {TABS.map(({ id, label }) => (
+          <button
+            key={id}
+            type="button"
+            className="tab"
+            aria-current={tab === id ? 'page' : undefined}
+            onClick={() => onTabChange(id)}
+          >
+            {label}
+          </button>
+        ))}
+      </nav>
+      <button type="button" className="link" onClick={onLogout}>
+        Log out
+      </button>
+    </header>
+  )
+}
+
 function App() {
   const [token, setToken] = useState<string | null>(() =>
     localStorage.getItem(TOKEN_KEY),
   )
   const [user, setUser] = useState<User | null>(null)
+  const [tab, setTab] = useState<Tab>('today')
 
   function handleLoggedIn(newToken: string) {
     localStorage.setItem(TOKEN_KEY, newToken)
     setToken(newToken)
   }
 
-  function handleLogout() {
+  // Stable across renders, so effects that use it don't re-run needlessly
+  const handleLogout = useCallback(() => {
     localStorage.removeItem(TOKEN_KEY)
     setToken(null)
     setUser(null)
-  }
+    setTab('today')
+  }, [])
+
+  // Any 401 on an authenticated call means the token expired: log out
+  useEffect(() => {
+    setUnauthorizedHandler(handleLogout)
+    return () => setUnauthorizedHandler(null)
+  }, [handleLogout])
 
   // Whenever we have a token, load the profile; drop the token if it is rejected
   useEffect(() => {
@@ -132,24 +183,32 @@ function App() {
         if (!cancelled) setUser(me)
       })
       .catch(() => {
-        if (!cancelled) {
-          localStorage.removeItem(TOKEN_KEY)
-          setToken(null)
-          setUser(null)
-        }
+        if (!cancelled) handleLogout()
       })
     return () => {
       cancelled = true
     }
-  }, [token])
+  }, [token, handleLogout])
+
+  if (!token) {
+    return (
+      <main className="container">
+        <h1>Haki</h1>
+        <p className="tagline">Train your Haki. Track your fuel.</p>
+        <AuthForm onLoggedIn={handleLoggedIn} />
+      </main>
+    )
+  }
 
   return (
     <main className="container">
-      <h1>Haki</h1>
-      <p className="tagline">Train your Haki. Track your fuel.</p>
-      {!token && <AuthForm onLoggedIn={handleLoggedIn} />}
-      {token && !user && <p>Loading…</p>}
-      {token && user && <Profile user={user} onLogout={handleLogout} />}
+      <Header tab={tab} onTabChange={setTab} onLogout={handleLogout} />
+      {!user && <p>Loading…</p>}
+      {user && tab === 'today' && (
+        <TodayPage token={token} onGoToFoods={() => setTab('foods')} />
+      )}
+      {user && tab === 'foods' && <FoodsPage token={token} />}
+      {user && tab === 'profile' && <Profile user={user} onLogout={handleLogout} />}
     </main>
   )
 }
