@@ -3,6 +3,7 @@
 .container {
   width: 100%;
   max-width: 40rem;
+  margin: 0 auto;
   box-sizing: border-box;
   padding: 1.5rem 1rem 3rem;
 }
@@ -64,6 +65,11 @@ p {
 .empty {
   text-align: center;
   padding: 1rem 0;
+}
+
+/* Hidden but still taking up its space in the layout */
+.invisible {
+  visibility: hidden;
 }
 
 /* Header and tabs */
@@ -203,6 +209,11 @@ button.tab[aria-current='page'] {
   background: var(--accent);
 }
 
+/* More specific than button.tab:hover, so the active tab keeps its color */
+button.tab[aria-current='page']:hover:not(:disabled) {
+  background: var(--accent-hover);
+}
+
 button.link {
   align-self: flex-start;
   padding: 0.25rem 0;
@@ -335,6 +346,7 @@ dd {
 
 .rows > li > form {
   flex: 1;
+  min-width: 0;
 }
 
 .grow {
@@ -345,10 +357,18 @@ dd {
 
 /* Foods */
 
+/* Browsers give every fieldset min-width: min-content, which let this grid
+   grow wider than its form; minmax(0, 1fr) also lets the columns shrink */
 .nutrients {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 0.75rem;
+  min-width: 0;
+}
+
+.nutrients input {
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .nutrients legend {
@@ -358,6 +378,6 @@ dd {
 
 @media (max-width: 30rem) {
   .nutrients {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }

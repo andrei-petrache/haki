@@ -18,3 +18,8 @@ body {
   background: Canvas;
   color: CanvasText;
 }
+
+/* Full width, so pages of different widths don't move the header */
+#root {
+  width: 100%;
+}

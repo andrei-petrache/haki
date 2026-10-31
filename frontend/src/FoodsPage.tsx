@@ -139,14 +139,17 @@ export default function FoodsPage({ token }: { token: string }) {
     }
   }, [token, version])
 
+  // A successful change makes an older list error (e.g. a failed delete) stale
   async function handleCreate(food: FoodInput) {
     await createFood(token, food)
+    setError(null)
     setAddFormKey((key) => key + 1)
     reload()
   }
 
   async function handleUpdate(id: number, food: FoodInput) {
     await updateFood(token, id, food)
+    setError(null)
     setEditingId(null)
     reload()
   }

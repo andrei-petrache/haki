@@ -102,7 +102,7 @@ function AuthForm({ onLoggedIn }: { onLoggedIn: (token: string) => void }) {
   )
 }
 
-function Profile({ user, onLogout }: { user: User; onLogout: () => void }) {
+function Profile({ user }: { user: User }) {
   const memberSince = new Date(user.created_at).toLocaleDateString()
 
   return (
@@ -116,9 +116,6 @@ function Profile({ user, onLogout }: { user: User; onLogout: () => void }) {
         <dt>Crew number</dt>
         <dd>#{user.id}</dd>
       </dl>
-      <button type="button" onClick={onLogout}>
-        Log out
-      </button>
     </section>
   )
 }
@@ -237,7 +234,7 @@ function App() {
         <TodayPage token={token} onGoToFoods={() => setTab('foods')} />
       )}
       {user && tab === 'foods' && <FoodsPage token={token} />}
-      {user && tab === 'profile' && <Profile user={user} onLogout={handleLogout} />}
+      {user && tab === 'profile' && <Profile user={user} />}
     </main>
   )
 }

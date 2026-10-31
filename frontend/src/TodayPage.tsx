@@ -49,11 +49,16 @@ function DayPicker({ day, onChange }: { day: string; onChange: (day: string) => 
       >
         ›
       </button>
-      {day !== today && (
-        <button type="button" className="link" onClick={() => onChange(today)}>
-          Back to today
-        </button>
-      )}
+      {/* Always rendered, only hidden on today: keeps its space, so the
+          arrow buttons never move under the cursor */}
+      <button
+        type="button"
+        className={day === today ? 'link invisible' : 'link'}
+        disabled={day === today}
+        onClick={() => onChange(today)}
+      >
+        Back to today
+      </button>
     </div>
   )
 }
@@ -401,6 +406,8 @@ export default function TodayPage({
   }, [token, day, version])
 
   async function handleDelete(entry: MealEntry) {
+    const what = `${entry.food_name} (${formatDecimal(entry.grams)} g)`
+    if (!window.confirm(`Remove ${what} from ${MEAL_LABELS[entry.meal_type]}?`)) return
     setDeletingId(entry.id)
     try {
       await deleteEntry(token, entry.id)
