@@ -75,9 +75,7 @@ def list_entries(
     return [to_response(entry) for entry in entries_for_day(session, current_user, day)]
 
 
-@router.post(
-    "", status_code=status.HTTP_201_CREATED, response_model=MealEntryResponse
-)
+@router.post("", status_code=status.HTTP_201_CREATED, response_model=MealEntryResponse)
 def create_entry(
     data: MealEntryIn, current_user: CurrentUser, session: SessionDep
 ) -> MealEntryResponse:

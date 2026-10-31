@@ -5,7 +5,9 @@ EMAIL = "andrei@example.com"
 PASSWORD = "correct-horse-battery"
 
 
-def signup(client: TestClient, email: str = EMAIL, password: str = PASSWORD) -> Response:
+def signup(
+    client: TestClient, email: str = EMAIL, password: str = PASSWORD
+) -> Response:
     return client.post("/auth/signup", json={"email": email, "password": password})
 
 

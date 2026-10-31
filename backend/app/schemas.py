@@ -88,7 +88,7 @@ class Nutrients(BaseModel):
     def round_to_one_decimal(self, value: float) -> float:
         return round(value, 1)
 
-    def __add__(self, other: "Nutrients") -> "Nutrients":
+    def __add__(self, other: Nutrients) -> Nutrients:
         return Nutrients(
             calories=self.calories + other.calories,
             protein=self.protein + other.protein,
