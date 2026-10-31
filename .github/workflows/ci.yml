@@ -48,14 +48,39 @@ jobs:
       - name: Test
         run: pytest -q
 
+  # compose.yaml is the single source of truth for the PostgreSQL image: when
+  # Dependabot updates it there, the integration job tests the new version in
+  # the same pull request
+  postgres-image:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      image: ${{ steps.read.outputs.image }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # yq is preinstalled on GitHub's Ubuntu runners
+      - name: Read the db image from compose.yaml
+        id: read
+        run: |
+          image="$(yq '.services.db.image' compose.yaml)"
+          case "$image" in
+            postgres:*) ;;
+            *) echo "::error::Expected a postgres image in compose.yaml, got '$image'"; exit 1 ;;
+          esac
+          echo "PostgreSQL image: $image"
+          echo "image=$image" >> "$GITHUB_OUTPUT"
+
   # Migrations and database constraints against a real PostgreSQL
   integration:
+    needs: postgres-image
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     services:
       postgres:
-        # Keep in sync with the db service in compose.yaml
-        image: postgres:18.6-trixie
+        image: ${{ needs.postgres-image.outputs.image }}
         env:
           POSTGRES_USER: haki
           POSTGRES_PASSWORD: ci-only-password
