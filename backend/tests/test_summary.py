@@ -14,9 +14,7 @@ def get_summary(client: TestClient, headers: dict[str, str]) -> dict[str, Any]:
     return response.json()
 
 
-def set_target(
-    client: TestClient, headers: dict[str, str], target: int | None
-) -> Any:
+def set_target(client: TestClient, headers: dict[str, str], target: int | None) -> Any:
     return client.put(
         "/auth/me/target", json={"daily_calorie_target": target}, headers=headers
     )

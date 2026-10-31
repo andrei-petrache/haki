@@ -42,9 +42,7 @@ def unauthorized(detail: str) -> HTTPException:
 
 
 def get_current_user(
-    credentials: Annotated[
-        HTTPAuthorizationCredentials | None, Depends(bearer_scheme)
-    ],
+    credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer_scheme)],
     session: SessionDep,
 ) -> User:
     """Resolve the user from the bearer token, or reject the request with 401."""

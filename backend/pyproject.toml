@@ -1,3 +1,18 @@
 [tool.pytest.ini_options]
 pythonpath = ["."]
 testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 88
+target-version = "py314"
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes: unused imports and variables, undefined names
+    "I",   # import sorting (isort)
+    "B",   # flake8-bugbear: likely bugs
+    "UP",  # pyupgrade: modern syntax for the target Python
+    "SIM", # flake8-simplify
+]
