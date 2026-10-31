@@ -1,6 +1,7 @@
 from datetime import date, datetime
 from typing import Annotated, Literal
 
+from fastapi import Path
 from pydantic import (
     BaseModel,
     ConfigDict,
@@ -15,6 +16,12 @@ FoodName = Annotated[
 ]
 # Must match MEAL_TYPES in app/models.py
 MealType = Literal["breakfast", "lunch", "dinner", "snack"]
+
+# Ids are PostgreSQL "integer" columns. A larger number cannot be an id, and
+# sending it to the database raises an error (a 500) instead of "not found".
+MAX_DB_ID = 2_147_483_647
+DbId = Annotated[int, Field(ge=1, le=MAX_DB_ID)]  # in request bodies
+IdPath = Annotated[int, Path(ge=1, le=MAX_DB_ID)]  # in URL paths
 
 
 class SignupRequest(BaseModel):
@@ -66,7 +73,7 @@ class FoodResponse(FoodIn):
 
 
 class MealEntryIn(BaseModel):
-    food_id: int
+    food_id: DbId
     eaten_on: date
     meal_type: MealType
     grams: float = Field(gt=0, le=5000)

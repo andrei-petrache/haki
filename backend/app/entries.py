@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session, joinedload
 from app.auth import CurrentUser, SessionDep
 from app.foods import get_own_food
 from app.models import MEAL_TYPES, Food, MealEntry, User
-from app.schemas import MealEntryIn, MealEntryResponse, Nutrients
+from app.schemas import IdPath, MealEntryIn, MealEntryResponse, Nutrients
 
 router = APIRouter(prefix="/entries", tags=["entries"])
 
@@ -96,7 +96,7 @@ def create_entry(
 
 @router.delete("/{entry_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_entry(
-    entry_id: int, current_user: CurrentUser, session: SessionDep
+    entry_id: IdPath, current_user: CurrentUser, session: SessionDep
 ) -> Response:
     """Delete one of the current user's entries."""
     entry = get_own_entry(session, current_user, entry_id)

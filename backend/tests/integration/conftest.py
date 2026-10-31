@@ -6,9 +6,12 @@ import pytest
 from alembic.config import Config
 from alembic.runtime.migration import MigrationContext
 from alembic.script import ScriptDirectory
+from fastapi.testclient import TestClient
 from sqlalchemy import Engine, create_engine
 from sqlalchemy.orm import Session
 
+from app.db import get_session
+from app.main import app
 from app.models import User
 from tests.integration.database import check_test_database_url
 
@@ -62,3 +65,12 @@ def make_user(db: Session) -> Callable[[str], User]:
         return user
 
     return make
+
+
+@pytest.fixture
+def pg_client(db: Session) -> Iterator[TestClient]:
+    """The API running on the rolled-back session of the `db` fixture."""
+    app.dependency_overrides[get_session] = lambda: db
+    with TestClient(app) as client:
+        yield client
+    app.dependency_overrides.clear()
