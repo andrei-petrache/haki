@@ -12,8 +12,9 @@ See README.md for setup.
 - **Never print, read out or commit `.env`.** Use `.env.example` for shape.
 - **Show the diff and wait for an explicit OK before any `git commit`.** New
   files don't appear in `git diff`; show them too
-  (e.g. `git add -N <path> && git diff`). An OK for a commit also covers
-  pushing it to `origin/main`; any other push needs its own OK.
+  (e.g. `git add -N <path> && git diff`).
+- **Never `git push`.** Andrei does all pushing; an OK for a commit covers
+  only the commit.
 - Andrei may edit files between steps; re-read before editing and build on
   their version instead of overwriting it.
 
