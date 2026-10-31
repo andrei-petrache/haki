@@ -102,6 +102,10 @@ async function request<T>(
   if (!response.ok) {
     // Only for authenticated calls: a 401 from /auth/login means wrong password
     if (response.status === 401 && token) onUnauthorized?.()
+    // Our own text: a 503 may also come from a proxy in front, without our JSON
+    if (response.status === 503) {
+      throw new ApiError(503, 'Service temporarily unavailable, try again in a moment.')
+    }
     throw new ApiError(response.status, errorMessage(body))
   }
   return body as T

@@ -1,5 +1,12 @@
 import { useCallback, useEffect, useState } from 'react'
-import { ApiError, fetchMe, login, setUnauthorizedHandler, signup } from './api'
+import {
+  ApiError,
+  describeError,
+  fetchMe,
+  login,
+  setUnauthorizedHandler,
+  signup,
+} from './api'
 import type { User } from './api'
 import FoodsPage from './FoodsPage'
 import TodayPage from './TodayPage'
@@ -154,6 +161,9 @@ function App() {
   )
   const [user, setUser] = useState<User | null>(null)
   const [tab, setTab] = useState<Tab>('today')
+  const [loadError, setLoadError] = useState<string | null>(null)
+  // Bumped by "Try again", to re-run the effect that loads the profile
+  const [loadAttempt, setLoadAttempt] = useState(0)
 
   function handleLoggedIn(newToken: string) {
     localStorage.setItem(TOKEN_KEY, newToken)
@@ -166,6 +176,7 @@ function App() {
     setToken(null)
     setUser(null)
     setTab('today')
+    setLoadError(null)
   }, [])
 
   // Any 401 on an authenticated call means the token expired: log out
@@ -174,21 +185,25 @@ function App() {
     return () => setUnauthorizedHandler(null)
   }, [handleLogout])
 
-  // Whenever we have a token, load the profile; drop the token if it is rejected
+  // Whenever we have a token, load the profile. A rejected token (401) already
+  // logs out via the handler above; other errors (server or database down) are
+  // usually temporary, so keep the token and offer to retry.
   useEffect(() => {
     if (!token) return
     let cancelled = false
     fetchMe(token)
       .then((me) => {
-        if (!cancelled) setUser(me)
+        if (cancelled) return
+        setUser(me)
+        setLoadError(null)
       })
-      .catch(() => {
-        if (!cancelled) handleLogout()
+      .catch((err) => {
+        if (!cancelled) setLoadError(describeError(err))
       })
     return () => {
       cancelled = true
     }
-  }, [token, handleLogout])
+  }, [token, loadAttempt])
 
   if (!token) {
     return (
@@ -203,7 +218,21 @@ function App() {
   return (
     <main className="container">
       <Header tab={tab} onTabChange={setTab} onLogout={handleLogout} />
-      {!user && <p>Loading…</p>}
+      {!user && !loadError && <p>Loading…</p>}
+      {!user && loadError && (
+        <section className="card">
+          <p className="error">{loadError}</p>
+          <button
+            type="button"
+            onClick={() => {
+              setLoadError(null)
+              setLoadAttempt((attempt) => attempt + 1)
+            }}
+          >
+            Try again
+          </button>
+        </section>
+      )}
       {user && tab === 'today' && (
         <TodayPage token={token} onGoToFoods={() => setTab('foods')} />
       )}
