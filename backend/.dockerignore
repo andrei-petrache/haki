@@ -1,0 +1,13 @@
+# Allowlist: ignore everything, then let in only what the image needs.
+# New files (tests, notes, local configs) stay out of the build by default.
+*
+!app/
+!migrations/
+!alembic.ini
+!requirements.txt
+
+# Never send these, even if they appear inside an allowed directory
+**/__pycache__/
+**/*.py[cod]
+**/.env
+**/.env.*
