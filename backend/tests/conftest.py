@@ -50,3 +50,21 @@ def client() -> Iterator[TestClient]:
         yield test_client
     app.dependency_overrides.clear()
     engine.dispose()
+
+
+def register_and_login(client: TestClient, email: str) -> dict[str, str]:
+    """Create an account and return headers authenticating as that user."""
+    password = "correct-horse-battery"
+    client.post("/auth/signup", json={"email": email, "password": password})
+    response = client.post("/auth/login", json={"email": email, "password": password})
+    return {"Authorization": f"Bearer {response.json()['access_token']}"}
+
+
+@pytest.fixture
+def auth_headers(client: TestClient) -> dict[str, str]:
+    return register_and_login(client, "andrei@example.com")
+
+
+@pytest.fixture
+def other_auth_headers(client: TestClient) -> dict[str, str]:
+    return register_and_login(client, "mallory@example.com")

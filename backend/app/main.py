@@ -4,9 +4,11 @@ from fastapi import Depends, FastAPI, Response, status
 
 from app.auth import router as auth_router
 from app.db import database_is_reachable
+from app.foods import router as foods_router
 
 app = FastAPI(title="Haki API")
 app.include_router(auth_router)
+app.include_router(foods_router)
 
 
 @app.get("/health")
