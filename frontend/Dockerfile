@@ -5,7 +5,7 @@
 # resolvable on the container's network when Nginx starts.
 
 # ---- Build: compile the app into static files in dist/ ----
-FROM node:22.22.1-trixie-slim AS build
+FROM node:26.12.0-trixie-slim AS build
 
 WORKDIR /app
 
