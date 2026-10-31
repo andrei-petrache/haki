@@ -2,9 +2,11 @@ from typing import Annotated
 
 from fastapi import Depends, FastAPI, Response, status
 
+from app.auth import router as auth_router
 from app.db import database_is_reachable
 
 app = FastAPI(title="Haki API")
+app.include_router(auth_router)
 
 
 @app.get("/health")
