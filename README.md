@@ -21,7 +21,9 @@ cp .env.example .env              # then set real values
 ```
 
 Both modes below read `.env`. Compose refuses to start if `POSTGRES_*` or
-`JWT_SECRET_KEY` is missing. Its containers build their own `DATABASE_URL`
+`JWT_SECRET_KEY` is missing, and the backend refuses a `JWT_SECRET_KEY` shorter
+than 32 bytes or still set to the `.env.example` placeholder. Generate one with
+`python -c "import secrets; print(secrets.token_urlsafe(32))"`. Its containers build their own `DATABASE_URL`
 with host `db`; the `DATABASE_URL` in `.env` (host `localhost`) is only for
 the backend running on your machine.
 
