@@ -84,6 +84,6 @@ http://127.0.0.1:8080. **Never run `docker compose down -v`**: it deletes the
   rolled-back transaction (fixture `db`). The guard in `database.py` refuses
   any database whose name does not end in `_test`. **Never point
   `TEST_DATABASE_URL` or a migration/downgrade at the dev database `haki`**;
-  for local checks prefer a throwaway `postgres:18.6-trixie` container.
-- The PostgreSQL image is pinned in two places, `compose.yaml` and the
-  `integration` job in `.github/workflows/ci.yml`: change both together.
+  for local checks prefer a throwaway container of the image in `compose.yaml`.
+- The PostgreSQL image is pinned only in `compose.yaml` (`services.db.image`);
+  the CI job `postgres-image` reads it from there for the `integration` job.
