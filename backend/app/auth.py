@@ -8,7 +8,13 @@ from sqlalchemy.orm import Session
 
 from app.db import get_session
 from app.models import User
-from app.schemas import LoginRequest, SignupRequest, TokenResponse, UserResponse
+from app.schemas import (
+    CalorieTargetIn,
+    LoginRequest,
+    SignupRequest,
+    TokenResponse,
+    UserResponse,
+)
 from app.security import (
     create_access_token,
     decode_access_token,
@@ -89,4 +95,14 @@ def login(data: LoginRequest, session: SessionDep) -> TokenResponse:
 @router.get("/me", response_model=UserResponse)
 def me(current_user: CurrentUser) -> User:
     """Return the currently authenticated user."""
+    return current_user
+
+
+@router.put("/me/target", response_model=UserResponse)
+def set_calorie_target(
+    data: CalorieTargetIn, current_user: CurrentUser, session: SessionDep
+) -> User:
+    """Set the current user's daily calorie target, or clear it with null."""
+    current_user.daily_calorie_target = data.daily_calorie_target
+    session.commit()
     return current_user

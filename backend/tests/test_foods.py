@@ -1,12 +1,7 @@
-from datetime import date
 from typing import Any
 
 import pytest
 from fastapi.testclient import TestClient
-
-from app.db import get_session
-from app.main import app
-from app.models import MealEntry
 
 OATS = {
     "name": "Oats",
@@ -23,23 +18,6 @@ def create_food(
     response = client.post("/foods", json={**OATS, **overrides}, headers=headers)
     assert response.status_code == 201
     return response.json()
-
-
-def add_meal_entry(user_id: int, food_id: int) -> None:
-    """Insert directly: there is no meal entries API yet."""
-    sessions = app.dependency_overrides[get_session]()
-    session = next(sessions)
-    session.add(
-        MealEntry(
-            user_id=user_id,
-            food_id=food_id,
-            eaten_on=date(2026, 10, 31),
-            meal_type="breakfast",
-            grams=50,
-        )
-    )
-    session.commit()
-    sessions.close()
 
 
 def test_create_food_returns_it_with_id(
@@ -161,8 +139,13 @@ def test_delete_food_rejects_food_used_by_meal_entries(
     client: TestClient, auth_headers: dict[str, str]
 ) -> None:
     food = create_food(client, auth_headers)
-    user_id = client.get("/auth/me", headers=auth_headers).json()["id"]
-    add_meal_entry(user_id, food["id"])
+    entry = {
+        "food_id": food["id"],
+        "eaten_on": "2026-10-31",
+        "meal_type": "breakfast",
+        "grams": 50,
+    }
+    assert client.post("/entries", json=entry, headers=auth_headers).status_code == 201
 
     response = client.delete(f"/foods/{food['id']}", headers=auth_headers)
 
