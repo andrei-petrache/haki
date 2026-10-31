@@ -97,7 +97,8 @@ jobs:
       # A throwaway database that exists only for this job: nothing secret here
       DATABASE_URL: postgresql+psycopg://haki:ci-only-password@localhost:5432/haki_test
       TEST_DATABASE_URL: postgresql+psycopg://haki:ci-only-password@localhost:5432/haki_test
-      JWT_SECRET_KEY: ci-only-not-a-secret
+      # The app requires 32+ bytes even here
+      JWT_SECRET_KEY: ci-only-not-a-secret-just-long-enough
     defaults:
       run:
         working-directory: backend
