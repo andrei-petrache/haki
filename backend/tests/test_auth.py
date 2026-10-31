@@ -68,6 +68,16 @@ def test_login_rejects_wrong_password(client: TestClient) -> None:
     assert response.status_code == 401
 
 
+def test_login_rejects_password_longer_than_128_characters(client: TestClient) -> None:
+    signup(client)
+
+    too_long = login(client, password="x" * 129)
+    longest_allowed = login(client, password="x" * 128)
+
+    assert too_long.status_code == 422
+    assert longest_allowed.status_code == 401  # validated, then simply wrong
+
+
 def test_login_gives_same_error_for_unknown_email(client: TestClient) -> None:
     signup(client)
 

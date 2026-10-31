@@ -22,16 +22,18 @@ MealType = Literal["breakfast", "lunch", "dinner", "snack"]
 MAX_DB_ID = 2_147_483_647
 DbId = Annotated[int, Field(ge=1, le=MAX_DB_ID)]  # in request bodies
 IdPath = Annotated[int, Path(ge=1, le=MAX_DB_ID)]  # in URL paths
+# Same limit as signup, so login never hashes an arbitrarily large input
+PASSWORD_MAX_LENGTH = 128
 
 
 class SignupRequest(BaseModel):
     email: EmailStr
-    password: str = Field(min_length=8, max_length=128)
+    password: str = Field(min_length=8, max_length=PASSWORD_MAX_LENGTH)
 
 
 class LoginRequest(BaseModel):
     email: EmailStr
-    password: str
+    password: str = Field(max_length=PASSWORD_MAX_LENGTH)
 
 
 class UserResponse(BaseModel):
