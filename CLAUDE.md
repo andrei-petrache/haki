@@ -16,15 +16,18 @@ See README.md for setup.
 - **Never `git push`.** Andrei does all pushing; an OK for a commit covers
   only the commit.
 - **Never commit on `main`.** It is protected: changes land only through pull
-  requests with all 4 CI checks green (`backend`, `frontend`,
-  `docker (backend)`, `docker (frontend)`); no direct or force pushes.
+  requests with all 6 required CI checks green (`backend`, `frontend`,
+  `docker (backend)`, `docker (frontend)`, `postgres-image`, `integration`);
+  no direct or force pushes. When a change adds or renames a CI job, tell
+  Andrei to update the ruleset's required checks.
 - Start every change on a new branch from an up-to-date `main`, named after
   the change with a type prefix: `feat/...`, `fix/...`, `ci/...`, `docs/...`,
   `refactor/...`, `chore/...` (e.g. `feat/weekly-summary`). Andrei pushes the
   branch and opens the PR. Claude's shell has no SSH agent, so `git fetch` and
   `git pull` fail there: ask Andrei to pull `main` first.
 - Every commit must pass the CI steps on its own (ruff check, ruff format
-  --check, pytest, npm run lint, npm run build).
+  --check, pytest, npm run lint, npm run build). When models or migrations
+  change, also run the integration steps (see Tests).
 - Andrei may edit files between steps; re-read before editing and build on
   their version instead of overwriting it.
 
