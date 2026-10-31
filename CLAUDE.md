@@ -10,9 +10,10 @@ See README.md for setup.
   term **in Romanian**. Code, comments, commit messages and docs stay in English.
 - Work in small steps and run the tests after each step.
 - **Never print, read out or commit `.env`.** Use `.env.example` for shape.
-- **Show the diff and wait for an explicit OK before any `git commit` or
-  `git push`.** New files don't appear in `git diff`; show them too
-  (e.g. `git add -N <path> && git diff`).
+- **Show the diff and wait for an explicit OK before any `git commit`.** New
+  files don't appear in `git diff`; show them too
+  (e.g. `git add -N <path> && git diff`). An OK for a commit also covers
+  pushing it to `origin/main`; any other push needs its own OK.
 - Andrei may edit files between steps; re-read before editing and build on
   their version instead of overwriting it.
 
