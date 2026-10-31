@@ -13,3 +13,6 @@ dist/
 
 # Windows metadata files created when copying into WSL
 *:Zone.Identifier
+
+# Editor settings
+.vscode/
