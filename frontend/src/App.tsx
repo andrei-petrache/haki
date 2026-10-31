@@ -78,6 +78,7 @@ function AuthForm({ onLoggedIn }: { onLoggedIn: (token: string) => void }) {
           onChange={(event) => setPassword(event.target.value)}
           required
           minLength={isSignup ? 8 : undefined}
+          maxLength={128}
           autoComplete={isSignup ? 'new-password' : 'current-password'}
         />
       </label>
