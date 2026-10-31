@@ -179,6 +179,18 @@ def test_unknown_food_returns_404(
     assert response.status_code == 404
 
 
+@pytest.mark.parametrize("method", ["PUT", "DELETE"])
+@pytest.mark.parametrize("food_id", [0, -1, 2**31])
+def test_out_of_range_food_id_returns_422(
+    client: TestClient, auth_headers: dict[str, str], method: str, food_id: int
+) -> None:
+    response = client.request(
+        method, f"/foods/{food_id}", json=OATS, headers=auth_headers
+    )
+
+    assert response.status_code == 422
+
+
 def test_user_cannot_update_another_users_food(
     client: TestClient,
     auth_headers: dict[str, str],

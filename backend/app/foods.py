@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.auth import CurrentUser, SessionDep
 from app.models import Food, User
-from app.schemas import FoodIn, FoodResponse
+from app.schemas import FoodIn, FoodResponse, IdPath
 
 router = APIRouter(prefix="/foods", tags=["foods"])
 
@@ -54,7 +54,7 @@ def create_food(data: FoodIn, current_user: CurrentUser, session: SessionDep) ->
 
 @router.put("/{food_id}", response_model=FoodResponse)
 def update_food(
-    food_id: int, data: FoodIn, current_user: CurrentUser, session: SessionDep
+    food_id: IdPath, data: FoodIn, current_user: CurrentUser, session: SessionDep
 ) -> Food:
     """Replace all fields of one of the current user's foods."""
     food = get_own_food(session, current_user, food_id)
@@ -67,7 +67,7 @@ def update_food(
 
 @router.delete("/{food_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_food(
-    food_id: int, current_user: CurrentUser, session: SessionDep
+    food_id: IdPath, current_user: CurrentUser, session: SessionDep
 ) -> Response:
     """Delete one of the current user's foods, unless meal entries use it."""
     food = get_own_food(session, current_user, food_id)

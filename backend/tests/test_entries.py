@@ -124,6 +124,8 @@ def test_delete_entry_removes_it(
         {"eaten_on": "2026-13-01"},
         {"eaten_on": None},
         {"food_id": "rice"},
+        {"food_id": 0},
+        {"food_id": 2**31},
     ],
 )
 def test_create_entry_rejects_invalid_values(
@@ -190,6 +192,15 @@ def test_unknown_entry_returns_404(
     response = client.delete("/entries/999", headers=auth_headers)
 
     assert response.status_code == 404
+
+
+@pytest.mark.parametrize("entry_id", [0, -1, 2**31])
+def test_out_of_range_entry_id_returns_422(
+    client: TestClient, auth_headers: dict[str, str], entry_id: int
+) -> None:
+    response = client.delete(f"/entries/{entry_id}", headers=auth_headers)
+
+    assert response.status_code == 422
 
 
 @pytest.mark.parametrize(
