@@ -1,5 +1,7 @@
 # Haki
 
+[![CI](https://github.com/andrei-petrache/haki/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/andrei-petrache/haki/actions/workflows/ci.yml)
+
 A fitness and nutrition tracker, built as an end-to-end DevOps learning project:
 from local development to a production-grade deployment on AWS.
 
@@ -9,7 +11,8 @@ from local development to a production-grade deployment on AWS.
 - **Frontend:** React + TypeScript (Vite)
 - **Auth:** Argon2 password hashing, JWT access tokens
 - **Containers:** Docker images for backend and frontend (Nginx), Docker Compose
-- **Coming next:** GitHub Actions CI, Kubernetes, ArgoCD, Terraform on AWS
+- **CI:** GitHub Actions (lint, tests, build, Docker images) on every pull request
+- **Coming next:** Kubernetes, ArgoCD, Terraform on AWS
 
 ## Configuration
 
