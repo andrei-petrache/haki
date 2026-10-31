@@ -79,3 +79,11 @@ http://127.0.0.1:8080. **Never run `docker compose down -v`**: it deletes the
 - Structure tests as arrange / act / assert separated by blank lines. Cover
   happy paths, validation (422), conflicts (409), auth required (401), and
   IDOR (another user gets 404 and the data stays unchanged).
+- Integration tests (`backend/tests/integration/`, marker `integration`) run
+  against a migrated PostgreSQL in `TEST_DATABASE_URL`, each test inside a
+  rolled-back transaction (fixture `db`). The guard in `database.py` refuses
+  any database whose name does not end in `_test`. **Never point
+  `TEST_DATABASE_URL` or a migration/downgrade at the dev database `haki`**;
+  for local checks prefer a throwaway `postgres:18.6-trixie` container.
+- The PostgreSQL image is pinned in two places, `compose.yaml` and the
+  `integration` job in `.github/workflows/ci.yml`: change both together.

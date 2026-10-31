@@ -64,5 +64,31 @@ npm run dev                       # http://localhost:5173
 ## Tests
 
 ```bash
-cd backend && pytest -v
+cd backend && pytest -v           # in-memory SQLite, no setup needed
 ```
+
+### Integration tests (real PostgreSQL)
+
+Tests marked `integration` check the migrations and the database constraints
+against PostgreSQL. They are skipped unless `TEST_DATABASE_URL` is set, and
+refuse to run unless its database name ends in `_test`, so they can never
+touch the development database `haki`. CI runs them on every pull request.
+
+One-time setup: a separate `haki_test` database inside the compose `db`.
+
+```bash
+docker compose up -d db
+docker compose exec db sh -c 'createdb -U "$POSTGRES_USER" haki_test'
+```
+
+Run them from `backend/` with the venv active. Use the `POSTGRES_USER` and
+`POSTGRES_PASSWORD` values from `.env`:
+
+```bash
+export TEST_DATABASE_URL=postgresql+psycopg://USER:PASSWORD@localhost:5432/haki_test
+DATABASE_URL=$TEST_DATABASE_URL alembic upgrade head   # migrates haki_test, not haki
+pytest -m integration -v
+```
+
+Alembic reads `DATABASE_URL`; the prefix on that one command points it at
+`haki_test`. To start over: `docker compose exec db sh -c 'dropdb -U "$POSTGRES_USER" haki_test'`.
