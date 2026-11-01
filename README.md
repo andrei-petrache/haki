@@ -45,6 +45,11 @@ published; Nginx serves the app and proxies `/api/` to the backend.
 Never run `docker compose down -v` unless you mean to delete the database:
 `-v` removes the `db-data` volume.
 
+CI starts this same stack with throwaway credentials on every pull request
+and runs `scripts/smoke-test.sh` against it (page, health, readiness, signup,
+login, authenticated calls). Locally, it creates a test user in your
+database: `scripts/smoke-test.sh [base URL]`.
+
 ## Develop locally
 
 Requirements: Docker, Python 3.14, Node.js 22+.

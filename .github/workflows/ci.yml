@@ -195,3 +195,42 @@ jobs:
         if: matrix.image == 'frontend'
         run: frontend/scripts/check-rate-limit.sh haki-frontend:ci
 
+  # The whole stack as compose runs it (images, migrations, Nginx, backend,
+  # PostgreSQL), smoke-tested through Nginx like a browser would
+  smoke:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # Fresh random values for this run only, masked in the logs. Hex keeps
+      # the password safe to paste into compose's DATABASE_URL.
+      - name: Generate throwaway credentials
+        run: |
+          db_password="$(openssl rand -hex 24)"
+          jwt_secret="$(openssl rand -hex 32)"
+          echo "::add-mask::$db_password"
+          echo "::add-mask::$jwt_secret"
+          {
+            echo "POSTGRES_USER=haki"
+            echo "POSTGRES_DB=haki"
+            echo "POSTGRES_PASSWORD=$db_password"
+            echo "JWT_SECRET_KEY=$jwt_secret"
+          } >> "$GITHUB_ENV"
+
+      - name: Start the stack
+        run: docker compose up -d --build --wait --wait-timeout 300
+
+      - name: Smoke test through Nginx
+        run: scripts/smoke-test.sh
+
+      - name: Show the stack's logs
+        if: failure()
+        run: docker compose logs --no-color
+
+      # The runner is thrown away after the job, so no need to delete volumes
+      - name: Stop the stack
+        if: always()
+        run: docker compose down
