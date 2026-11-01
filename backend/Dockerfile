@@ -17,7 +17,9 @@ ENV PATH="/opt/venv/bin:$PATH"
 # --require-hashes refuses any file whose hash differs; --no-deps refuses any
 # package that is not in the lock.
 COPY requirements.txt .
-RUN pip install --require-hashes --no-deps -r requirements.txt
+RUN pip install --require-hashes --no-deps -r requirements.txt \
+    # pip was only needed to install: the runtime never installs anything
+    && pip uninstall --yes pip
 
 # ---- Runtime: only the venv and the code, no build tooling ----
 FROM python:3.14.9-slim-trixie
@@ -26,10 +28,13 @@ ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     PATH="/opt/venv/bin:$PATH"
 
-# Fixed numeric ids, so Kubernetes can verify runAsNonRoot
+# Fixed numeric ids, so Kubernetes can verify runAsNonRoot. The base image's
+# own pip goes too: no package installer (and its vendored libraries, which
+# scanners flag) in the image that serves traffic.
 RUN groupadd --system --gid 10001 haki \
     && useradd --system --uid 10001 --gid haki --no-create-home \
-       --shell /usr/sbin/nologin haki
+       --shell /usr/sbin/nologin haki \
+    && python -m pip uninstall --yes pip
 
 WORKDIR /app
 
