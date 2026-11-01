@@ -83,6 +83,31 @@ and `main` (moves to the newest commit on `main`). There is no `latest`. The
 docker pull ghcr.io/andrei-petrache/haki-backend:<commit-sha>
 ```
 
+## Releases
+
+Versions follow [SemVer](https://semver.org): `MAJOR.MINOR.PATCH`. A release
+is a tag `vMAJOR.MINOR.PATCH` on a commit of `main` whose CI run passed (so
+its images are already published under the commit SHA). Nothing is rebuilt:
+the release workflow adds the tags `MAJOR.MINOR.PATCH` and `MAJOR.MINOR` to
+those same images (same digests) and creates a GitHub Release with
+auto-generated notes. `MAJOR.MINOR` always points to the newest patch of that
+minor version; `MAJOR.MINOR.PATCH` never moves.
+
+```bash
+git switch main && git pull                # the commit to release, CI green
+git tag -a v1.4.2 -m "Release 1.4.2"       # annotated tag on that commit
+git push origin v1.4.2                     # starts the Release workflow
+```
+
+The workflow refuses a tag that is not `vMAJOR.MINOR.PATCH`, points to a
+commit that is not on `main`, or whose images were never published (CI not
+green), and it never moves an existing `MAJOR.MINOR.PATCH` to another image.
+Its summary lists the promoted digests. Released images:
+
+```bash
+docker pull ghcr.io/andrei-petrache/haki-backend:1.4.2
+```
+
 ## Develop locally
 
 Requirements: Docker, Python 3.14, Node.js 22+.
