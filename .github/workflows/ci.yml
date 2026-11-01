@@ -184,7 +184,8 @@ jobs:
 
       - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
 
-      # Build only; pushing to a registry comes in the next sprint.
+      # The only build of this commit's image: the steps and jobs below scan,
+      # smoke-test and publish this exact image (build once, deploy many).
       # Layers are cached in the GitHub Actions cache, one scope per image.
       - name: Build ${{ matrix.image }} image
         uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
@@ -244,15 +245,49 @@ jobs:
           trivyignores: .trivyignore
           exit-code: "1"
 
+      # Only an image that passed the checks above is handed on, together
+      # with its ID, so later jobs can prove they got this exact image
+      - name: Save the image for the smoke and publish jobs
+        run: |
+          mkdir -p image
+          docker save "haki-${{ matrix.image }}:ci" | gzip -1 \
+            > "image/haki-${{ matrix.image }}.tar.gz"
+          # The ID as this Docker sees it, read the same way load-images.sh does
+          docker image inspect --format '{{.Id}}' "haki-${{ matrix.image }}:ci" \
+            > "image/haki-${{ matrix.image }}.id"
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: image-${{ matrix.image }}
+          path: image/
+          retention-days: 1
+          compression-level: 0  # already gzipped
+
   # The whole stack as compose runs it (images, migrations, Nginx, backend,
-  # PostgreSQL), smoke-tested through Nginx like a browser would
+  # PostgreSQL), smoke-tested through Nginx like a browser would. It runs the
+  # images built by the docker job; nothing is rebuilt here.
   smoke:
+    needs: docker
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: image-*
+          path: image
+          merge-multiple: true
+
+      # compose.yaml names the images haki-<name>:dev; a tag is only a name,
+      # the content (image ID) stays the one checked by load-images.sh
+      - name: Load the built images
+        run: |
+          scripts/load-images.sh image
+          docker tag haki-backend:ci haki-backend:dev
+          docker tag haki-frontend:ci haki-frontend:dev
 
       # Fresh random values for this run only, masked in the logs. Hex keeps
       # the password safe to paste into compose's DATABASE_URL.
@@ -270,7 +305,7 @@ jobs:
           } >> "$GITHUB_ENV"
 
       - name: Start the stack
-        run: docker compose up -d --build --wait --wait-timeout 300
+        run: docker compose up -d --no-build --wait --wait-timeout 300
 
       - name: Smoke test through Nginx
         run: scripts/smoke-test.sh
@@ -283,3 +318,4 @@ jobs:
       - name: Stop the stack
         if: always()
         run: docker compose down
+
