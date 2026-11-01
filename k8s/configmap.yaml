@@ -1,0 +1,18 @@
+# Non-secret settings, passed to containers as environment variables.
+# Secrets (DB_USER, DB_PASSWORD, JWT_SECRET_KEY) live in the Secret
+# haki-secrets, created by hand with kubectl and never committed.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: haki-config
+  namespace: haki
+  labels:
+    app.kubernetes.io/part-of: haki
+data:
+  # The database Service (k8s/postgres.yaml), in the same namespace
+  DB_HOST: haki-db
+  # ConfigMap values are strings, so numbers are quoted
+  DB_PORT: "5432"
+  DB_NAME: haki
+  # The backend Service (k8s/backend.yaml): Nginx resolves it once at start
+  BACKEND_URL: http://haki-backend:8000
