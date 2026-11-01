@@ -1,8 +1,8 @@
 # Haki frontend image: build the React app with Node, serve it with Nginx.
 # Build from the frontend/ directory:
 #   docker build -t haki-frontend:dev .
-# Nginx proxies /api/ to http://backend:8000, so a "backend" host must be
-# resolvable on the container's network when Nginx starts.
+# Nginx proxies /api/ to $BACKEND_URL (default http://backend:8000), chosen
+# when the container starts; that host must resolve when Nginx starts.
 
 # ---- Build: compile the app into static files in dist/ ----
 FROM node:22.23.3-trixie-slim AS build
@@ -32,7 +32,13 @@ USER root
 RUN apk upgrade --no-cache
 USER 101
 
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+# The backend's address is set when the container starts, not baked in:
+# e.g. docker run -e BACKEND_URL=http://haki-backend:8000. The image's
+# entrypoint renders templates/*.template into conf.d with envsubst; the
+# filter limits it to BACKEND_URL, so nginx's own $host, $uri, ... stay as-is.
+ENV BACKEND_URL=http://backend:8000 \
+    NGINX_ENVSUBST_FILTER=^BACKEND_URL$
+COPY nginx.conf.template /etc/nginx/templates/default.conf.template
 # A directory of our own, so none of the image's sample pages are served
 COPY --from=build /app/dist /usr/share/nginx/haki
 
