@@ -107,3 +107,6 @@ http://127.0.0.1:8080. **Never run `docker compose down -v`**: it deletes the
   them with `compose up --no-build`, and `publish` (push to `main` only, after
   all jobs) pushes them to `ghcr.io/andrei-petrache/haki-*` tagged with the
   commit SHA and `main`, never `latest`. Never add a rebuild to a later job.
+  Both GHCR packages are public and linked to the repo: pulls (including
+  from Kubernetes) need no credentials or `imagePullSecret`. Because they are
+  public, never bake secrets into an image.
