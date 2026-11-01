@@ -184,6 +184,10 @@ jobs:
 
       - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
 
+      - name: Read the commit time for the image labels
+        id: commit
+        run: echo "time=$(git log -1 --format=%cI)" >> "$GITHUB_OUTPUT"
+
       # The only build of this commit's image: the steps and jobs below scan,
       # smoke-test and publish this exact image (build once, deploy many).
       # Layers are cached in the GitHub Actions cache, one scope per image.
@@ -195,6 +199,19 @@ jobs:
           # Into the runner's Docker, so the next step can run the image
           load: true
           tags: haki-${{ matrix.image }}:ci
+          # OCI labels: where the image comes from. GHCR also uses "source" to
+          # link the package to this repository. The others replace labels
+          # inherited from the base image (e.g. nginx's title, url and version),
+          # which would describe the wrong image; "created" is the commit time,
+          # not the build time, so it does not change between rebuilds.
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.version=${{ github.sha }}
+            org.opencontainers.image.created=${{ steps.commit.outputs.time }}
+            org.opencontainers.image.title=haki-${{ matrix.image }}
+            org.opencontainers.image.description=Haki ${{ matrix.image }}
+            org.opencontainers.image.url=${{ github.server_url }}/${{ github.repository }}
           cache-from: type=gha,scope=${{ matrix.image }}
           cache-to: type=gha,scope=${{ matrix.image }},mode=max
           # The frontend's runtime stage runs apk upgrade: never reuse it from
@@ -319,3 +336,53 @@ jobs:
         if: always()
         run: docker compose down
 
+  # Publishes the exact images built, scanned and smoke-tested above, without
+  # rebuilding them: only on pushes to main, and only after every other job
+  # passed. Tags: the full commit SHA (immutable, what a deployment pins) and
+  # "main" (moves to the newest commit on main). Never "latest".
+  publish:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [backend, frontend, integration, docker, smoke]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    # The only job that may write packages; job-level permissions replace
+    # the workflow's, so contents: read is repeated here
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: image-*
+          path: image
+          merge-multiple: true
+
+      - name: Load the built images
+        run: scripts/load-images.sh image
+
+      # GITHUB_TOKEN, valid only for this run: no personal token to leak
+      - uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Push to GitHub Container Registry
+        env:
+          REGISTRY: ghcr.io/${{ github.repository_owner }}
+          SHA: ${{ github.sha }}
+        run: |
+          echo "| Image | Digest |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|---|---|" >> "$GITHUB_STEP_SUMMARY"
+          for name in haki-backend haki-frontend; do
+            for tag in "$SHA" main; do
+              docker tag "$name:ci" "$REGISTRY/$name:$tag"
+              docker push --quiet "$REGISTRY/$name:$tag"
+            done
+            digest="$(docker image inspect --format '{{index .RepoDigests 0}}' "$REGISTRY/$name:$SHA")"
+            echo "| \`$REGISTRY/$name:$SHA\` | \`${digest#*@}\` |" >> "$GITHUB_STEP_SUMMARY"
+          done

@@ -102,3 +102,8 @@ http://127.0.0.1:8080. **Never run `docker compose down -v`**: it deletes the
   fixable CRITICAL/HIGH findings. Never silence one without asking Andrei;
   an accepted one goes into `.trivyignore` with a reason and `exp:YYYY-MM-DD`.
   When an entry expires, fix (usually bump the image) or re-justify it.
+- Build once, deploy many: the `docker` job is the only place images are
+  built. It hands them on as artifacts (with their image ID), `smoke` runs
+  them with `compose up --no-build`, and `publish` (push to `main` only, after
+  all jobs) pushes them to `ghcr.io/andrei-petrache/haki-*` tagged with the
+  commit SHA and `main`, never `latest`. Never add a rebuild to a later job.

@@ -61,6 +61,23 @@ docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v "$PWD:/repo:ro" 
   --ignore-unfixed --ignorefile /repo/.trivyignore haki-frontend:dev
 ```
 
+## Published images
+
+Each image is built once per commit in CI; that same image is scanned,
+smoke-tested and, for commits on `main` whose checks all pass, published to
+GitHub Container Registry:
+
+- `ghcr.io/andrei-petrache/haki-backend`
+- `ghcr.io/andrei-petrache/haki-frontend`
+
+Tags: the full commit SHA (never changes; deploy this, or better, its digest)
+and `main` (moves to the newest commit on `main`). There is no `latest`. The
+`publish` job's summary lists each image's digest.
+
+```bash
+docker pull ghcr.io/andrei-petrache/haki-backend:<commit-sha>
+```
+
 ## Develop locally
 
 Requirements: Docker, Python 3.14, Node.js 22+.
