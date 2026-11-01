@@ -1,0 +1,96 @@
+name: Release
+
+# Pushing a tag vMAJOR.MINOR.PATCH releases that commit. Nothing is rebuilt:
+# the images CI already built, tested and published for the commit (tag =
+# commit SHA) get the version tags, and a GitHub Release is created.
+on:
+  push:
+    tags: ["v*.*.*"]
+
+permissions:
+  contents: read
+
+# Never cancel a release half-way
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  promote:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    # The only job that may write packages; job-level permissions replace the
+    # workflow's, so contents: read is repeated here
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      # Full history and all tags: needed to check the commit is on main and
+      # to compare this version with earlier releases
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Check the tag
+        id: tag
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          if [[ ! "$TAG" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
+            echo "::error::$TAG is not vMAJOR.MINOR.PATCH"
+            exit 1
+          fi
+          version="${TAG#v}"
+          minor="${BASH_REMATCH[1]}.${BASH_REMATCH[2]}"
+          # The commit itself, also for annotated tags (a tag object of its own)
+          commit="$(git rev-parse "$TAG^{commit}")"
+          # Only commits that reached main were tested and published by CI
+          if ! git merge-base --is-ancestor "$commit" origin/main; then
+            echo "::error::$TAG points to $commit, which is not on main"
+            exit 1
+          fi
+          # MAJOR.MINOR follows the newest patch of that minor version only:
+          # releasing an older patch later must not move it backwards
+          newest="$(git tag --list "v$minor.*" | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' |
+            sort -V | tail -n 1)"
+          if [[ "$newest" == "$TAG" ]]; then
+            echo "move_minor=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "move_minor=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::$newest is newer than $TAG: $minor stays where it is"
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "commit=$commit" >> "$GITHUB_OUTPUT"
+
+      # GITHUB_TOKEN, valid only for this run: no personal token to leak
+      - uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+
+      - name: Promote the commit's images to ${{ steps.tag.outputs.version }}
+        env:
+          MOVE_MINOR: ${{ steps.tag.outputs.move_minor }}
+        run: >-
+          scripts/promote-images.sh "ghcr.io/${{ github.repository_owner }}"
+          "${{ steps.tag.outputs.commit }}" "${{ steps.tag.outputs.version }}"
+
+  release:
+    needs: promote
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    # The only job that may write repository contents (the Release)
+    permissions:
+      contents: write
+    steps:
+      - name: Create the GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: >-
+          gh release create "$TAG" --repo "$GITHUB_REPOSITORY"
+          --title "$TAG" --generate-notes --verify-tag

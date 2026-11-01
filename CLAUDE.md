@@ -110,3 +110,7 @@ http://127.0.0.1:8080. **Never run `docker compose down -v`**: it deletes the
   Both GHCR packages are public and linked to the repo: pulls (including
   from Kubernetes) need no credentials or `imagePullSecret`. Because they are
   public, never bake secrets into an image.
+- Releases: `.github/workflows/release.yml` runs on a pushed `vX.Y.Z` tag and
+  promotes the commit's published images (`scripts/promote-images.sh`, no
+  rebuild) to `X.Y.Z` and `X.Y`, then creates the GitHub Release. Release tags
+  are Andrei's to create and push; never create, move or delete a `v*` tag.
