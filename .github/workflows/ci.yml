@@ -177,6 +177,12 @@ jobs:
         with:
           context: ${{ matrix.image }}
           push: false
+          # Into the runner's Docker, so the next step can run the image
+          load: true
           tags: haki-${{ matrix.image }}:ci
           cache-from: type=gha,scope=${{ matrix.image }}
           cache-to: type=gha,scope=${{ matrix.image }},mode=max
+
+      - name: Check Nginx config and auth rate limit
+        if: matrix.image == 'frontend'
+        run: frontend/scripts/check-rate-limit.sh haki-frontend:ci
