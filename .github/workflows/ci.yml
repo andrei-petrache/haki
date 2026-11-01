@@ -167,6 +167,12 @@ jobs:
   docker:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
+    # Only this job may write to the Security tab (the SARIF upload below).
+    # Job-level permissions replace the workflow's, so contents: read is
+    # repeated here.
+    permissions:
+      contents: read
+      security-events: write
     strategy:
       fail-fast: false
       matrix:
@@ -190,10 +196,53 @@ jobs:
           tags: haki-${{ matrix.image }}:ci
           cache-from: type=gha,scope=${{ matrix.image }}
           cache-to: type=gha,scope=${{ matrix.image }},mode=max
+          # The frontend's runtime stage runs apk upgrade: never reuse it from
+          # the cache, or the Alpine security fixes would be frozen
+          no-cache-filters: ${{ matrix.image == 'frontend' && 'runtime' || '' }}
 
       - name: Check Nginx config and auth rate limit
         if: matrix.image == 'frontend'
         run: frontend/scripts/check-rate-limit.sh haki-frontend:ci
+
+      # Vulnerability scan of the image just built, run twice: a full report
+      # (every severity, no exceptions) for the Security tab, then the gate.
+      # The vulnerability database is cached by the action, one key per day.
+      - name: Scan ${{ matrix.image }} image (full report)
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          version: v0.76.0
+          image-ref: haki-${{ matrix.image }}:ci
+          scanners: vuln
+          format: sarif
+          output: trivy-${{ matrix.image }}.sarif
+
+      # Only from main: the Security tab tracks the default branch, and the
+      # token in Dependabot and fork pull requests cannot write anyway
+      - name: Upload the report to the Security tab
+        if: github.event_name == 'push'
+        uses: github/codeql-action/upload-sarif@6f2ac81f5cd81fe351a197ba0b00d91d03cd2aee # v4.39.0
+        with:
+          sarif_file: trivy-${{ matrix.image }}.sarif
+          category: image-${{ matrix.image }}
+
+      # Fails only on CRITICAL/HIGH vulnerabilities that already have a fix;
+      # accepted exceptions (with expiry dates) live in .trivyignore
+      - name: Gate on fixable CRITICAL and HIGH vulnerabilities
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        env:
+          # Downloaded by the full report above, in this same job
+          TRIVY_SKIP_DB_UPDATE: true
+          TRIVY_SKIP_JAVA_DB_UPDATE: true
+        with:
+          version: v0.76.0
+          skip-setup-trivy: true
+          image-ref: haki-${{ matrix.image }}:ci
+          scanners: vuln
+          format: table
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+          trivyignores: .trivyignore
+          exit-code: "1"
 
   # The whole stack as compose runs it (images, migrations, Nginx, backend,
   # PostgreSQL), smoke-tested through Nginx like a browser would

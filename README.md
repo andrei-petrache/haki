@@ -50,6 +50,17 @@ and runs `scripts/smoke-test.sh` against it (page, health, readiness, signup,
 login, authenticated calls). Locally, it creates a test user in your
 database: `scripts/smoke-test.sh [base URL]`.
 
+CI also scans both images with Trivy. Every finding goes to the repository's
+Security tab (from `main`); the job fails only on CRITICAL or HIGH
+vulnerabilities that already have a fix. Accepted exceptions live in
+`.trivyignore`, each with a reason and an expiry date. To scan locally:
+
+```bash
+docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v "$PWD:/repo:ro" \
+  aquasec/trivy:0.76.0 image --scanners vuln --severity CRITICAL,HIGH \
+  --ignore-unfixed --ignorefile /repo/.trivyignore haki-frontend:dev
+```
+
 ## Develop locally
 
 Requirements: Docker, Python 3.14, Node.js 22+.

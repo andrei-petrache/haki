@@ -98,3 +98,7 @@ http://127.0.0.1:8080. **Never run `docker compose down -v`**: it deletes the
   `frontend/scripts/check-rate-limit.sh <image>` runs `nginx -t` and checks
   the login/signup rate limit on a built image (CI runs it in
   `docker (frontend)`).
+- Image scanning: the `docker` job scans each image with Trivy and fails on
+  fixable CRITICAL/HIGH findings. Never silence one without asking Andrei;
+  an accepted one goes into `.trivyignore` with a reason and `exp:YYYY-MM-DD`.
+  When an entry expires, fix (usually bump the image) or re-justify it.
