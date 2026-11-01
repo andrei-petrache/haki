@@ -1,3 +1,6 @@
+import threading
+from collections.abc import Iterator
+from contextlib import contextmanager
 from datetime import UTC, datetime, timedelta
 
 import jwt
@@ -9,14 +12,43 @@ from app.config import settings
 password_hash = PasswordHash.recommended()
 
 
+class HashingBusy(Exception):
+    """Every hashing slot stayed busy for longer than the allowed wait."""
+
+
+class ConcurrencyLimit:
+    """Lets at most `capacity` callers in at once; others wait up to `timeout`."""
+
+    def __init__(self, capacity: int, timeout: float) -> None:
+        self._slots = threading.BoundedSemaphore(capacity)
+        self._timeout = timeout
+
+    @contextmanager
+    def slot(self) -> Iterator[None]:
+        if not self._slots.acquire(timeout=self._timeout):
+            raise HashingBusy
+        try:
+            yield
+        finally:
+            self._slots.release()
+
+
+# Bounds memory however many requests arrive, with or without a proxy in front
+hashing_limit = ConcurrencyLimit(
+    settings.password_hash_concurrency, settings.password_hash_wait_seconds
+)
+
+
 def hash_password(password: str) -> str:
     """Return an Argon2 hash of the given plain-text password."""
-    return password_hash.hash(password)
+    with hashing_limit.slot():
+        return password_hash.hash(password)
 
 
 def verify_password(password: str, hashed: str) -> bool:
     """Check a plain-text password against a stored hash."""
-    return password_hash.verify(password, hashed)
+    with hashing_limit.slot():
+        return password_hash.verify(password, hashed)
 
 
 def create_access_token(user_id: int) -> str:

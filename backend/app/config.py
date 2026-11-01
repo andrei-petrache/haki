@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from pydantic import field_validator
+from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # backend/app/config.py -> parents[2] is the repository root, where .env lives
@@ -25,6 +25,11 @@ class Settings(BaseSettings):
     jwt_secret_key: str
     jwt_algorithm: str = "HS256"
     access_token_expire_minutes: int = 30
+    # Each Argon2 hash or check allocates 64 MiB, so at most this many run at
+    # once: about 4 x 64 MiB = 256 MiB. Size the pod's memory limit from it.
+    password_hash_concurrency: int = Field(default=4, ge=1, le=64)
+    # How long a login or signup waits for a free slot before getting a 503
+    password_hash_wait_seconds: float = Field(default=2.0, ge=0, le=30)
 
     @field_validator("jwt_secret_key")
     @classmethod
