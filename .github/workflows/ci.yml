@@ -36,8 +36,13 @@ jobs:
           cache: pip
           cache-dependency-path: backend/requirements*.txt
 
+      # Fails if a .in file changed without recompiling its lock
+      - name: Check that the lock files match the .in files
+        run: scripts/compile-requirements.sh --check
+
+      # The lock carries hashes, so pip verifies every file it installs
       - name: Install dependencies
-        run: pip install -r requirements-dev.txt
+        run: pip install --require-hashes -r requirements-dev.txt
 
       - name: Lint
         run: ruff check .
@@ -114,7 +119,7 @@ jobs:
           cache-dependency-path: backend/requirements*.txt
 
       - name: Install dependencies
-        run: pip install -r requirements-dev.txt
+        run: pip install --require-hashes -r requirements-dev.txt
 
       - name: Migrate an empty database
         run: alembic upgrade head
@@ -189,3 +194,4 @@ jobs:
       - name: Check Nginx config and auth rate limit
         if: matrix.image == 'frontend'
         run: frontend/scripts/check-rate-limit.sh haki-frontend:ci
+

@@ -1,3 +1,6 @@
+# Direct runtime dependencies: the packages the code imports. Hand-edited.
+# After any change run scripts/compile-requirements.sh, which writes the lock
+# requirements.txt (these plus every transitive dependency, with hashes).
 fastapi==0.162.0
 uvicorn==0.54.0
 sqlalchemy==2.1.6
