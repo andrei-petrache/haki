@@ -19,8 +19,18 @@ COPY src ./src
 RUN npm run build
 
 # ---- Runtime: Nginx serving only the built files ----
-# The unprivileged variant already runs as user 101 (nginx) and listens on 8080
-FROM nginxinc/nginx-unprivileged:1.30.6-alpine
+# The unprivileged variant runs as user 101 (nginx) and listens on 8080.
+# 1.30 is the current stable branch (even minor).
+FROM nginxinc/nginx-unprivileged:1.30.6-alpine AS runtime
+
+# Alpine security fixes released after this image was built. A trade-off:
+# two builds on different days may get different patch levels, which is
+# better than shipping known, already-fixed vulnerabilities until a new
+# image appears. Root only for this step, then back to the nginx user.
+# CI rebuilds this stage without cache, so the upgrade runs on every build.
+USER root
+RUN apk upgrade --no-cache
+USER 101
 
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 # A directory of our own, so none of the image's sample pages are served
