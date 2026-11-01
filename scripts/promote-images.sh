@@ -39,6 +39,18 @@ if ! docker buildx imagetools create --help 2>/dev/null | grep -q -- '--prefer-i
   fail "this docker buildx cannot copy a manifest as-is (no --prefer-index)"
 fi
 
+# Media type of what a reference points to, or nothing if it does not exist
+media_type_of() {
+  docker buildx imagetools inspect --raw "$1" 2>/dev/null |
+    python3 -c 'import json, sys; print(json.load(sys.stdin).get("mediaType", ""))' \
+      2>/dev/null || true
+}
+
+tags=("$version")
+if [[ "$move_minor" == true ]]; then
+  tags+=("$minor")
+fi
+
 # Check everything first, so a release is either complete or not made at all
 declare -A digests
 for name in haki-backend haki-frontend; do
@@ -52,13 +64,19 @@ for name in haki-backend haki-frontend; do
   if [[ -n "$current" && "$current" != "$digest" ]]; then
     fail "$image:$version already points to $current, not $digest"
   fi
+
+  # CI only publishes single manifests. A tag on an index or manifest list
+  # (like the wrapper left by a failed release) cannot be moved reliably by
+  # imagetools, which sees the wrapped manifest as already there.
+  for tag in "${tags[@]}"; do
+    case "$(media_type_of "$image:$tag")" in
+      *index* | *manifest.list*)
+        fail "$image:$tag points to an index, not a CI image: delete that package version in GHCR, then release again"
+        ;;
+    esac
+  done
   digests[$name]="$digest"
 done
-
-tags=("$version")
-if [[ "$move_minor" == true ]]; then
-  tags+=("$minor")
-fi
 
 {
   echo "| Image | Tags | Digest |"
