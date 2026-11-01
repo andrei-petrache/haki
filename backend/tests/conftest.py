@@ -3,9 +3,12 @@ import os
 # Tests must not depend on a local .env file or a running database.
 # setdefault keeps a real value if one is already set (e.g. in CI).
 # These must be set before any app module is imported.
-os.environ.setdefault(
-    "DATABASE_URL", "postgresql+psycopg://test:test@localhost:5432/test"
-)
+# A placeholder database for the app's settings, unless the DB_* settings
+# are given (CI's integration job): the two must not be set together.
+if "DB_HOST" not in os.environ:
+    os.environ.setdefault(
+        "DATABASE_URL", "postgresql+psycopg://test:test@localhost:5432/test"
+    )
 os.environ.setdefault("JWT_SECRET_KEY", "test-secret-key-not-for-production")
 
 from collections.abc import Iterator  # noqa: E402

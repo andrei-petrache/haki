@@ -4,11 +4,15 @@
 
 # Shared by migrate and backend. The DATABASE_URL in .env points to localhost
 # for host development; inside the compose network the database host is "db".
+# The parts are passed separately, so any password works as-is, unescaped.
 x-backend: &backend
   build: ./backend
   image: haki-backend:dev
   environment:
-    DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:?set POSTGRES_USER in .env}:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}@db:5432/${POSTGRES_DB:?set POSTGRES_DB in .env}
+    DB_USER: ${POSTGRES_USER:?set POSTGRES_USER in .env}
+    DB_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+    DB_HOST: db
+    DB_NAME: ${POSTGRES_DB:?set POSTGRES_DB in .env}
     JWT_SECRET_KEY: ${JWT_SECRET_KEY:?set JWT_SECRET_KEY in .env (python -c "import secrets; print(secrets.token_urlsafe(32))")}
 
 services:
