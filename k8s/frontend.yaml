@@ -1,0 +1,98 @@
+# The Haki frontend: Nginx serves the React app and proxies /api/ to the
+# backend Service.
+#   kubectl apply -f k8s/frontend.yaml
+#   kubectl -n haki port-forward svc/haki-frontend 8081:8080
+# then open http://127.0.0.1:8081 (8080 stays free for docker compose).
+# Apply it after k8s/backend.yaml: Nginx resolves the backend's name once at
+# start and refuses to start if it does not resolve.
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: haki-frontend
+  namespace: haki
+  labels:
+    app.kubernetes.io/name: haki-frontend
+    app.kubernetes.io/component: web
+    app.kubernetes.io/part-of: haki
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: haki-frontend
+  ports:
+    - name: http
+      port: 8080
+      targetPort: http
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: haki-frontend
+  namespace: haki
+  labels:
+    app.kubernetes.io/name: haki-frontend
+    app.kubernetes.io/component: web
+    app.kubernetes.io/part-of: haki
+spec:
+  # One replica: each Nginx keeps its own login/signup rate limit counters,
+  # so N replicas would let a client through N times the limit
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: haki-frontend
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: haki-frontend
+        app.kubernetes.io/component: web
+        app.kubernetes.io/part-of: haki
+    spec:
+      # Nginx never talks to the Kubernetes API
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      securityContext:
+        # The image's nginx user
+        runAsNonRoot: true
+        runAsUser: 101
+        runAsGroup: 101
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: frontend
+          # The image CI built, scanned and published for this commit of main
+          image: ghcr.io/andrei-petrache/haki-frontend:3feeb2d54f43b8fb999e7d90db8b81f48ecf40f9
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8080
+          env:
+            - name: BACKEND_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: haki-config
+                  key: BACKEND_URL
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+          # No CPU limit: a limit throttles even when the node is idle
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              memory: 128Mi
+          volumeMounts:
+            # The PID file and proxy temporary files
+            - name: tmp
+              mountPath: /tmp
+            # The entrypoint renders the config template here at start; it
+            # also hides the image's own default.conf
+            - name: conf
+              mountPath: /etc/nginx/conf.d
+      volumes:
+        - name: tmp
+          emptyDir: {}
+        - name: conf
+          emptyDir: {}
