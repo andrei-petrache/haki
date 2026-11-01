@@ -1,0 +1,130 @@
+# PostgreSQL for Haki: one pod with its own persistent volume.
+#   kubectl apply -f k8s/postgres.yaml
+# Needs the ConfigMap haki-config and the Secret haki-secrets. The user and
+# password are used only the first time, when the data directory is created:
+# changing them in the Secret later does not change them in the database.
+
+# Headless (no cluster IP): the name haki-db resolves straight to the pod.
+# The StatefulSet needs such a Service for its pods' stable DNS names.
+apiVersion: v1
+kind: Service
+metadata:
+  name: haki-db
+  namespace: haki
+  labels:
+    app.kubernetes.io/name: haki-db
+    app.kubernetes.io/component: database
+    app.kubernetes.io/part-of: haki
+spec:
+  clusterIP: None
+  selector:
+    app.kubernetes.io/name: haki-db
+  ports:
+    - name: postgres
+      port: 5432
+      targetPort: postgres
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: haki-db
+  namespace: haki
+  labels:
+    app.kubernetes.io/name: haki-db
+    app.kubernetes.io/component: database
+    app.kubernetes.io/part-of: haki
+spec:
+  serviceName: haki-db
+  # A single PostgreSQL: more replicas would be separate, unsynced databases
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: haki-db
+  # Deleting or scaling down the StatefulSet keeps the data volume; only
+  # deleting the PVC itself (or the cluster) deletes the data
+  persistentVolumeClaimRetentionPolicy:
+    whenDeleted: Retain
+    whenScaled: Retain
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: haki-db
+        app.kubernetes.io/component: database
+        app.kubernetes.io/part-of: haki
+    spec:
+      # PostgreSQL never talks to the Kubernetes API
+      automountServiceAccountToken: false
+      securityContext:
+        # The image's postgres user (uid/gid 999); the entrypoint then skips
+        # its root-only steps (chown, gosu)
+        runAsNonRoot: true
+        runAsUser: 999
+        runAsGroup: 999
+        fsGroup: 999
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: postgres
+          # Must match services.db.image in compose.yaml, the single source of
+          # truth (CI's integration job reads it there); Kustomize takes over
+          # this pin in S7
+          image: postgres:18.6-trixie
+          ports:
+            - name: postgres
+              containerPort: 5432
+          env:
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: haki-secrets
+                  key: DB_USER
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: haki-secrets
+                  key: DB_PASSWORD
+            - name: POSTGRES_DB
+              valueFrom:
+                configMapKeyRef:
+                  name: haki-config
+                  key: DB_NAME
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+          # No CPU limit: a limit throttles even when the node is idle
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              memory: 512Mi
+          volumeMounts:
+            # Same mount point as in compose.yaml: PostgreSQL 18 keeps its data
+            # in /var/lib/postgresql/18/docker (PGDATA), below it
+            - name: data
+              mountPath: /var/lib/postgresql
+            # The only other places PostgreSQL writes: its socket and lock
+            # file, and temporary files
+            - name: run
+              mountPath: /var/run/postgresql
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: run
+          emptyDir: {}
+        - name: tmp
+          emptyDir: {}
+  # One PVC per pod, named data-haki-db-0, from the default StorageClass
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+        labels:
+          app.kubernetes.io/name: haki-db
+          app.kubernetes.io/part-of: haki
+      spec:
+        accessModes: [ReadWriteOnce]
+        resources:
+          requests:
+            storage: 1Gi
