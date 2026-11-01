@@ -1,0 +1,13 @@
+# Local Kubernetes cluster for Haki, run by kind (Kubernetes in Docker):
+#   kind create cluster --config k8s/kind-config.yaml
+#   kind delete cluster --name haki     (deletes the cluster and its data)
+# kubectl then uses the context "kind-haki".
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+name: haki
+nodes:
+  # One node is both control plane and worker: enough for local development.
+  # The image is pinned by digest, as kind's release notes recommend: the
+  # v1.37.0 image built for kind v0.33.0; a newer kind needs its own digest.
+  - role: control-plane
+    image: kindest/node:v1.37.0@sha256:a1ed56cfb0e7b93589bdf97c8cd566405a265939e3620fc4f5de89adff580ae5

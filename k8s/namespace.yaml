@@ -1,0 +1,8 @@
+# Every Haki resource lives in this namespace, apart from anything else in
+# the cluster
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: haki
+  labels:
+    app.kubernetes.io/part-of: haki
