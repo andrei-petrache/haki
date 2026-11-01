@@ -28,7 +28,8 @@ See README.md for setup.
 - Every commit must pass the CI steps on its own (ruff check, ruff format
   --check, pytest, npm run lint, npm test, npm run build). When models or
   migrations change, also run the integration steps (see Tests); when
-  `frontend/nginx.conf` changes, run `frontend/scripts/check-rate-limit.sh`.
+  `frontend/nginx.conf.template` changes, run
+  `frontend/scripts/check-rate-limit.sh`.
 - Andrei may edit files between steps; re-read before editing and build on
   their version instead of overwriting it.
 
