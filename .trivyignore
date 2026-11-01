@@ -1,0 +1,10 @@
+# Accepted vulnerabilities for the image scan (Trivy). Every entry needs a
+# reason and an expiry date (exp:YYYY-MM-DD): after that date Trivy stops
+# ignoring it and the CI gate fails again. On expiry, do not just move the
+# date: update the image if a fix has shipped, or write down a new reason.
+#
+# Format:
+#   # Why it is accepted, and what removes it (e.g. the image bump that fixes it)
+#   CVE-YYYY-NNNNN exp:YYYY-MM-DD
+#
+# No accepted vulnerabilities at the moment.
