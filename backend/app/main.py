@@ -10,6 +10,7 @@ from app.auth import router as auth_router
 from app.db import database_is_reachable
 from app.entries import router as entries_router
 from app.foods import router as foods_router
+from app.security import HashingBusy
 from app.summary import router as summary_router
 
 logger = logging.getLogger(__name__)
@@ -39,6 +40,21 @@ def database_unavailable(request: Request, exc: Exception) -> JSONResponse:
         status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
         content={"detail": "Service temporarily unavailable, try again shortly"},
         headers={"Retry-After": "5"},
+    )
+
+
+@app.exception_handler(HashingBusy)
+def hashing_busy(request: Request, exc: Exception) -> JSONResponse:
+    """Answer 503 when every password hashing slot stayed busy.
+
+    The server is overloaded as a whole, not this one client: that is a 503
+    (try again shortly), not a 429 (you sent too many requests).
+    """
+    logger.warning("All password hashing slots busy during %s", request.url.path)
+    return JSONResponse(
+        status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+        content={"detail": "Server busy, try again shortly"},
+        headers={"Retry-After": "2"},
     )
 
 
