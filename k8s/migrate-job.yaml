@@ -1,0 +1,94 @@
+# Applies the database migrations once (alembic upgrade head), then exits.
+# Run it before the backend, and again for every new backend image:
+#   kubectl -n haki delete job haki-migrate --ignore-not-found
+#   kubectl apply -f k8s/migrate-job.yaml
+#   kubectl -n haki wait --for=condition=complete job/haki-migrate --timeout=5m
+# A Job's pod template cannot be changed after creation, hence the delete.
+# A Job, not an initContainer: Alembic takes no lock, so migrations must run
+# once, not once per backend replica.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: haki-migrate
+  namespace: haki
+  labels:
+    app.kubernetes.io/name: haki-migrate
+    app.kubernetes.io/component: migrations
+    app.kubernetes.io/part-of: haki
+spec:
+  # Retries cover a database that is still starting; each try is a new pod
+  backoffLimit: 4
+  activeDeadlineSeconds: 300
+  # A replacement pod starts only once the previous one has fully stopped,
+  # so two migrations never run at the same time
+  podReplacementPolicy: Failed
+  # Deleted an hour after it finishes; its logs go with it
+  ttlSecondsAfterFinished: 3600
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: haki-migrate
+        app.kubernetes.io/component: migrations
+        app.kubernetes.io/part-of: haki
+    spec:
+      restartPolicy: Never
+      automountServiceAccountToken: false
+      # No HAKI_DB_PORT=tcp://... and similar variables for every Service:
+      # the settings come only from the env below
+      enableServiceLinks: false
+      securityContext:
+        # The image's haki user
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: migrate
+          # The image CI built, scanned and published for this commit of main
+          image: ghcr.io/andrei-petrache/haki-backend:3feeb2d54f43b8fb999e7d90db8b81f48ecf40f9
+          imagePullPolicy: IfNotPresent
+          command: ["alembic", "upgrade", "head"]
+          env:
+            - name: DB_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: haki-config
+                  key: DB_HOST
+            - name: DB_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: haki-config
+                  key: DB_PORT
+            - name: DB_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: haki-config
+                  key: DB_NAME
+            - name: DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: haki-secrets
+                  key: DB_USER
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: haki-secrets
+                  key: DB_PASSWORD
+            # Unused by migrations, but the settings refuse to load without it
+            - name: JWT_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: haki-secrets
+                  key: JWT_SECRET_KEY
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              memory: 256Mi
