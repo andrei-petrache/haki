@@ -26,8 +26,9 @@ See README.md for setup.
   branch and opens the PR. Claude's shell has no SSH agent, so `git fetch` and
   `git pull` fail there: ask Andrei to pull `main` first.
 - Every commit must pass the CI steps on its own (ruff check, ruff format
-  --check, pytest, npm run lint, npm run build). When models or migrations
-  change, also run the integration steps (see Tests).
+  --check, pytest, npm run lint, npm test, npm run build). When models or
+  migrations change, also run the integration steps (see Tests); when
+  `frontend/nginx.conf` changes, run `frontend/scripts/check-rate-limit.sh`.
 - Andrei may edit files between steps; re-read before editing and build on
   their version instead of overwriting it.
 
@@ -90,3 +91,7 @@ http://127.0.0.1:8080. **Never run `docker compose down -v`**: it deletes the
   for local checks prefer a throwaway container of the image in `compose.yaml`.
 - The PostgreSQL image is pinned only in `compose.yaml` (`services.db.image`);
   the CI job `postgres-image` reads it from there for the `integration` job.
+- Frontend: Vitest (`npm test`), test files next to the code (`*.test.ts`).
+  `frontend/scripts/check-rate-limit.sh <image>` runs `nginx -t` and checks
+  the login/signup rate limit on a built image (CI runs it in
+  `docker (frontend)`).

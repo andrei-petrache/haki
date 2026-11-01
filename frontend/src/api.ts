@@ -102,7 +102,11 @@ async function request<T>(
   if (!response.ok) {
     // Only for authenticated calls: a 401 from /auth/login means wrong password
     if (response.status === 401 && token) onUnauthorized?.()
-    // Our own text: a 503 may also come from a proxy in front, without our JSON
+    // Our own text for both: they come from Nginx too, as HTML, not our JSON.
+    // 429: this client sent too many login/signup attempts (Nginx rate limit)
+    if (response.status === 429) {
+      throw new ApiError(429, 'Too many attempts. Wait a minute, then try again.')
+    }
     if (response.status === 503) {
       throw new ApiError(503, 'Service temporarily unavailable, try again in a moment.')
     }
