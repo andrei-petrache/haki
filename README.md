@@ -12,7 +12,8 @@ from local development to a production-grade deployment on AWS.
 - **Auth:** Argon2 password hashing, JWT access tokens
 - **Containers:** Docker images for backend and frontend (Nginx), Docker Compose
 - **CI:** GitHub Actions (lint, tests, build, Docker images) on every pull request
-- **Coming next:** Kubernetes, ArgoCD, Terraform on AWS
+- **Kubernetes:** a local kind cluster running the published images
+- **Coming next:** Ingress and Kustomize, ArgoCD, Terraform on AWS
 
 ## Configuration
 
@@ -67,6 +68,13 @@ docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v "$PWD:/repo:ro" 
   aquasec/trivy:0.76.0 image --scanners vuln --severity CRITICAL,HIGH \
   --ignore-unfixed --ignorefile /repo/.trivyignore haki-frontend:dev
 ```
+
+## Run on a local Kubernetes cluster
+
+Requirements: Docker, kind, kubectl. The `k8s/` manifests run the whole app
+in a kind cluster with the published images (below): PostgreSQL as a
+StatefulSet, migrations as a Job, then the backend and frontend. See
+[k8s/README.md](k8s/README.md) for the steps, secrets and known limits.
 
 ## Published images
 
