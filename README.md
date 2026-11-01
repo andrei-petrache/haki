@@ -70,6 +70,11 @@ GitHub Container Registry:
 - `ghcr.io/andrei-petrache/haki-backend`
 - `ghcr.io/andrei-petrache/haki-frontend`
 
+Both packages are public (they inherit this public repository's visibility)
+and linked to it, so anyone can pull them without logging in, and Kubernetes
+needs no `imagePullSecret`. They contain no secrets: configuration comes only
+from environment variables at runtime.
+
 Tags: the full commit SHA (never changes; deploy this, or better, its digest)
 and `main` (moves to the newest commit on `main`). There is no `latest`. The
 `publish` job's summary lists each image's digest.
