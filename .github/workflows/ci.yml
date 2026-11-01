@@ -88,7 +88,8 @@ jobs:
         image: ${{ needs.postgres-image.outputs.image }}
         env:
           POSTGRES_USER: haki
-          POSTGRES_PASSWORD: ci-only-password
+          # Every character that once broke the URL or Alembic: % @ / : #
+          POSTGRES_PASSWORD: "ci-only-p%@/:#ss"
           POSTGRES_DB: haki_test
         ports:
           - 5432:5432
@@ -99,9 +100,14 @@ jobs:
           --health-timeout 3s
           --health-retries 10
     env:
-      # A throwaway database that exists only for this job: nothing secret here
-      DATABASE_URL: postgresql+psycopg://haki:ci-only-password@localhost:5432/haki_test
-      TEST_DATABASE_URL: postgresql+psycopg://haki:ci-only-password@localhost:5432/haki_test
+      # A throwaway database that exists only for this job: nothing secret here.
+      # The app and Alembic get the raw password through the DB_* settings;
+      # the tests get the same password percent-encoded in a URL.
+      DB_USER: haki
+      DB_PASSWORD: "ci-only-p%@/:#ss"
+      DB_HOST: localhost
+      DB_NAME: haki_test
+      TEST_DATABASE_URL: "postgresql+psycopg://haki:ci-only-p%25%40%2F%3A%23ss@localhost:5432/haki_test"
       # The app requires 32+ bytes even here
       JWT_SECRET_KEY: ci-only-not-a-secret-just-long-enough
     defaults:
@@ -306,11 +312,12 @@ jobs:
           docker tag haki-backend:ci haki-backend:dev
           docker tag haki-frontend:ci haki-frontend:dev
 
-      # Fresh random values for this run only, masked in the logs. Hex keeps
-      # the password safe to paste into compose's DATABASE_URL.
+      # Fresh random values for this run only, masked in the logs. The
+      # password deliberately ends in % @ / : # to prove compose passes any
+      # password through unescaped (DB_* settings, no URL to build).
       - name: Generate throwaway credentials
         run: |
-          db_password="$(openssl rand -hex 24)"
+          db_password="$(openssl rand -hex 16)%@/:#"
           jwt_secret="$(openssl rand -hex 32)"
           echo "::add-mask::$db_password"
           echo "::add-mask::$jwt_secret"

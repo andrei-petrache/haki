@@ -23,9 +23,16 @@ cp .env.example .env              # then set real values
 Both modes below read `.env`. Compose refuses to start if `POSTGRES_*` or
 `JWT_SECRET_KEY` is missing, and the backend refuses a `JWT_SECRET_KEY` shorter
 than 32 bytes or still set to the `.env.example` placeholder. Generate one with
-`python -c "import secrets; print(secrets.token_urlsafe(32))"`. Its containers build their own `DATABASE_URL`
-with host `db`; the `DATABASE_URL` in `.env` (host `localhost`) is only for
-the backend running on your machine.
+`python -c "import secrets; print(secrets.token_urlsafe(32))"`.
+
+The backend reaches the database in one of two ways, never both:
+
+- `DB_USER`, `DB_PASSWORD`, `DB_HOST`, `DB_PORT` (default 5432) and `DB_NAME`:
+  any password works as-is, with no escaping. Compose's containers use these,
+  taken from `POSTGRES_*` with host `db`, and so will Kubernetes.
+- `DATABASE_URL`, as in `.env` for the backend running on your machine (host
+  `localhost`). Special characters in its password must be percent-encoded
+  (`@` -> `%40`, `%` -> `%25`, `/` -> `%2F`, `:` -> `%3A`, `#` -> `%23`).
 
 ## Run the full stack in containers
 

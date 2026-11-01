@@ -1,16 +1,17 @@
 from logging.config import fileConfig
 
 from alembic import context
-from sqlalchemy import engine_from_config, pool
+from sqlalchemy import create_engine, pool
 
 from app.config import settings
 from app.models import Base
 
 config = context.config
 
-# Read the database URL from the app settings (.env / environment),
-# never from alembic.ini, so no credentials end up in Git.
-config.set_main_option("sqlalchemy.url", settings.database_url)
+# The database URL comes from the app settings (environment / .env), never
+# from alembic.ini, so no credentials end up in Git. It is passed as a URL
+# object, not through config.set_main_option: Alembic's config treats % as
+# interpolation, which breaks percent-encoded passwords.
 
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
@@ -22,7 +23,7 @@ target_metadata = Base.metadata
 def run_migrations_offline() -> None:
     """Generate SQL scripts without connecting to the database."""
     context.configure(
-        url=config.get_main_option("sqlalchemy.url"),
+        url=settings.db_url,
         target_metadata=target_metadata,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
@@ -33,11 +34,7 @@ def run_migrations_offline() -> None:
 
 def run_migrations_online() -> None:
     """Apply migrations directly against the database."""
-    connectable = engine_from_config(
-        config.get_section(config.config_ini_section, {}),
-        prefix="sqlalchemy.",
-        poolclass=pool.NullPool,
-    )
+    connectable = create_engine(settings.db_url, poolclass=pool.NullPool)
     with connectable.connect() as connection:
         context.configure(connection=connection, target_metadata=target_metadata)
         with context.begin_transaction():

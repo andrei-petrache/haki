@@ -36,7 +36,11 @@ See README.md for setup.
 
 - Backend (`backend/`): FastAPI, SQLAlchemy 2 (`Mapped`/`mapped_column`),
   Alembic, PostgreSQL 18 via `docker compose` (service `db`).
-- Config: pydantic-settings reading `../.env` (`app/config.py`).
+- Config: pydantic-settings reading `../.env` (`app/config.py`). Database:
+  `DB_USER`/`DB_PASSWORD`/`DB_HOST`/`DB_PORT`/`DB_NAME` (compose, CI,
+  Kubernetes) or `DATABASE_URL` (local `.env`), never both. Code uses
+  `settings.db_url`, a SQLAlchemy `URL` object: pass it as-is, never turn it
+  into a string (the password would need escaping).
 - Auth: Argon2 via pwdlib, JWT via pyjwt (`app/security.py`, `app/auth.py`).
 - Frontend (`frontend/`): React + TypeScript (Vite), proxies `/api` to `:8000`.
 - Python dependencies: add or change direct ones only in `backend/requirements.in`
