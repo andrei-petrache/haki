@@ -11,13 +11,18 @@
 #                                                           pins are out of date
 #
 # pip-compile runs in the backend's own Python image (read from the
-# Dockerfile), with the pip-tools version Dependabot uses. click is pinned:
-# newer click makes pip-tools 7.5 write "--no-index" into the lock's header,
-# and Dependabot replays that header when it regenerates the lock.
+# Dockerfile), with the pip-tools version Dependabot uses. Its helpers are
+# pinned too, because pip-tools 7.5 only works with some of their versions:
+# - pip: pip-tools uses pip's internal modules, which change between pip
+#   releases (pip 26.2 removed one, breaking pip-tools 7.5). The image's own
+#   pip changes with every Python patch release, so it is replaced here.
+# - click: newer click makes pip-tools 7.5 write "--no-index" into the
+#   lock's header, and Dependabot replays that header to regenerate the lock.
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
-image="$(sed -n 's/^FROM \(python:[^ ]*\).*/\1/p' Dockerfile | head -n 1)"
+# PYTHON_IMAGE overrides it, e.g. to try a newer base image before bumping it
+image="${PYTHON_IMAGE:-$(sed -n 's/^FROM \(python:[^ ]*\).*/\1/p' Dockerfile | head -n 1)}"
 if [[ -z "$image" ]]; then
   echo "No python base image found in backend/Dockerfile" >&2
   exit 1
@@ -34,6 +39,8 @@ fi
 script='
 set -euo pipefail
 python -m venv /tmp/tools
+# pip first, on its own: the tools below must run on this exact pip
+/tmp/tools/bin/pip install --quiet --disable-pip-version-check "pip==26.0.1"
 /tmp/tools/bin/pip install --quiet --disable-pip-version-check \
   "pip-tools==7.5.3" "click==8.1.8"
 
