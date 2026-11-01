@@ -12,9 +12,12 @@ ENV PIP_NO_CACHE_DIR=1 \
 RUN python -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
-# Requirements before code: this layer is rebuilt only when dependencies change
+# Requirements before code: this layer is rebuilt only when dependencies change.
+# requirements.txt is the lock: every package pinned, each with its hashes.
+# --require-hashes refuses any file whose hash differs; --no-deps refuses any
+# package that is not in the lock.
 COPY requirements.txt .
-RUN pip install -r requirements.txt
+RUN pip install --require-hashes --no-deps -r requirements.txt
 
 # ---- Runtime: only the venv and the code, no build tooling ----
 FROM python:3.14.4-slim-trixie

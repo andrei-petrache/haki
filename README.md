@@ -63,6 +63,22 @@ npm install
 npm run dev                       # http://localhost:5173
 ```
 
+### Python dependencies
+
+`backend/requirements.in` lists the direct runtime dependencies and
+`requirements-dev.in` the dev tools; both are edited by hand. The `.txt`
+files are generated locks: every package, including transitive ones, pinned
+with its hashes, so `pip install` refuses anything else. To add, remove or
+upgrade a dependency, edit the `.in` file and regenerate the locks (needs
+Docker; runs pip-compile in the backend's Python image):
+
+```bash
+backend/scripts/compile-requirements.sh                          # after editing a .in
+backend/scripts/compile-requirements.sh --upgrade-package fastapi  # bump one package
+```
+
+Dependabot edits the `.in` files and regenerates the locks itself.
+
 ## Tests
 
 ```bash

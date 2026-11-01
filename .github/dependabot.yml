@@ -8,7 +8,8 @@
 version: 2
 
 updates:
-  # Backend Python packages (requirements.txt and requirements-dev.txt)
+  # Backend Python packages: Dependabot edits requirements.in /
+  # requirements-dev.in and regenerates the pip-compile locks (the .txt files)
   - package-ecosystem: pip
     directory: /backend
     schedule:

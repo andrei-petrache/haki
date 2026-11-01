@@ -1,0 +1,9 @@
+# Development and test tools, on top of the runtime dependencies.
+# Hand-edited; compile with scripts/compile-requirements.sh into
+# requirements-dev.txt. The constraint keeps every shared package at the
+# exact version the image uses (requirements.txt).
+-c requirements.txt
+-r requirements.in
+httpx2==2.16.0
+pytest==9.1.1
+ruff==0.17.1

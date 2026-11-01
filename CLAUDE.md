@@ -39,8 +39,11 @@ See README.md for setup.
 - Config: pydantic-settings reading `../.env` (`app/config.py`).
 - Auth: Argon2 via pwdlib, JWT via pyjwt (`app/security.py`, `app/auth.py`).
 - Frontend (`frontend/`): React + TypeScript (Vite), proxies `/api` to `:8000`.
-- Dependencies are pinned in `backend/requirements.txt` and
-  `requirements-dev.txt`; pin any new one there.
+- Python dependencies: add or change direct ones only in `backend/requirements.in`
+  (runtime) or `requirements-dev.in` (tools), then run
+  `backend/scripts/compile-requirements.sh` to regenerate the hashed locks
+  `requirements.txt` / `requirements-dev.txt`. Never edit the `.txt` locks by
+  hand; CI fails if they don't match the `.in` files.
 
 ## Commands
 
