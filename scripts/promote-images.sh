@@ -33,6 +33,12 @@ digest_of() {
   docker buildx imagetools inspect "$1" --format '{{.Manifest.Digest}}' 2>/dev/null || true
 }
 
+# Without --prefer-index=false, imagetools wraps a single-platform manifest
+# (what CI publishes) in a NEW index, so the tags would get another digest
+if ! docker buildx imagetools create --help 2>/dev/null | grep -q -- '--prefer-index'; then
+  fail "this docker buildx cannot copy a manifest as-is (no --prefer-index)"
+fi
+
 # Check everything first, so a release is either complete or not made at all
 declare -A digests
 for name in haki-backend haki-frontend; do
@@ -66,8 +72,9 @@ for name in haki-backend haki-frontend; do
   for tag in "${tags[@]}"; do
     args+=(--tag "$image:$tag")
   done
-  # New names for an existing manifest: nothing is built, the digest stays
-  docker buildx imagetools create "${args[@]}" "$image@$digest"
+  # New names for the existing manifest, copied byte for byte: nothing is
+  # built or wrapped, so the tags point to the exact tested digest
+  docker buildx imagetools create --prefer-index=false "${args[@]}" "$image@$digest"
 
   for tag in "${tags[@]}"; do
     [[ "$(digest_of "$image:$tag")" == "$digest" ]] ||
