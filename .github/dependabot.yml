@@ -41,14 +41,19 @@ updates:
       frontend-minor-patch:
         patterns: ["*"]
         update-types: [minor, patch]
+    ignore:
+      # Types for the Node.js runtime: a new major follows the Node upgrade,
+      # which we do deliberately (see the docker section below)
+      - dependency-name: "@types/node"
+        update-types: [version-update:semver-major]
     commit-message:
       prefix: deps(frontend)
       prefix-development: deps-dev(frontend)
 
   # Base images in the Dockerfiles (python, node, nginx-unprivileged).
-  # Only patches are grouped: a minor bump of an image tag can be a big change
-  # (python 3.14 -> 3.15, nginx 1.28 stable -> 1.29 mainline), so it gets its
-  # own pull request. Docker supports only default-days for the cooldown.
+  # Only patches are grouped: a minor bump of an image tag can be a big change,
+  # so it gets its own pull request. Docker supports only default-days for the
+  # cooldown.
   - package-ecosystem: docker
     directories: [/backend, /frontend]
     schedule:
@@ -62,6 +67,21 @@ updates:
       docker-patch:
         patterns: ["*"]
         update-types: [patch]
+    # Runtime upgrades are done deliberately, together with the versions used
+    # in CI (setup-python, setup-node) and locally, never as a routine bump
+    ignore:
+      # Python minors change the language (3.14 -> 3.15); patches still come
+      - dependency-name: python
+        update-types:
+          - version-update:semver-minor
+          - version-update:semver-major
+      # A new Node major (22 -> 24, 26) also moves @types/node and the CI version
+      - dependency-name: node
+        update-types: [version-update:semver-major]
+      # Odd nginx minors are the mainline branch; we stay on stable (even).
+      # Docker versions use Bundler syntax: "~> 1.31.0" means >= 1.31.0, < 1.32
+      - dependency-name: nginxinc/nginx-unprivileged
+        versions: ["~> 1.29.0", "~> 1.31.0", "~> 1.33.0", "~> 1.35.0"]
     commit-message:
       prefix: deps(docker)
 
