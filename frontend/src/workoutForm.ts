@@ -3,8 +3,10 @@
  * which exercises to create first, and the request body. No React, no fetch.
  */
 import type { Exercise, Workout, WorkoutInput } from './api'
+import { localDateString, shiftDate } from './format'
 
 // Must match the limits in backend/app/schemas.py
+export const EARLIEST_WORKOUT_DATE = '2000-01-01'
 export const MAX_EXERCISES = 50
 export const MAX_SETS = 50
 export const MAX_NAME_LENGTH = 100
@@ -107,11 +109,32 @@ function setError(set: SetFields): string | null {
   return null
 }
 
-/** Everything the API would reject, found before sending. Empty means valid. */
-export function validateWorkout(fields: WorkoutFields): FormErrors {
+/** What is wrong with the date, or null if nothing is. */
+function dateError(day: string, today: string): string | null {
+  // A cleared date input gives ''; anything not YYYY-MM-DD counts as cleared
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) return 'Choose a date'
+  // Tomorrow, as the API allows: the user's local day can be ahead of its own
+  const latest = shiftDate(today, 1)
+  // YYYY-MM-DD strings sort like the dates they stand for
+  if (day < EARLIEST_WORKOUT_DATE || day > latest) {
+    return `The date must be from ${EARLIEST_WORKOUT_DATE} to ${latest}`
+  }
+  return null
+}
+
+/**
+ * Everything the API would reject, found before sending. Empty means valid.
+ *
+ * today is the user's local day, as YYYY-MM-DD.
+ */
+export function validateWorkout(
+  fields: WorkoutFields,
+  today: string = localDateString(),
+): FormErrors {
   const errors: FormErrors = {}
 
-  if (fields.performedOn === '') errors[DATE_KEY] = 'Choose a date'
+  const date = dateError(fields.performedOn, today)
+  if (date) errors[DATE_KEY] = date
   if (fields.note.trim().length > MAX_NOTE_LENGTH) {
     errors[NOTE_KEY] = `The note can have at most ${MAX_NOTE_LENGTH} characters`
   }
