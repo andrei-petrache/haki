@@ -21,6 +21,11 @@ can be verified, even when it is slower.
 | A separate test account, deleted at the end with SQL | My development data stays clean |
 | Leave the minimatch alert open | It is only in dev tools; `npm audit fix --force` would break ESLint |
 | Never `docker compose down -v` | It deletes the `db-data` volume with my data |
+| ArgoCD may not touch Secrets or volumes | The project's whitelist leaves them out: a bad commit cannot delete the data |
+| Take staging over by hand first, automated sync only after | See the diff before anything changes; the takeover kept every pod and the volume |
+| No automatic retry of a failed sync (`retry.limit: 0`) | The default is 5 retries, and each would run the migration again |
+| Prune only at the end of a sync (`PruneLast`) | An old ConfigMap must stay while a pod may still use it; the failed-migration test showed it |
+| No ArgoCD CLI; `kubectl` and the UI only | One binary less to download and pin; `kubectl patch` starts a sync |
 
 ## Bugs caught before they shipped
 
@@ -40,3 +45,5 @@ can be verified, even when it is slower.
 | `pg_isready` on the socket passed on PostgreSQL's temporary init server (L18) | `migrate` and `backend` starting just before the database restarts | Check readiness the way clients connect: over TCP |
 | A database outage gave 502 from Nginx in Kubernetes (L19) | Clients saw a broken gateway instead of "try again in 5 s" | When the proxy answers for the backend, answer what the backend would |
 | My own review suggested PreSync for migrations | The migration would look for a ConfigMap that does not exist yet | Check the official documentation, even for what you wrote yourself |
+| The S8 plan, read from v3.6-rc4's code, said self-heal never runs the migration | Wrong expectations about when Alembic runs | A test beats a code reading: on v3.5.7 a full sync runs it, a selective self-heal does not |
+| In yq, `== "*"` matches anything, and `-N` merges files into one document | CI checks that always pass, or always fail | Test every new check against a broken copy before trusting it |

@@ -19,7 +19,7 @@ Newest first. Sprints follow the project plan; the review is
 | --- | --- | --- | --- |
 | 2 Nov | Review fixes | L16: the migrations no longer get the JWT secret (Compose and Kubernetes), on staging and prod | `69ce02a`, `081c5f2` |
 | 2 Nov | Review fixes | L18: PostgreSQL healthcheck over TCP in Compose; L19: 503 instead of 502 when the backend is unreachable, on staging and prod | `55c15c1`, `75ddf7c`, `239baf2` |
-| 2 Nov | S8 (planned) | ArgoCD plan written on the v3.6 docs; starting with v3.5.7 instead of waiting (see plan) | - |
+| 2 Nov | S8 (day 1) | ArgoCD v3.5.7 installed; projects locked to staging; sync waves; staging taken over with every pod and volume kept; automated sync; drift, self-heal and failed-migration tests passed | `4aa0aa3`, `6d7fe48`, `7ece061` |
 | 2 Nov | Workouts | Workouts, exercises and sets: tables, API, UI; staging, then prod | `ce9b0d9`..`4ad4f92` |
 | 2 Nov | S7 | Kustomize (base + staging/prod), kubeconform in CI, probes, Envoy Gateway, real client IP in Nginx | `3690a2b`..`9ae95d2` |
 | 1-2 Nov | S6 | Local kind cluster: PostgreSQL StatefulSet, migrations as a Job, backend and frontend behind Services | `35c931d`..`c7da6dd` |
@@ -49,8 +49,22 @@ without my OK.
 ## Where I am
 
 Staging and prod run `081c5f2`: Workouts and the L16, L18 and L19 fixes.
-Next is S8, GitOps with ArgoCD, started on 2 November 2026 with v3.5.7
-instead of waiting for v3.6.0 (see the [plan](plan.md)).
+S8 is half done: since 2 November 2026 ArgoCD v3.5.7 manages staging, with
+automated sync, prune and self-heal; prod stays manual until S9.
+
+S8 results so far, all on staging:
+
+| Test | Result |
+| --- | --- |
+| Takeover | Manual first sync in 16 s; same pods, ReplicaSets, volume and rows; the migration hook ran as a no-op |
+| Drift, self-heal off | Detected as OutOfSync in about 1 s; left alone for 30 s |
+| Self-heal back on | Back to Git in 13 s, through a full sync (the migration ran, as a no-op) |
+| A Deployment deleted by hand | Recreated in about 1 s by a selective sync; the migration did not run |
+| A failing migration | The sync stopped at the hook: backend and frontend kept their images and pods, the old ConfigMap stayed (PruneLast), no retry, the app kept working |
+| Back to `main` | Synced and Healthy; the test ConfigMap was pruned |
+
+Next in S8: a change through a pull request, timed from merge to cluster,
+and a rollback with `git revert`. Then S9 (see the [plan](plan.md)).
 
 Open items, outside the sprints:
 
