@@ -180,6 +180,33 @@ describe('validateWorkout', () => {
 
     expect(validateWorkout(fields)).toEqual({ [DATE_KEY]: 'Choose a date' })
   })
+
+  it('accepts dates from 2000-01-01 to tomorrow, local', () => {
+    for (const performedOn of ['2000-01-01', '2026-11-02', '2026-11-03']) {
+      const fields = { ...workout(block('1', [['5', '60']])), performedOn }
+
+      expect(validateWorkout(fields, '2026-11-02'), performedOn).toEqual({})
+    }
+  })
+
+  it('rejects dates before 2000-01-01 or after tomorrow', () => {
+    for (const performedOn of ['1999-12-31', '2026-11-04', '2099-01-01']) {
+      const fields = { ...workout(block('1', [['5', '60']])), performedOn }
+
+      expect(validateWorkout(fields, '2026-11-02'), performedOn).toEqual({
+        [DATE_KEY]: 'The date must be from 2000-01-01 to 2026-11-03',
+      })
+    }
+  })
+
+  it('finds tomorrow across the end of a year', () => {
+    const fields = { ...workout(block('1', [['5', '60']])), performedOn: '2027-01-01' }
+
+    expect(validateWorkout(fields, '2026-12-31')).toEqual({})
+    expect(validateWorkout({ ...fields, performedOn: '2027-01-02' }, '2026-12-31')).toEqual({
+      [DATE_KEY]: 'The date must be from 2000-01-01 to 2027-01-01',
+    })
+  })
 })
 
 describe('exercisesToCreate', () => {
