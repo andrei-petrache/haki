@@ -7,7 +7,9 @@ can be verified, even when it is slower.
 
 | Decision | Why |
 | --- | --- |
-| Wait for ArgoCD v3.6.0 final + 7 days, not v3.5.6 | v3.5.6 is not tested on Kubernetes 1.37; a new cluster on 1.36 would delete the data |
+| Start S8 with ArgoCD v3.5.7 now, not v3.6.0 in a week | The cluster is local and rebuildable; a known, documented gap (not tested on 1.37) beats a week of waiting. First planned the other way, then changed |
+| Never move the cluster to Kubernetes 1.36 for ArgoCD | `kind delete cluster` would delete the data |
+| The migrations get only the database settings (L16) | Least privilege: a pod gets only the secrets it uses |
 | Migration hook in the Sync phase, not PreSync | ConfigMaps carry a hash in their name; a PreSync hook would start before the new ConfigMap exists |
 | Prod stays on the manual phases during S8 | Learn ArgoCD on staging first; promotion to prod with approval comes in S9 |
 | Envoy Gateway instead of ingress-nginx | ingress-nginx was retired; Gateway API is its maintained successor |

@@ -5,6 +5,7 @@ that I take from local code to Docker, CI, Kubernetes, GitOps and, at the end,
 AWS. The app is the pretext; the point is the road to production. This journal
 records what I built, what I learned and why I chose what I chose.
 
+- [Plan](plan.md): the sprints from S0 to S14 and where each one stands.
 - [Glossary](glossary.md): every new term, explained in one line.
 - [Decisions and lessons](decisions.md): the choices that shaped the project
   and the bugs that review and tests caught before they shipped.
@@ -16,8 +17,9 @@ Newest first. Sprints follow the project plan; the review is
 
 | Date | Sprint | What shipped | Key commits |
 | --- | --- | --- | --- |
-| 2 Nov | Review fixes | L18: PostgreSQL healthcheck over TCP in Compose; L19: 503 instead of 502 when the backend is unreachable, on staging and prod | `55c15c1`, `75ddf7c`, `0300b41` |
-| 2 Nov | S8 (waiting) | ArgoCD plan; installing waits for v3.6.0, tested on Kubernetes 1.37 | - |
+| 2 Nov | Review fixes | L16: the migrations no longer get the JWT secret (Compose and Kubernetes), on staging and prod | `69ce02a`, `081c5f2` |
+| 2 Nov | Review fixes | L18: PostgreSQL healthcheck over TCP in Compose; L19: 503 instead of 502 when the backend is unreachable, on staging and prod | `55c15c1`, `75ddf7c`, `239baf2` |
+| 2 Nov | S8 (planned) | ArgoCD plan written on the v3.6 docs; starting with v3.5.7 instead of waiting (see plan) | - |
 | 2 Nov | Workouts | Workouts, exercises and sets: tables, API, UI; staging, then prod | `ce9b0d9`..`4ad4f92` |
 | 2 Nov | S7 | Kustomize (base + staging/prod), kubeconform in CI, probes, Envoy Gateway, real client IP in Nginx | `3690a2b`..`9ae95d2` |
 | 1-2 Nov | S6 | Local kind cluster: PostgreSQL StatefulSet, migrations as a Job, backend and frontend behind Services | `35c931d`..`c7da6dd` |
@@ -46,22 +48,15 @@ without my OK.
 
 ## Where I am
 
-Staging and prod run `8043e8b`: Workouts and the L18 and L19 fixes. S8
-(GitOps with ArgoCD)
-is planned but waits for ArgoCD v3.6.0 plus the 7-day cooldown, so around
-10 November 2026: the current stable v3.5.6 is not tested on Kubernetes 1.37,
-and a new cluster on 1.36 would delete the data.
+Staging and prod run `081c5f2`: Workouts and the L16, L18 and L19 fixes.
+Next is S8, GitOps with ArgoCD, started on 2 November 2026 with v3.5.7
+instead of waiting for v3.6.0 (see the [plan](plan.md)).
 
-Next, while waiting:
+Open items, outside the sprints:
 
-- [ ] Review the S8 plan and recheck it on v3.6.0 final
-- [x] L18 (PostgreSQL healthcheck in Compose) and L19 (502 instead of 503)
-- [ ] Review items L16 (JWT secret in the migration Job) and L17 (our copy
-      of `nginx.conf` can fall behind the image's)
+- [x] L16, L18 and L19 from the review
+- [ ] L17: our copy of `nginx.conf` can fall behind the image's
 - [ ] Envoy Gateway v1.10, tested on Kubernetes 1.37
 - [ ] Group the Trivy findings in the backend image and pick a slimmer base
 - [ ] L21: an unsaved workout is lost when the tab changes
 - [ ] Move the Playwright browser checks into the repository, as a CI job
-
-Later: S9 brings promotion to prod with approval, S11 the dashboard with
-progress charts, then Terraform on AWS.
