@@ -1,0 +1,18 @@
+# ArgoCD's built-in "default" project, emptied of every permission: out of
+# the box it allows any repository, any cluster and every kind, so an
+# Application created by mistake without a project could deploy anything.
+# Now such an Application is refused until it names a real project (haki).
+# The example from ArgoCD's projects.md ("The Default Project").
+#   kubectl apply -f k8s/argocd/default-project.yaml
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: default
+  namespace: argocd
+spec:
+  sourceRepos: []
+  sourceNamespaces: []
+  destinations: []
+  namespaceResourceBlacklist:
+    - group: "*"
+      kind: "*"

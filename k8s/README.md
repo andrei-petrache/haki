@@ -18,6 +18,8 @@ every environment shares, and each overlay in `overlays/` adds what differs.
 | `base/frontend.yaml` | Deployment `haki-frontend` (1 replica), Service on port 8080 |
 | `base/gateway.yaml` | Gateway `haki` (HTTP, port 80) and HTTPRoute to the frontend; the Envoy proxy's settings (EnvoyProxy, ClientTrafficPolicy) |
 | `platform/gatewayclass.yaml` | the GatewayClass `envoy-gateway`: cluster-wide, applied once, not by an overlay |
+| `argocd/project.yaml` | the ArgoCD project `haki`: this repository only, into `haki-staging` only, no Secrets and no volumes |
+| `argocd/default-project.yaml` | ArgoCD's `default` project, emptied of every permission |
 | `overlays/prod/` | namespace `haki`; the app image tags; the frontend's `BACKEND_URL` |
 | `overlays/staging/` | namespace `haki-staging`, its own database, 1 backend replica; its own image tags and `BACKEND_URL` |
 
@@ -99,6 +101,75 @@ new version needs the CRD steps from that release's upgrade notes as well as
 
 For each Gateway, Envoy Gateway runs an Envoy proxy (Deployment and Service)
 in `envoy-gateway-system`, named after the Gateway's namespace and name.
+
+## ArgoCD
+
+[ArgoCD](https://argo-cd.readthedocs.io) v3.5.7 keeps the cluster in line
+with Git (GitOps). It is installed by hand, once per cluster, like Envoy
+Gateway, in its own namespace `argocd`. In S8 it manages staging only; prod
+keeps the manual phases below until S9.
+
+The manifest is taken from the release's commit, not its tag (a tag can
+move, a commit cannot), and applied only after its SHA-256 matches. The
+release publishes no checksum for it, so the one below was computed here
+from that commit's file:
+
+```bash
+kubectl config current-context   # must print kind-haki
+
+tmp="$(mktemp -d)" && cd "$tmp"
+# v3.5.7 = commit 6d732962f61a99c2a0f221fd26b9aac7c83bcf18
+curl -fsSLo install.yaml \
+  https://raw.githubusercontent.com/argoproj/argo-cd/6d732962f61a99c2a0f221fd26b9aac7c83bcf18/manifests/install.yaml
+sha256sum -c - <<'EOF'
+09bfbb9041b4a8503c6e4fa22cf41c403fa62be17526de353648a4551f5beb77  install.yaml
+EOF
+grep -o 'image: .*' install.yaml | sort -u    # argocd:v3.5.7, no -rc
+kubectl create namespace argocd
+kubectl apply -n argocd --server-side --force-conflicts -f install.yaml
+cd - >/dev/null && rm -rf "$tmp"
+
+kubectl -n argocd rollout status deployment/argocd-server --timeout=5m
+kubectl -n argocd rollout status statefulset/argocd-application-controller --timeout=5m
+
+kubectl apply -f k8s/argocd/default-project.yaml -f k8s/argocd/project.yaml
+```
+
+`--server-side`: the ApplicationSet CRD is larger than the 262,144 bytes
+that kubectl's client-side apply can keep in its `last-applied-configuration`
+annotation, so the API server merges the fields instead.
+`--force-conflicts` lets an upgrade take over the fields a previous apply
+owned.
+
+The projects are ArgoCD's boundary: `project.yaml` allows this repository
+only, the `haki-staging` namespace only and only the kinds the staging
+overlay renders, never Secrets or PersistentVolumeClaims. The `default`
+project allows nothing, so an Application without a project deploys
+nothing. `check-manifests.sh` fails on any change that widens them.
+
+### Open the UI
+
+Only through a tunnel, never exposed: `kubectl port-forward` listens on
+127.0.0.1 only.
+
+```bash
+kubectl -n argocd port-forward svc/argocd-server 8443:443   # https://127.0.0.1:8443
+```
+
+The certificate is self-signed, so the browser warns once. Log in as
+`admin`. The first password is in a Secret; copy it straight to the Windows
+clipboard, so it is never shown, never in the shell history and never in a
+file:
+
+```bash
+kubectl -n argocd get secret argocd-initial-admin-secret \
+  -o jsonpath='{.data.password}' | base64 -d | clip.exe
+```
+
+Then, in the UI, User Info → Update password, with a new password from a
+password manager; empty the clipboard (`printf '' | clip.exe`) and delete
+the initial Secret, which ArgoCD no longer uses:
+`kubectl -n argocd delete secret argocd-initial-admin-secret`.
 
 ## Start from scratch
 
@@ -279,7 +350,16 @@ this touches the Compose `db-data` volume.
   own, and the chart with `--set crds.enabled=false`.
 - **Envoy Gateway is installed by hand,** with Helm, outside Kustomize and CI
   (version, checksum and reinstall above). Its version is pinned only in this
-  README; ArgoCD (S8) can take the Helm release over.
+  README.
+- **ArgoCD v3.5.7 is not tested on Kubernetes 1.37:** its compatibility
+  matrix lists 1.33-1.36; 1.37 arrives with v3.6. Chosen on 2 November 2026
+  instead of waiting for v3.6.0 and its 7-day cooldown: the cluster is local
+  and can be rebuilt. Move to v3.6.x once it is out (new commit and
+  checksum above).
+- **ArgoCD is installed by hand** and its version is pinned only in this
+  README, like Envoy Gateway's. Its controller has rights on the whole
+  cluster: the `haki` project limits what ArgoCD does, not what its service
+  account could do.
 - **Client IP behind a load balancer (AWS):** the ClientTrafficPolicy drops
   every incoming X-Forwarded-For because nothing stands in front of Envoy
   here. Behind a load balancer that sets the header, keep its entry instead

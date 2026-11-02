@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
-# Checks k8s/platform and every overlay in k8s/overlays: each overlay builds
-# with kustomize, every resource matches the API schemas of the cluster's
-# Kubernetes version (taken from the node image in k8s/kind-config.yaml) or
-# of its custom resource, PostgreSQL runs the image pinned in compose.yaml,
-# the app images are pinned to a commit SHA, and the frontend proxies to the
-# backend of its own namespace.
+# Checks k8s/platform, k8s/argocd and every overlay in k8s/overlays: each
+# overlay builds with kustomize, every resource matches the API schemas of the
+# cluster's Kubernetes version (taken from the node image in
+# k8s/kind-config.yaml) or of its custom resource, the ArgoCD projects allow
+# no more than staging from this repository, PostgreSQL runs the image pinned
+# in compose.yaml, the app images are pinned to a commit SHA, and the frontend
+# proxies to the backend of its own namespace.
 #
 # Usage: k8s/scripts/check-manifests.sh   (from the repository root)
 # Needs kustomize, kubeconform and mikefarah/yq (scripts/install-tools.sh).
@@ -31,9 +32,10 @@ schemas_commit=e0c72a1bc5f409d1685c0e1323460c8a98cd7459
 schemas="https://raw.githubusercontent.com/yannh/kubernetes-json-schema/$schemas_commit"
 schema_location="$schemas/{{ .NormalizedKubernetesVersion }}-standalone{{ .StrictSuffix }}/{{ .ResourceKind }}{{ .KindSuffix }}.json"
 
-# Custom resources (Gateway API, Envoy Gateway) are not in that repository:
-# their schemas come from datreeio/CRDs-catalog, also at a fixed commit.
-# Move it forward when Envoy Gateway (and its Gateway API CRDs) is upgraded.
+# Custom resources (Gateway API, Envoy Gateway, ArgoCD) are not in that
+# repository: their schemas come from datreeio/CRDs-catalog, also at a fixed
+# commit. Move it forward when Envoy Gateway (and its Gateway API CRDs) or
+# ArgoCD is upgraded, and check the schemas still match the installed CRDs.
 crd_schemas_commit=27233a506de0085e71c7f9702597806a7f95eb24
 crd_schemas="https://raw.githubusercontent.com/datreeio/CRDs-catalog/$crd_schemas_commit"
 crd_schema_location="$crd_schemas/{{ .Group }}/{{ .ResourceKind }}_{{ .ResourceAPIVersion }}.json"
@@ -50,6 +52,41 @@ db_image="$(yq '.services.db.image' compose.yaml)"
 # Cluster-wide resources, applied once per cluster, not by an overlay
 echo "== k8s/platform (Kubernetes $k8s_version)"
 validate k8s/platform
+
+# ArgoCD's projects and applications, applied by hand. The project is the
+# boundary ArgoCD enforces, so a change that widens it must fail here first.
+echo "== k8s/argocd (Kubernetes $k8s_version)"
+validate k8s/argocd
+# Without -N: the files stay separate documents (---), not one merged map
+argocd="$(yq '.' k8s/argocd/*.yaml)"
+project() {  # project <name> <yq expression>: evaluated on that AppProject
+  # Picked out first: an expression after select still yields once for each
+  # of the other documents (e.g. [] | length gives 0 for them too)
+  yq -N "select(.kind == \"AppProject\" and .metadata.name == \"$1\")" <<<"$argocd" |
+    yq -N "$2"
+}
+repo=https://github.com/andrei-petrache/haki.git
+[[ "$(project haki '.spec.sourceRepos | join(",")')" == "$repo" ]] \
+  || fail "AppProject haki: sourceRepos must be exactly $repo"
+[[ "$(project haki '.spec.destinations | map(.server + " " + .namespace) | join(",")')" \
+  == "https://kubernetes.default.svc haki-staging" ]] \
+  || fail "AppProject haki: the only destination must be haki-staging on this cluster"
+[[ "$(project haki '.spec.clusterResourceWhitelist
+    | map(.group + "/" + .kind + "/" + (.name // "")) | join(",")')" == "/Namespace/haki-staging" ]] \
+  || fail "AppProject haki: the only cluster-scoped resource must be Namespace haki-staging"
+# test("^[*]$"), not == "*": in yq, == "*" is a wildcard that matches anything
+[[ "$(project haki '[.spec.namespaceResourceWhitelist[]
+    | select(.kind == "Secret" or .kind == "PersistentVolumeClaim"
+      or (.kind | test("^[*]$")) or (.group | test("^[*]$")))] | length')" == 0 ]] \
+  || fail "AppProject haki: Secret, PersistentVolumeClaim and wildcards must not be whitelisted"
+[[ "$(yq -N 'select(.metadata.finalizers) | .metadata.name' <<<"$argocd")" == "" ]] \
+  || fail "k8s/argocd: no AppProject or Application may carry finalizers"
+[[ "$(project default '(.spec.sourceRepos | length) + (.spec.destinations | length)')" == 0 ]] \
+  || fail "AppProject default must allow no repository and no destination"
+[[ "$(yq -N 'select(.kind == "Application" and .spec.destination.namespace != "haki-staging")
+    | .metadata.name' <<<"$argocd")" == "" ]] \
+  || fail "k8s/argocd: an Application may only target haki-staging (prod stays manual)"
+echo "AppProject haki: $repo -> haki-staging"
 
 for overlay in k8s/overlays/*/; do
   overlay="${overlay%/}"
