@@ -16,6 +16,7 @@ Newest first. Sprints follow the project plan; the review is
 
 | Date | Sprint | What shipped | Key commits |
 | --- | --- | --- | --- |
+| 2 Nov | Review fixes | L18: PostgreSQL healthcheck over TCP in Compose; L19: 503 instead of 502 when the backend is unreachable, on staging and prod | `55c15c1`, `75ddf7c`, `0300b41` |
 | 2 Nov | S8 (waiting) | ArgoCD plan; installing waits for v3.6.0, tested on Kubernetes 1.37 | - |
 | 2 Nov | Workouts | Workouts, exercises and sets: tables, API, UI; staging, then prod | `ce9b0d9`..`4ad4f92` |
 | 2 Nov | S7 | Kustomize (base + staging/prod), kubeconform in CI, probes, Envoy Gateway, real client IP in Nginx | `3690a2b`..`9ae95d2` |
@@ -40,11 +41,13 @@ Two Claude sessions and me in the middle:
 
 The rules live in [`CLAUDE.md`](../../CLAUDE.md): small steps with tests after
 each, explanations in Romanian, never read `.env`, never commit on `main`, one
-branch per change, and I am the only one who pushes or touches prod.
+branch per change, I am the only one who pushes, and nothing touches prod
+without my OK.
 
 ## Where I am
 
-`main` is at `ef3686e`; staging and prod run Workouts. S8 (GitOps with ArgoCD)
+Staging and prod run `8043e8b`: Workouts and the L18 and L19 fixes. S8
+(GitOps with ArgoCD)
 is planned but waits for ArgoCD v3.6.0 plus the 7-day cooldown, so around
 10 November 2026: the current stable v3.5.6 is not tested on Kubernetes 1.37,
 and a new cluster on 1.36 would delete the data.
@@ -52,8 +55,9 @@ and a new cluster on 1.36 would delete the data.
 Next, while waiting:
 
 - [ ] Review the S8 plan and recheck it on v3.6.0 final
-- [ ] Review items L16 (JWT secret in the migration Job), L17, L18 (PostgreSQL
-      healthcheck in Compose), L19 (502 instead of 503)
+- [x] L18 (PostgreSQL healthcheck in Compose) and L19 (502 instead of 503)
+- [ ] Review items L16 (JWT secret in the migration Job) and L17 (our copy
+      of `nginx.conf` can fall behind the image's)
 - [ ] Envoy Gateway v1.10, tested on Kubernetes 1.37
 - [ ] Group the Trivy findings in the backend image and pick a slimmer base
 - [ ] L21: an unsaved workout is lost when the tab changes

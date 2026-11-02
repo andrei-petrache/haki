@@ -44,6 +44,8 @@ the list when it first shows up in the code or in a review.
 | Build once, deploy many | CI builds each image once and every later step reuses it |
 | Hash-locked dependencies | Every Python package pinned to a version and a checksum |
 | Trivy | Image vulnerability scanner; CI fails on fixable CRITICAL or HIGH findings |
+| Healthcheck | The command Docker runs to decide whether a container is healthy; `depends_on: service_healthy` waits for it |
+| `error_page` / named location | Nginx's way to replace an error response; `@name` is an internal location no URL can reach |
 | Dependabot | Opens pull requests that bump dependencies, after a 7-day cooldown |
 | Ruleset | GitHub rules on `main`: pull requests only, with all 8 required checks green |
 | GHCR | GitHub Container Registry, where the images are published by commit SHA |
