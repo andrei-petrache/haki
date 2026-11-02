@@ -45,6 +45,7 @@ ENV BACKEND_URL=http://backend:8000 \
     REAL_IP_FROM=unix: \
     NGINX_ENTRYPOINT_LOCAL_RESOLVERS=1 \
     NGINX_ENVSUBST_FILTER=^(BACKEND_URL|REAL_IP_FROM|NGINX_LOCAL_RESOLVERS)$
+COPY nginx.conf /etc/nginx/nginx.conf
 COPY nginx.conf.template /etc/nginx/templates/default.conf.template
 # A directory of our own, so none of the image's sample pages are served
 COPY --from=build /app/dist /usr/share/nginx/haki
