@@ -42,7 +42,8 @@ configMapGenerator:
       - DB_HOST=haki-db
       - DB_PORT=5432
       - DB_NAME=haki
-  # Read by the frontend's Nginx
+  # Read by the frontend's Nginx. BACKEND_URL names the backend Service in
+  # the overlay's own namespace, so each overlay sets it.
   - name: haki-frontend-config
     options:
       labels:
@@ -50,8 +51,9 @@ configMapGenerator:
         app.kubernetes.io/part-of: haki
         haki/phase: config
     literals:
-      # The backend Service (backend.yaml): Nginx resolves it once at start
-      - BACKEND_URL=http://haki-backend:8000
+      # Whose X-Forwarded-For Nginx trusts for the client IP: the pod CIDR
+      # of the kind cluster, where the Envoy Gateway proxy runs
+      - REAL_IP_FROM=10.244.0.0/16
 
 # The database name has one source: haki-backend-config
 replacements:
