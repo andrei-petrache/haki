@@ -34,6 +34,15 @@ def entry(food_id: int) -> dict[str, object]:
     }
 
 
+def workout(exercise_id: int) -> dict[str, object]:
+    return {
+        "performed_on": "2026-11-01",
+        "exercises": [
+            {"exercise_id": exercise_id, "sets": [{"reps": 5, "weight_kg": 100}]}
+        ],
+    }
+
+
 @pytest.fixture
 def headers(make_user: Callable[[str], User]) -> dict[str, str]:
     user = make_user("andrei@example.com")
@@ -53,6 +62,10 @@ def headers(make_user: Callable[[str], User]) -> dict[str, str]:
         lambda id_: ("POST", "/entries", entry(id_)),
         lambda id_: ("PUT", f"/exercises/{id_}", {"name": "Squat"}),
         lambda id_: ("DELETE", f"/exercises/{id_}", None),
+        lambda id_: ("GET", f"/workouts/{id_}", None),
+        lambda id_: ("PUT", f"/workouts/{id_}", workout(1)),
+        lambda id_: ("DELETE", f"/workouts/{id_}", None),
+        lambda id_: ("POST", "/workouts", workout(id_)),
     ],
     ids=[
         "update food",
@@ -61,6 +74,10 @@ def headers(make_user: Callable[[str], User]) -> dict[str, str]:
         "log entry",
         "rename exercise",
         "delete exercise",
+        "read workout",
+        "replace workout",
+        "delete workout",
+        "log workout exercise",
     ],
 )
 def test_ids_at_the_postgres_integer_limit(
@@ -73,5 +90,16 @@ def test_ids_at_the_postgres_integer_limit(
     method, path, body = request_for(id_)
 
     response = pg_client.request(method, path, json=body, headers=headers)
+
+    assert response.status_code == expected
+
+
+@pytest.mark.parametrize(
+    ("offset", "expected"), [(MAX_DB_ID, 200), (MAX_DB_ID + 1, 422)]
+)
+def test_workout_list_offset_at_the_postgres_integer_limit(
+    pg_client: TestClient, headers: dict[str, str], offset: int, expected: int
+) -> None:
+    response = pg_client.get(f"/workouts?offset={offset}", headers=headers)
 
     assert response.status_code == expected

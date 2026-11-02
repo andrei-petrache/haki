@@ -85,6 +85,29 @@ def test_delete_exercise_removes_it(
     assert client.get("/exercises", headers=auth_headers).json() == []
 
 
+def test_delete_exercise_rejects_exercise_used_by_a_workout(
+    client: TestClient, auth_headers: dict[str, str]
+) -> None:
+    exercise = create_exercise(client, auth_headers)
+    workout = {
+        "performed_on": "2026-11-01",
+        "exercises": [
+            {"exercise_id": exercise["id"], "sets": [{"reps": 5, "weight_kg": 100}]}
+        ],
+    }
+    created = client.post("/workouts", json=workout, headers=auth_headers)
+    assert created.status_code == 201
+
+    response = client.delete(f"/exercises/{exercise['id']}", headers=auth_headers)
+
+    assert response.status_code == 409
+    assert client.get("/exercises", headers=auth_headers).json() == [exercise]
+    # Once no workout uses it, it can go
+    client.delete(f"/workouts/{created.json()['id']}", headers=auth_headers)
+    response = client.delete(f"/exercises/{exercise['id']}", headers=auth_headers)
+    assert response.status_code == 204
+
+
 @pytest.mark.parametrize("body", [{"name": "   "}, {"name": "x" * 101}, {}])
 def test_create_exercise_rejects_invalid_name(
     client: TestClient, auth_headers: dict[str, str], body: dict[str, Any]

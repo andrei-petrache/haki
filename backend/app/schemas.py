@@ -1,4 +1,4 @@
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from typing import Annotated, Literal
 
 from fastapi import Path
@@ -9,6 +9,7 @@ from pydantic import (
     Field,
     StringConstraints,
     field_serializer,
+    field_validator,
 )
 
 FoodName = Annotated[
@@ -17,6 +18,7 @@ FoodName = Annotated[
 ExerciseName = Annotated[
     str, StringConstraints(strip_whitespace=True, min_length=1, max_length=100)
 ]
+WorkoutNote = Annotated[str, StringConstraints(strip_whitespace=True, max_length=500)]
 # Must match MEAL_TYPES in app/models.py
 MealType = Literal["breakfast", "lunch", "dinner", "snack"]
 
@@ -85,6 +87,79 @@ class ExerciseResponse(ExerciseIn):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
+
+
+# Upper bounds on what one request may write: at most 50 x 50 sets
+MAX_EXERCISES_PER_WORKOUT = 50
+MAX_SETS_PER_EXERCISE = 50
+EARLIEST_WORKOUT_DATE = date(2000, 1, 1)
+
+
+class WorkoutSetIn(BaseModel):
+    reps: int = Field(ge=1, le=1000)
+    # 0 for bodyweight exercises
+    weight_kg: float = Field(ge=0, le=1000)
+
+
+class WorkoutExerciseIn(BaseModel):
+    exercise_id: DbId
+    sets: list[WorkoutSetIn] = Field(min_length=1, max_length=MAX_SETS_PER_EXERCISE)
+
+
+class WorkoutIn(BaseModel):
+    """A whole workout: POST creates it, PUT replaces everything in it."""
+
+    performed_on: date
+    note: WorkoutNote | None = None
+    exercises: list[WorkoutExerciseIn] = Field(max_length=MAX_EXERCISES_PER_WORKOUT)
+
+    @field_validator("performed_on")
+    @classmethod
+    def performed_on_is_plausible(cls, value: date) -> date:
+        """From 2000-01-01 to tomorrow.
+
+        Tomorrow because the client sends its own local day, which can be a
+        day ahead of the server's.
+        """
+        latest = date.today() + timedelta(days=1)
+        if not EARLIEST_WORKOUT_DATE <= value <= latest:
+            raise ValueError(f"must be between {EARLIEST_WORKOUT_DATE} and {latest}")
+        return value
+
+    @field_validator("note")
+    @classmethod
+    def blank_note_is_no_note(cls, value: str | None) -> str | None:
+        return value or None
+
+
+class WorkoutSetResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    reps: int
+    weight_kg: float
+
+
+class WorkoutExerciseResponse(BaseModel):
+    exercise_id: int
+    exercise_name: str
+    sets: list[WorkoutSetResponse]
+
+
+class WorkoutResponse(BaseModel):
+    id: int
+    performed_on: date
+    note: str | None
+    exercises: list[WorkoutExerciseResponse]
+
+
+class WorkoutSummary(BaseModel):
+    """One row of the workout list: counts instead of the full contents."""
+
+    id: int
+    performed_on: date
+    note: str | None
+    exercise_count: int
+    set_count: int
 
 
 class MealEntryIn(BaseModel):

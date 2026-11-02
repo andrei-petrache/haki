@@ -13,6 +13,7 @@ from app.exercises import router as exercises_router
 from app.foods import router as foods_router
 from app.security import HashingBusy
 from app.summary import router as summary_router
+from app.workouts import router as workouts_router
 
 logger = logging.getLogger(__name__)
 
@@ -22,6 +23,7 @@ app.include_router(foods_router)
 app.include_router(entries_router)
 app.include_router(summary_router)
 app.include_router(exercises_router)
+app.include_router(workouts_router)
 
 
 @app.exception_handler(OperationalError)
