@@ -15,7 +15,11 @@ built, what I learned and why: see the [learning journal](docs/journal/README.md
 - **CI:** GitHub Actions (lint, tests, build, Docker images) on every pull request
 - **Kubernetes:** a local kind cluster running the published images, with
   Kustomize overlays for staging and prod and Envoy Gateway in front
-- **Coming next:** ArgoCD, Terraform on AWS
+- **GitOps:** ArgoCD keeps staging in line with `main`: a merged change
+  deploys itself, in order, and a failed migration stops it
+- **Coming next:** promotion to prod with approval, observability (Prometheus,
+  Grafana), blue-green deploys, Terraform on AWS (see the
+  [plan](docs/journal/plan.md))
 
 ## Configuration
 
