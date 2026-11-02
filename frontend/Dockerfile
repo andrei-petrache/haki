@@ -2,7 +2,7 @@
 # Build from the frontend/ directory:
 #   docker build -t haki-frontend:dev .
 # Nginx proxies /api/ to $BACKEND_URL (default http://backend:8000), chosen
-# when the container starts; that host must resolve when Nginx starts.
+# when the container starts and resolved per request through DNS.
 
 # ---- Build: compile the app into static files in dist/ ----
 FROM node:22.23.3-trixie-slim AS build
@@ -35,9 +35,12 @@ USER 101
 # The backend's address is set when the container starts, not baked in:
 # e.g. docker run -e BACKEND_URL=http://haki-backend:8000. The image's
 # entrypoint renders templates/*.template into conf.d with envsubst; the
-# filter limits it to BACKEND_URL, so nginx's own $host, $uri, ... stay as-is.
+# filter limits it to our variables, so nginx's own $host, $uri, ... stay
+# as-is. NGINX_ENTRYPOINT_LOCAL_RESOLVERS makes the entrypoint set
+# NGINX_LOCAL_RESOLVERS to the DNS servers in /etc/resolv.conf.
 ENV BACKEND_URL=http://backend:8000 \
-    NGINX_ENVSUBST_FILTER=^BACKEND_URL$
+    NGINX_ENTRYPOINT_LOCAL_RESOLVERS=1 \
+    NGINX_ENVSUBST_FILTER=^(BACKEND_URL|NGINX_LOCAL_RESOLVERS)$
 COPY nginx.conf.template /etc/nginx/templates/default.conf.template
 # A directory of our own, so none of the image's sample pages are served
 COPY --from=build /app/dist /usr/share/nginx/haki
