@@ -1,0 +1,19 @@
+# Production: the namespace haki, as before Kustomize, so the existing
+# database volume (PVC data-haki-db-0) is kept.
+#   kubectl apply -k k8s/overlays/prod     (in phases: see k8s/README.md)
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: haki
+
+resources:
+  - ../../base
+
+# The only place the app images are pinned: the images CI built, scanned and
+# published for one commit of main. The backend tag covers the migration Job
+# too, so the two always match.
+images:
+  - name: ghcr.io/andrei-petrache/haki-backend
+    newTag: 3feeb2d54f43b8fb999e7d90db8b81f48ecf40f9
+  - name: ghcr.io/andrei-petrache/haki-frontend
+    newTag: 3feeb2d54f43b8fb999e7d90db8b81f48ecf40f9

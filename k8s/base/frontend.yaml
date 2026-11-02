@@ -1,16 +1,14 @@
 # The Haki frontend: Nginx serves the React app and proxies /api/ to the
 # backend Service.
-#   kubectl apply -f k8s/frontend.yaml
 #   kubectl -n haki port-forward svc/haki-frontend 8081:8080
 # then open http://127.0.0.1:8081 (8080 stays free for docker compose).
-# Apply it after k8s/backend.yaml: Nginx resolves the backend's name once at
-# start and refuses to start if it does not resolve.
+# Nginx resolves the backend's name once at start and exits if it does not
+# resolve yet; Kubernetes restarts it until it does.
 
 apiVersion: v1
 kind: Service
 metadata:
   name: haki-frontend
-  namespace: haki
   labels:
     app.kubernetes.io/name: haki-frontend
     app.kubernetes.io/component: web
@@ -28,7 +26,6 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: haki-frontend
-  namespace: haki
   labels:
     app.kubernetes.io/name: haki-frontend
     app.kubernetes.io/component: web
@@ -59,8 +56,8 @@ spec:
           type: RuntimeDefault
       containers:
         - name: frontend
-          # The image CI built, scanned and published for this commit of main
-          image: ghcr.io/andrei-petrache/haki-frontend:3feeb2d54f43b8fb999e7d90db8b81f48ecf40f9
+          # The tag comes from the overlay's images:
+          image: ghcr.io/andrei-petrache/haki-frontend
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
@@ -69,7 +66,7 @@ spec:
             - name: BACKEND_URL
               valueFrom:
                 configMapKeyRef:
-                  name: haki-config
+                  name: haki-frontend-config
                   key: BACKEND_URL
           securityContext:
             allowPrivilegeEscalation: false

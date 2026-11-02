@@ -1,7 +1,8 @@
 # Applies the database migrations once (alembic upgrade head), then exits.
-# Run it before the backend, and again for every new backend image:
+# Run it before the backend, and again for every new backend image or
+# backend config, on its own (see k8s/README.md):
 #   kubectl -n haki delete job haki-migrate --ignore-not-found
-#   kubectl apply -f k8s/migrate-job.yaml
+#   kubectl apply -k k8s/overlays/prod -l app.kubernetes.io/component=migrations
 #   kubectl -n haki wait --for=condition=complete job/haki-migrate --timeout=5m
 # A Job's pod template cannot be changed after creation, hence the delete.
 # A Job, not an initContainer: Alembic takes no lock, so migrations must run
@@ -10,7 +11,6 @@ apiVersion: batch/v1
 kind: Job
 metadata:
   name: haki-migrate
-  namespace: haki
   labels:
     app.kubernetes.io/name: haki-migrate
     app.kubernetes.io/component: migrations
@@ -45,25 +45,25 @@ spec:
           type: RuntimeDefault
       containers:
         - name: migrate
-          # The image CI built, scanned and published for this commit of main
-          image: ghcr.io/andrei-petrache/haki-backend:3feeb2d54f43b8fb999e7d90db8b81f48ecf40f9
+          # The tag comes from the overlay's images: (same as the backend)
+          image: ghcr.io/andrei-petrache/haki-backend
           imagePullPolicy: IfNotPresent
           command: ["alembic", "upgrade", "head"]
           env:
             - name: DB_HOST
               valueFrom:
                 configMapKeyRef:
-                  name: haki-config
+                  name: haki-backend-config
                   key: DB_HOST
             - name: DB_PORT
               valueFrom:
                 configMapKeyRef:
-                  name: haki-config
+                  name: haki-backend-config
                   key: DB_PORT
             - name: DB_NAME
               valueFrom:
                 configMapKeyRef:
-                  name: haki-config
+                  name: haki-backend-config
                   key: DB_NAME
             - name: DB_USER
               valueFrom:
