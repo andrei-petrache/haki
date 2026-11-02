@@ -16,10 +16,10 @@ See README.md for setup.
 - **Never `git push`.** Andrei does all pushing; an OK for a commit covers
   only the commit.
 - **Never commit on `main`.** It is protected: changes land only through pull
-  requests with all 7 required CI checks green (`backend`, `frontend`,
+  requests with all 8 required CI checks green (`backend`, `frontend`,
   `docker (backend)`, `docker (frontend)`, `postgres-image`, `integration`,
-  `smoke`); no direct or force pushes. When a change adds or renames a CI job, tell
-  Andrei to update the ruleset's required checks.
+  `manifests`, `smoke`); no direct or force pushes. When a change adds or
+  renames a CI job, tell Andrei to update the ruleset's required checks.
 - Start every change on a new branch from an up-to-date `main`, named after
   the change with a type prefix: `feat/...`, `fix/...`, `ci/...`, `docs/...`,
   `refactor/...`, `chore/...` (e.g. `feat/weekly-summary`). Andrei pushes the
@@ -29,7 +29,8 @@ See README.md for setup.
   --check, pytest, npm run lint, npm test, npm run build). When models or
   migrations change, also run the integration steps (see Tests); when
   `frontend/nginx.conf.template` changes, run
-  `frontend/scripts/check-rate-limit.sh`.
+  `frontend/scripts/check-rate-limit.sh`; when `k8s/` changes, run
+  `k8s/scripts/check-manifests.sh`.
 - Andrei may edit files between steps; re-read before editing and build on
   their version instead of overwriting it.
 
@@ -97,8 +98,13 @@ http://127.0.0.1:8080. **Never run `docker compose down -v`**: it deletes the
   any database whose name does not end in `_test`. **Never point
   `TEST_DATABASE_URL` or a migration/downgrade at the dev database `haki`**;
   for local checks prefer a throwaway container of the image in `compose.yaml`.
-- The PostgreSQL image is pinned only in `compose.yaml` (`services.db.image`);
-  the CI job `postgres-image` reads it from there for the `integration` job.
+- The PostgreSQL image is pinned in `compose.yaml` (`services.db.image`), the
+  source of truth: the CI job `postgres-image` reads it from there for the
+  `integration` job. Kubernetes repeats it once, in
+  `k8s/base/kustomization.yaml`; the `manifests` job checks that they match.
+- Kubernetes manifests: `k8s/scripts/check-manifests.sh` builds every overlay
+  with kustomize and validates it with kubeconform (CI job `manifests`).
+  CI tools come pinned with checksums from `scripts/install-tools.sh`.
 - Frontend: Vitest (`npm test`), test files next to the code (`*.test.ts`).
   `frontend/scripts/check-rate-limit.sh <image>` runs `nginx -t` and checks
   the login/signup rate limit on a built image (CI runs it in

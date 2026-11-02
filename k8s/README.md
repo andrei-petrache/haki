@@ -39,6 +39,20 @@ an `emptyDir` volume.
 Docker, kind v0.33.0 (the node image digest in `kind-config.yaml` belongs to
 it) and kubectl within one minor version of Kubernetes 1.37.
 
+## Check the manifests
+
+```bash
+k8s/scripts/check-manifests.sh
+```
+
+No cluster needed. For every overlay it runs `kustomize build`, validates the
+result with [kubeconform](https://github.com/yannh/kubeconform) against the API
+schemas of the Kubernetes version in `kind-config.yaml` (`-strict`: unknown
+fields such as typos fail too), checks that PostgreSQL runs the image pinned
+in `compose.yaml`, and that the app images are pinned to a full commit SHA.
+It needs kustomize, kubeconform and mikefarah/yq, at the versions in
+`scripts/install-tools.sh`. CI runs it in the `manifests` job.
+
 ## Start from scratch
 
 Run from the repository root. An overlay is applied in phases, selected by
@@ -152,7 +166,9 @@ this touches the Compose `db-data` volume.
   upstream "haki-backend"`. Kubernetes restarts it until DNS answers (three
   restarts, under a minute, when tested); nothing to do.
 - **The PostgreSQL pin is in two places:** `images:` in
-  `base/kustomization.yaml` and `services.db.image` in `compose.yaml`.
+  `base/kustomization.yaml` and `services.db.image` in `compose.yaml`
+  (Dependabot updates only the latter). The `manifests` job fails until both
+  match.
 - **Phases by hand:** kubectl does not know the order above. ArgoCD (S8)
   takes it over, and also deletes the ConfigMaps a change replaced.
 - **Rate limit through port-forward:** every request reaches Nginx from
