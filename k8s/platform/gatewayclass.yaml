@@ -1,0 +1,12 @@
+# The Gateway API class implemented by Envoy Gateway: Gateways that name it
+# get an Envoy proxy. Cluster-wide, so applied once per cluster, after Envoy
+# Gateway itself (see k8s/README.md), not by an overlay:
+#   kubectl apply -f k8s/platform/gatewayclass.yaml
+apiVersion: gateway.networking.k8s.io/v1
+kind: GatewayClass
+metadata:
+  name: envoy-gateway
+  labels:
+    app.kubernetes.io/part-of: haki
+spec:
+  controllerName: gateway.envoyproxy.io/gatewayclass-controller

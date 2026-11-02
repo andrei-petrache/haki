@@ -1,0 +1,102 @@
+# The way in from outside the cluster: a Gateway (Gateway API) that Envoy
+# Gateway runs as an Envoy proxy, and a route that sends every request to
+# the frontend's Nginx, which serves the app and proxies /api/.
+# Needs Envoy Gateway and the GatewayClass envoy-gateway (k8s/platform/).
+#
+# The client IP for the frontend's rate limit: Envoy drops any
+# X-Forwarded-For the client sent, then appends the address the connection
+# came from. The frontend's Nginx trusts X-Forwarded-For from the pod CIDR
+# (REAL_IP_FROM), where Envoy runs.
+
+# How this Gateway's proxy runs. Envoy Gateway creates its Deployment and
+# Service in its own namespace, envoy-gateway-system.
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: EnvoyProxy
+metadata:
+  name: haki
+  labels:
+    app.kubernetes.io/component: gateway
+    app.kubernetes.io/part-of: haki
+spec:
+  provider:
+    type: Kubernetes
+    kubernetes:
+      # No load balancer in kind: reached through kubectl port-forward
+      envoyService:
+        type: ClusterIP
+      envoyDeployment:
+        replicas: 1
+        container:
+          # Envoy's default requests 512 MiB; a single small route needs far
+          # less. No CPU limit: a limit throttles even when the node is idle.
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              memory: 256Mi
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: haki
+  labels:
+    app.kubernetes.io/component: gateway
+    app.kubernetes.io/part-of: haki
+spec:
+  gatewayClassName: envoy-gateway
+  infrastructure:
+    parametersRef:
+      group: gateway.envoyproxy.io
+      kind: EnvoyProxy
+      name: haki
+  listeners:
+    - name: http
+      protocol: HTTP
+      port: 80
+      # Only routes from this namespace: staging's routes cannot attach to
+      # prod's Gateway
+      allowedRoutes:
+        namespaces:
+          from: Same
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: haki
+  labels:
+    app.kubernetes.io/component: gateway
+    app.kubernetes.io/part-of: haki
+spec:
+  parentRefs:
+    - name: haki
+      sectionName: http
+  # No matches: every path goes to the frontend
+  rules:
+    - backendRefs:
+        - name: haki-frontend
+          port: 8080
+---
+# Without this, a client could send its own X-Forwarded-For: Envoy keeps it
+# and appends after it, and when the appended address is itself in the pod
+# CIDR (e.g. through kubectl port-forward, which connects from the Envoy
+# pod's own IP), Nginx skips it as trusted and takes the client's value,
+# escaping the login rate limit. Envoy is the first proxy here, so nothing
+# the client wrote in that header is worth keeping. Behind a load balancer
+# that sets X-Forwarded-For (AWS), keep the LB's entry instead.
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: ClientTrafficPolicy
+metadata:
+  name: haki
+  labels:
+    app.kubernetes.io/component: gateway
+    app.kubernetes.io/part-of: haki
+spec:
+  targetRefs:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: haki
+  headers:
+    earlyRequestHeaders:
+      remove:
+        - X-Forwarded-For
