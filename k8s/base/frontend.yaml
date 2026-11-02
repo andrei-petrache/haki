@@ -73,6 +73,23 @@ spec:
                 configMapKeyRef:
                   name: haki-frontend-config
                   key: REAL_IP_FROM
+          # Both on Nginx's own /health, which never reaches the backend: a
+          # backend outage must not restart the frontend or take it out of
+          # service. Nginx starts in well under a second, so no startup probe.
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 2
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true

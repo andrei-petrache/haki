@@ -83,6 +83,32 @@ spec:
                 configMapKeyRef:
                   name: haki-db-config
                   key: DB_NAME
+          # pg_isready over TCP (-h 127.0.0.1), not the socket: while the
+          # first start creates the data directory, the image runs a
+          # temporary server on the socket only, which is not ready for
+          # clients yet. The startup probe allows 2 minutes for that.
+          startupProbe:
+            exec:
+              command: &pg-isready
+                - sh
+                - -c
+                - pg_isready -h 127.0.0.1 -U "$POSTGRES_USER" -d "$POSTGRES_DB"
+            periodSeconds: 2
+            failureThreshold: 60
+          readinessProbe:
+            exec:
+              command: *pg-isready
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 2
+          # Tolerant: restarting a database that is only slow (e.g. a long
+          # checkpoint) loses its in-flight work and makes things worse
+          livenessProbe:
+            exec:
+              command: *pg-isready
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 6
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true

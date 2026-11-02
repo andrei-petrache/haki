@@ -92,6 +92,34 @@ spec:
                 secretKeyRef:
                   name: haki-secrets
                   key: JWT_SECRET_KEY
+          # Liveness on /health, which never touches the database: a database
+          # outage should take the pods out of the Service (readiness), not
+          # restart them. The startup probe holds both back until uvicorn
+          # answers, for up to 30 s.
+          startupProbe:
+            httpGet:
+              path: /health
+              port: http
+            periodSeconds: 1
+            failureThreshold: 30
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            periodSeconds: 10
+            # Generous: under heavy login load /health waits for a free
+            # worker thread, and a restart there would only make it worse
+            timeoutSeconds: 5
+            failureThreshold: 3
+          # /ready runs SELECT 1 (connect timeout 3 s): 503 while the database
+          # is unreachable
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: http
+            periodSeconds: 5
+            timeoutSeconds: 5
+            failureThreshold: 2
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
