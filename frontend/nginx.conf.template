@@ -51,6 +51,18 @@ server {
     # A variable in proxy_pass is what makes Nginx resolve at request time
     set $backend ${BACKEND_URL};
 
+    # The client's real IP, for the rate limit and the logs, when a proxy
+    # (the Gateway in Kubernetes) stands in front: from a REAL_IP_FROM
+    # address, $remote_addr becomes the last X-Forwarded-For entry that is
+    # not itself trusted, i.e. the client as that proxy saw it. Entries a
+    # client writes itself sit further left and are ignored. From any other
+    # address the header is ignored, so nobody can spoof their IP to escape
+    # the limit. The default "unix:" trusts only UNIX sockets, which this
+    # server does not listen on: nobody (Compose, nothing in front).
+    set_real_ip_from ${REAL_IP_FROM};
+    real_ip_header X-Forwarded-For;
+    real_ip_recursive on;
+
     # Compress text responses (text/html is always included)
     gzip on;
     gzip_comp_level 5;

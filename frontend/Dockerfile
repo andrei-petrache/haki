@@ -38,9 +38,13 @@ USER 101
 # filter limits it to our variables, so nginx's own $host, $uri, ... stay
 # as-is. NGINX_ENTRYPOINT_LOCAL_RESOLVERS makes the entrypoint set
 # NGINX_LOCAL_RESOLVERS to the DNS servers in /etc/resolv.conf.
+# REAL_IP_FROM: the address or CIDR of the proxy in front whose
+# X-Forwarded-For is trusted (e.g. the pod CIDR in Kubernetes); the default
+# "unix:" trusts nobody.
 ENV BACKEND_URL=http://backend:8000 \
+    REAL_IP_FROM=unix: \
     NGINX_ENTRYPOINT_LOCAL_RESOLVERS=1 \
-    NGINX_ENVSUBST_FILTER=^(BACKEND_URL|NGINX_LOCAL_RESOLVERS)$
+    NGINX_ENVSUBST_FILTER=^(BACKEND_URL|REAL_IP_FROM|NGINX_LOCAL_RESOLVERS)$
 COPY nginx.conf.template /etc/nginx/templates/default.conf.template
 # A directory of our own, so none of the image's sample pages are served
 COPY --from=build /app/dist /usr/share/nginx/haki

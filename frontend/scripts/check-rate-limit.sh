@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Checks a built frontend image: the Nginx config is valid, Nginx starts
 # even when the backend's name does not resolve, POST login/signup are rate
-# limited per client IP, and the rest of the API is not.
+# limited per client IP, and the rest of the API is not. The client IP comes
+# from X-Forwarded-For only behind a trusted proxy (REAL_IP_FROM).
 #
 # Usage: frontend/scripts/check-rate-limit.sh <image>
 #
@@ -22,13 +23,13 @@ fail() {
   exit 1
 }
 
-status() {  # status <method> <path>
-  curl -s -o /dev/null -w '%{http_code}' -X "$1" "$base$2"
+status() {  # status <method> <path> [curl options...]
+  curl -s -o /dev/null -w '%{http_code}' -X "$1" "${@:3}" "$base$2"
 }
 
-statuses() {  # statuses <count> <method> <path>
+statuses() {  # statuses <count> <method> <path> [curl options...]
   for _ in $(seq 1 "$1"); do
-    printf '%s ' "$(status "$2" "$3")"
+    printf '%s ' "$(status "${@:2}")"
   done
 }
 
@@ -76,6 +77,16 @@ signup="$(statuses 1 POST /api/auth/signup)"
 echo "POST /api/auth/signup x1:  $signup"
 [[ "$signup" == "429 " ]] || fail "signup should share the login budget"
 
+# By default nothing is trusted: a client's own X-Forwarded-For does not buy
+# it a fresh budget
+spoofed=""
+for ip in 203.0.113.1 203.0.113.2 203.0.113.3; do
+  spoofed+="$(status POST /api/auth/login -H "X-Forwarded-For: $ip") "
+done
+echo "Spoofed X-Forwarded-For:   $spoofed"
+[[ "$spoofed" == "429 429 429 " ]] ||
+  fail "X-Forwarded-For from an untrusted client must be ignored"
+
 retry_after="$(curl -s -o /dev/null -D - -X POST "$base/api/auth/login" |
   tr -d '\r' | awk -F': ' 'tolower($1) == "retry-after" {print $2}')"
 echo "Retry-After on 429:        ${retry_after:-<missing>}"
@@ -84,5 +95,28 @@ echo "Retry-After on 429:        ${retry_after:-<missing>}"
 others="$(statuses 20 GET /api/health) $(statuses 5 GET /api/auth/login)"
 echo "GET (health, auth) x25:    $others"
 [[ "$others" != *429* ]] || fail "only POST login/signup may be rate limited"
+
+# Behind a trusted proxy. Requests from the host reach the container from
+# its network's gateway (Docker's port forwarding), so trusting the
+# network's subnet makes the host play the proxy.
+subnet="$(docker network inspect -f '{{(index .IPAM.Config 0).Subnet}}' "$net")"
+stop
+start --network-alias backend -e REAL_IP_FROM="$subnet"
+
+# Each client the proxy reports gets its own budget...
+first="$(statuses 7 POST /api/auth/login -H 'X-Forwarded-For: 203.0.113.1')"
+echo "Trusted, client A x7:      $first"
+[[ "$first" == 502\ 502\ 502\ 502\ 502\ 502\ 429\  ]] ||
+  fail "behind a trusted proxy, each client should get 6 requests, then 429"
+second="$(status POST /api/auth/login -H 'X-Forwarded-For: 203.0.113.2')"
+echo "Trusted, client B x1:      $second"
+[[ "$second" == 502 ]] || fail "another client behind the proxy has its own budget"
+
+# ...and what a client wrote into the header itself (left of what the proxy
+# appended) does not change which client it is
+prepended="$(status POST /api/auth/login \
+  -H 'X-Forwarded-For: 198.51.100.7, 203.0.113.1')"
+echo "Trusted, A prepending x1:  $prepended"
+[[ "$prepended" == 429 ]] || fail "only the entry the proxy appended may count"
 
 echo "OK: rate limiting works as configured"
