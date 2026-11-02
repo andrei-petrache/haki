@@ -45,6 +45,39 @@ export type DailySummary = {
   calories_remaining: number | null
 }
 
+export type Exercise = {
+  id: number
+  name: string
+}
+
+export type WorkoutSet = {
+  reps: number
+  weight_kg: number // 0 for bodyweight exercises
+}
+
+/** A whole workout as the client sends it: POST creates, PUT replaces all of it. */
+export type WorkoutInput = {
+  performed_on: string // YYYY-MM-DD, the user's local day
+  note: string | null
+  exercises: { exercise_id: number; sets: WorkoutSet[] }[]
+}
+
+export type Workout = {
+  id: number
+  performed_on: string
+  note: string | null
+  exercises: { exercise_id: number; exercise_name: string; sets: WorkoutSet[] }[]
+}
+
+/** One row of the workout list: counts instead of the full contents. */
+export type WorkoutSummary = {
+  id: number
+  performed_on: string
+  note: string | null
+  exercise_count: number
+  set_count: number
+}
+
 type TokenResponse = {
   access_token: string
   token_type: string
@@ -177,4 +210,45 @@ export function deleteEntry(token: string, id: number): Promise<void> {
 export function fetchSummary(token: string, day: string): Promise<DailySummary> {
   const query = new URLSearchParams({ date: day })
   return request<DailySummary>(`/summary?${query}`, {}, token)
+}
+
+export function fetchExercises(token: string): Promise<Exercise[]> {
+  return request<Exercise[]>('/exercises', {}, token)
+}
+
+export function createExercise(token: string, name: string): Promise<Exercise> {
+  return request<Exercise>('/exercises', json('POST', { name }), token)
+}
+
+/** The API's default page size: a full page means there may be more. */
+export const WORKOUTS_PAGE_SIZE = 20
+
+/** One page of workouts, newest first. */
+export function fetchWorkouts(
+  token: string,
+  limit: number = WORKOUTS_PAGE_SIZE,
+  offset: number = 0,
+): Promise<WorkoutSummary[]> {
+  const query = new URLSearchParams({ limit: String(limit), offset: String(offset) })
+  return request<WorkoutSummary[]>(`/workouts?${query}`, {}, token)
+}
+
+export function fetchWorkout(token: string, id: number): Promise<Workout> {
+  return request<Workout>(`/workouts/${id}`, {}, token)
+}
+
+export function createWorkout(token: string, workout: WorkoutInput): Promise<Workout> {
+  return request<Workout>('/workouts', json('POST', workout), token)
+}
+
+export function updateWorkout(
+  token: string,
+  id: number,
+  workout: WorkoutInput,
+): Promise<Workout> {
+  return request<Workout>(`/workouts/${id}`, json('PUT', workout), token)
+}
+
+export function deleteWorkout(token: string, id: number): Promise<void> {
+  return request<void>(`/workouts/${id}`, { method: 'DELETE' }, token)
 }
