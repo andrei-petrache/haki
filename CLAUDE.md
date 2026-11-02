@@ -33,6 +33,11 @@ See README.md for setup.
   `k8s/scripts/check-manifests.sh`.
 - Andrei may edit files between steps; re-read before editing and build on
   their version instead of overwriting it.
+- Keep the learning journal in `docs/journal/` up to date: when a sprint or a
+  feature ships, add its row to the timeline in `README.md` (newest first)
+  and update "Where I am"; add new terms to `glossary.md` and notable
+  choices or caught bugs to `decisions.md`. Same rules as other docs
+  (English, own commit, Andrei's OK).
 
 ## Stack
 
