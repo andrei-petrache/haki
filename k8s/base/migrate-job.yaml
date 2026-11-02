@@ -75,12 +75,8 @@ spec:
                 secretKeyRef:
                   name: haki-secrets
                   key: DB_PASSWORD
-            # Unused by migrations, but the settings refuse to load without it
-            - name: JWT_SECRET_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: haki-secrets
-                  key: JWT_SECRET_KEY
+            # No JWT_SECRET_KEY: the migrations load only the database
+            # settings (least privilege). Images before 081c5f2 still need it.
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
