@@ -1,0 +1,41 @@
+# The ArgoCD Application for staging: k8s/overlays/staging on main, synced
+# into haki-staging. Applied by hand (see k8s/README.md, "ArgoCD"):
+#   kubectl apply -f k8s/argocd/haki-staging.yaml
+# Prod has no Application: it keeps the manual phases until S9.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: haki-staging
+  namespace: argocd
+  annotations:
+    # Compare through a server-side dry run: the defaults the API server
+    # fills in (HTTPRoute matches and weights, the StatefulSet's volume claim
+    # template) are then on both sides and do not show as drift
+    argocd.argoproj.io/compare-options: ServerSideDiff=true
+  # No finalizers: deleting this Application never deletes what it deployed.
+  # Beware: `argocd app delete` and the UI delete in cascade by default.
+spec:
+  project: haki
+  source:
+    repoURL: https://github.com/andrei-petrache/haki.git
+    targetRevision: main
+    path: k8s/overlays/staging
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: haki-staging
+  syncPolicy:
+    automated:
+      # Off for the takeover: first see the diff, then sync by hand. Turned
+      # on in the next step; prune and selfHeal wait until then.
+      enabled: false
+      prune: true
+      selfHeal: true
+    syncOptions:
+      # Delete what left Git only at the end, once every wave is healthy:
+      # an old hash-named ConfigMap stays while pods may still use it
+      - PruneLast=true
+    # No automatic retry of a failed sync (the default is 5): each retry
+    # would run a fresh migration Job, and the previous one's logs would go.
+    # The Job's own backoffLimit covers a database that is still starting.
+    retry:
+      limit: 0

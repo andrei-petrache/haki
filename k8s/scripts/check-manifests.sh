@@ -88,6 +88,26 @@ repo=https://github.com/andrei-petrache/haki.git
   || fail "k8s/argocd: an Application may only target haki-staging (prod stays manual)"
 echo "AppProject haki: $repo -> haki-staging"
 
+# The staging Application: main of this repository, the staging overlay, the
+# haki project, no retries, and none of the sync options that replace,
+# force or take over objects
+app="$(yq -N 'select(.kind == "Application" and .metadata.name == "haki-staging")' <<<"$argocd")"
+[[ -n "$app" ]] || fail "k8s/argocd: the Application haki-staging is missing"
+source_dest="$(yq -N '[.spec.project, .spec.source.repoURL, .spec.source.targetRevision,
+  .spec.source.path, .spec.destination.server, .spec.destination.namespace] | join(" ")' <<<"$app")"
+[[ "$source_dest" == "haki $repo main k8s/overlays/staging https://kubernetes.default.svc haki-staging" ]] \
+  || fail "Application haki-staging: project, source or destination changed ('$source_dest')"
+sync_options="$(yq -N '.spec.syncPolicy.syncOptions // [] | join(",")' <<<"$app")"
+[[ ",$sync_options," == *,PruneLast=true,* ]] \
+  || fail "Application haki-staging: PruneLast=true is required (prune only once every wave is healthy)"
+for option in Replace=true Force=true ServerSideApply=true CreateNamespace=true; do
+  [[ ",$sync_options," != *,$option,* ]] \
+    || fail "Application haki-staging: sync option $option is not allowed"
+done
+[[ "$(yq -N '.spec.syncPolicy.retry.limit' <<<"$app")" == 0 ]] \
+  || fail "Application haki-staging: retry.limit must be 0 (each retry runs the migration again)"
+echo "Application haki-staging: main:k8s/overlays/staging -> haki-staging, sync options $sync_options"
+
 for overlay in k8s/overlays/*/; do
   overlay="${overlay%/}"
   echo "== $overlay (Kubernetes $k8s_version)"

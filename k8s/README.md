@@ -20,6 +20,7 @@ every environment shares, and each overlay in `overlays/` adds what differs.
 | `platform/gatewayclass.yaml` | the GatewayClass `envoy-gateway`: cluster-wide, applied once, not by an overlay |
 | `argocd/project.yaml` | the ArgoCD project `haki`: this repository only, into `haki-staging` only, no Secrets and no volumes |
 | `argocd/default-project.yaml` | ArgoCD's `default` project, emptied of every permission |
+| `argocd/haki-staging.yaml` | the ArgoCD Application `haki-staging`: `overlays/staging` on `main`, synced into `haki-staging` |
 | `overlays/prod/` | namespace `haki`; the app image tags; the frontend's `BACKEND_URL` |
 | `overlays/staging/` | namespace `haki-staging`, its own database, 1 backend replica; its own image tags and `BACKEND_URL` |
 
@@ -170,6 +171,34 @@ Then, in the UI, User Info → Update password, with a new password from a
 password manager; empty the clipboard (`printf '' | clip.exe`) and delete
 the initial Secret, which ArgoCD no longer uses:
 `kubectl -n argocd delete secret argocd-initial-admin-secret`.
+
+### Staging through ArgoCD
+
+The Application `haki-staging` syncs `k8s/overlays/staging` from `main` into
+`haki-staging`, in the order of the sync waves: config, database, the
+migration Job (a Sync hook: if it fails, the sync stops and the backend
+keeps its old image), backend, frontend, gateway. Old ConfigMaps are pruned
+only at the end (`PruneLast`), and a failed sync is not retried.
+
+```bash
+kubectl apply -f k8s/argocd/haki-staging.yaml
+kubectl -n argocd get application haki-staging \
+  -o jsonpath='{.status.sync.status} {.status.health.status}{"\n"}'   # Synced Healthy
+# Sync by hand (all resources, so the migration hook runs), without the CLI:
+kubectl -n argocd patch application haki-staging --type merge \
+  -p '{"operation": {"initiatedBy": {"username": "andrei"}, "sync": {"revision": "main"}}}'
+```
+
+The Secret `haki-secrets` stays manual (phase 2 above): ArgoCD may not
+touch Secrets. The namespace and the database are never pruned and never
+deleted with the Application.
+
+To stop ArgoCD managing staging, delete only the Application:
+`kubectl -n argocd delete application haki-staging`. It has no finalizer,
+so every resource stays and staging goes back to the manual phases. Never
+delete it from the UI or with `argocd app delete`: both delete in cascade by
+default, which would take the Deployments, Services and Gateway down (the
+namespace, the database and its volume would still stay).
 
 ## Start from scratch
 
