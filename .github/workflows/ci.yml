@@ -66,7 +66,13 @@ jobs:
         with:
           persist-credentials: false
 
-      # yq is preinstalled on GitHub's Ubuntu runners
+      # Pinned with a checksum, not the runner's preinstalled yq, which
+      # changes with every runner image
+      - name: Install yq
+        run: |
+          scripts/install-tools.sh "$RUNNER_TEMP/bin" yq
+          echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
+
       - name: Read the db image from compose.yaml
         id: read
         run: |
