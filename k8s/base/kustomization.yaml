@@ -1,0 +1,73 @@
+# The Haki resources shared by every environment. Not applied on its own:
+# an overlay (k8s/overlays/*) sets the namespace and the app image tags.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: haki
+
+resources:
+  - namespace.yaml
+  - postgres.yaml
+  - migrate-job.yaml
+  - backend.yaml
+  - frontend.yaml
+
+# Non-secret settings, one ConfigMap per component. Kustomize appends a hash
+# of the contents to each name and updates the references, so a change
+# restarts only the pods that read that ConfigMap. Secrets (DB_USER,
+# DB_PASSWORD, JWT_SECRET_KEY) live in the Secret haki-secrets, created by
+# hand with kubectl and never committed.
+# The label haki/phase=config lets these be applied before everything else
+# (see k8s/README.md).
+configMapGenerator:
+  # Read by PostgreSQL. The name is used only when the data directory is
+  # created; it is copied from haki-backend-config below.
+  - name: haki-db-config
+    options:
+      labels:
+        app.kubernetes.io/component: database
+        app.kubernetes.io/part-of: haki
+        haki/phase: config
+    literals:
+      - DB_NAME=placeholder
+  # Read by the backend and the migration Job
+  - name: haki-backend-config
+    options:
+      labels:
+        app.kubernetes.io/component: api
+        app.kubernetes.io/part-of: haki
+        haki/phase: config
+    literals:
+      # The database Service (postgres.yaml), in the same namespace
+      - DB_HOST=haki-db
+      - DB_PORT=5432
+      - DB_NAME=haki
+  # Read by the frontend's Nginx
+  - name: haki-frontend-config
+    options:
+      labels:
+        app.kubernetes.io/component: web
+        app.kubernetes.io/part-of: haki
+        haki/phase: config
+    literals:
+      # The backend Service (backend.yaml): Nginx resolves it once at start
+      - BACKEND_URL=http://haki-backend:8000
+
+# The database name has one source: haki-backend-config
+replacements:
+  - source:
+      kind: ConfigMap
+      name: haki-backend-config
+      fieldPath: data.DB_NAME
+    targets:
+      - select:
+          kind: ConfigMap
+          name: haki-db-config
+        fieldPaths:
+          - data.DB_NAME
+
+images:
+  # Must match services.db.image in compose.yaml, the single source of truth
+  # for the PostgreSQL pin
+  - name: postgres
+    newTag: 18.6-trixie

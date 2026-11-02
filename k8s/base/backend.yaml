@@ -1,13 +1,11 @@
 # The Haki API (FastAPI + uvicorn), reachable inside the cluster as
 # http://haki-backend:8000; only the frontend's Nginx talks to it.
-#   kubectl apply -f k8s/backend.yaml
-# Apply it after the migration Job has completed (k8s/migrate-job.yaml).
+# Applied by an overlay after the migration Job has completed (k8s/README.md).
 
 apiVersion: v1
 kind: Service
 metadata:
   name: haki-backend
-  namespace: haki
   labels:
     app.kubernetes.io/name: haki-backend
     app.kubernetes.io/component: api
@@ -25,7 +23,6 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: haki-backend
-  namespace: haki
   labels:
     app.kubernetes.io/name: haki-backend
     app.kubernetes.io/component: api
@@ -58,8 +55,8 @@ spec:
           type: RuntimeDefault
       containers:
         - name: backend
-          # Same image as the migration Job: change both together
-          image: ghcr.io/andrei-petrache/haki-backend:3feeb2d54f43b8fb999e7d90db8b81f48ecf40f9
+          # The tag comes from the overlay's images: (same as the migration Job)
+          image: ghcr.io/andrei-petrache/haki-backend
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
@@ -68,17 +65,17 @@ spec:
             - name: DB_HOST
               valueFrom:
                 configMapKeyRef:
-                  name: haki-config
+                  name: haki-backend-config
                   key: DB_HOST
             - name: DB_PORT
               valueFrom:
                 configMapKeyRef:
-                  name: haki-config
+                  name: haki-backend-config
                   key: DB_PORT
             - name: DB_NAME
               valueFrom:
                 configMapKeyRef:
-                  name: haki-config
+                  name: haki-backend-config
                   key: DB_NAME
             - name: DB_USER
               valueFrom:

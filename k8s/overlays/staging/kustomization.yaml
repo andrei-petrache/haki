@@ -1,0 +1,22 @@
+# Staging: its own namespace (and so its own database) next to prod, with one
+# backend replica. New image tags are tried here before prod.
+#   kubectl apply -k k8s/overlays/staging  (in phases: see k8s/README.md)
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: haki-staging
+
+resources:
+  - ../../base
+
+replicas:
+  - name: haki-backend
+    count: 1
+
+# The only place staging's app images are pinned. The backend tag covers the
+# migration Job too, so the two always match.
+images:
+  - name: ghcr.io/andrei-petrache/haki-backend
+    newTag: 3feeb2d54f43b8fb999e7d90db8b81f48ecf40f9
+  - name: ghcr.io/andrei-petrache/haki-frontend
+    newTag: 3feeb2d54f43b8fb999e7d90db8b81f48ecf40f9
