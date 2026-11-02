@@ -381,3 +381,53 @@ dd {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
+/* Workouts */
+
+.workout-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* A whole card is the button that opens the workout */
+button.workout-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--border);
+  font-weight: 400;
+  text-align: left;
+  overflow-wrap: anywhere;
+  color: CanvasText;
+  background: Canvas;
+}
+
+button.workout-card:hover:not(:disabled) {
+  border-color: var(--accent);
+  background: Canvas;
+}
+
+/* Keep the line breaks the user typed */
+.workout-note {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.workout-exercise {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding-top: 0.6rem;
+  border-top: 1px solid var(--border);
+}
+
+.sets {
+  margin: 0;
+  padding-left: 1.5rem;
+}
