@@ -406,6 +406,21 @@ this touches the Compose `db-data` volume.
   README, like Envoy Gateway's. Its controller has rights on the whole
   cluster: the `haki` project limits what ArgoCD does, not what its service
   account could do.
+- **When the migration runs on staging:** on every full sync (a new commit,
+  a manual sync, a change to the Application itself), not on a self-heal
+  that re-applies a single resource (tested on v3.5.7). Safe while every
+  migration is an idempotent Alembic step; a long one holds the sync open
+  for up to 300 s (`activeDeadlineSeconds`).
+- **A failed sync is not retried**, by design (`retry.limit: 0`): fix the
+  commit, or sync by hand. The API server stores the zero limit as
+  `retry: {}`, so `kubectl diff -f k8s/argocd/haki-staging.yaml` always shows
+  that line; ArgoCD still treats it as no retries (tested).
+- **Up to 3 minutes from merge to staging:** ArgoCD polls Git, there is no
+  webhook. Refresh in the UI to look sooner.
+- **ConfigMaps left from before the takeover** (applied by kubectl) are not
+  tracked by ArgoCD, so never pruned: remove them by hand as on prod.
+- **A revert in Git does not revert the database:** a rollback to an older
+  image leaves the schema its migration created.
 - **Client IP behind a load balancer (AWS):** the ClientTrafficPolicy drops
   every incoming X-Forwarded-For because nothing stands in front of Envoy
   here. Behind a load balancer that sets the header, keep its entry instead
