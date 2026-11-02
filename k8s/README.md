@@ -180,6 +180,12 @@ migration Job (a Sync hook: if it fails, the sync stops and the backend
 keeps its old image), backend, frontend, gateway. Old ConfigMaps are pruned
 only at the end (`PruneLast`), and a failed sync is not retried.
 
+Automated sync is on: a commit merged to `main` that changes what the
+staging overlay renders reaches staging on its own, within about 3 minutes
+(ArgoCD polls Git; there is no webhook). Self-heal undoes changes made in
+the cluster by hand, so never `kubectl apply` or `kubectl edit` staging:
+change Git instead.
+
 ```bash
 kubectl apply -f k8s/argocd/haki-staging.yaml
 kubectl -n argocd get application haki-staging \
@@ -282,14 +288,20 @@ cluster's database.
 
 The image tag is the full commit SHA of `main`, set once per overlay under
 `images:` in its `kustomization.yaml` (the backend tag covers the migration
-Job too). After changing it, or anything in `haki-backend-config`, migrate
-before the backend: phases 4 and 5 above. A Job cannot be changed once
-created, so it is deleted first. Other changes need only phase 5.
+Job too).
 
-The ConfigMaps a change replaces are not deleted: `kubectl apply` leaves alone
-what is no longer in the manifests. They are harmless; to remove the unused
-ones, list them with `kubectl -n $NS get configmap -l haki/phase=config` and
-delete those that no pod refers to.
+- **Staging:** a pull request that changes `overlays/staging`. Once it is
+  merged, ArgoCD applies it in wave order, migration included (above).
+- **Prod:** after changing the tag, or anything in `haki-backend-config`,
+  migrate before the backend: phases 4 and 5 above. A Job cannot be changed
+  once created, so it is deleted first. Other changes need only phase 5.
+
+On prod, the ConfigMaps a change replaces are not deleted: `kubectl apply`
+leaves alone what is no longer in the manifests. They are harmless; to
+remove the unused ones, list them with
+`kubectl -n $NS get configmap -l haki/phase=config` and delete those that no
+pod refers to. On staging, ArgoCD prunes the ones it created; those left
+from before the takeover (applied by kubectl) are not tracked and stay.
 
 ### Back up before a migration
 
