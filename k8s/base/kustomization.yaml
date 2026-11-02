@@ -68,6 +68,6 @@ replacements:
 
 images:
   # Must match services.db.image in compose.yaml, the single source of truth
-  # for the PostgreSQL pin
+  # for the PostgreSQL pin; CI's manifests job checks that they match
   - name: postgres
     newTag: 18.6-trixie

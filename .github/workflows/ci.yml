@@ -170,6 +170,27 @@ jobs:
       - name: Build
         run: npm run build
 
+  # The Kubernetes manifests, without a cluster: every overlay builds, matches
+  # the API schemas, runs the PostgreSQL image pinned in compose.yaml and pins
+  # the app images to a commit SHA
+  manifests:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # Pinned versions with checksums, not the runner's preinstalled tools,
+      # which change with every runner image
+      - name: Install kustomize, kubeconform and yq
+        run: |
+          scripts/install-tools.sh "$RUNNER_TEMP/bin" kustomize kubeconform yq
+          echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
+
+      - name: Check the manifests
+        run: k8s/scripts/check-manifests.sh
+
   docker:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
@@ -349,7 +370,7 @@ jobs:
   # "main" (moves to the newest commit on main). Never "latest".
   publish:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    needs: [backend, frontend, integration, docker, smoke]
+    needs: [backend, frontend, integration, manifests, docker, smoke]
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     # The only job that may write packages; job-level permissions replace
