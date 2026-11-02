@@ -25,10 +25,13 @@ spec:
     namespace: haki-staging
   syncPolicy:
     automated:
-      # Off for the takeover: first see the diff, then sync by hand. Turned
-      # on in the next step; prune and selfHeal wait until then.
-      enabled: false
+      # A new commit on main reaches staging on its own (ArgoCD polls Git
+      # every 3 minutes). Off only for the takeover, which was done by hand
+      # first: diff, then a manual sync, with every pod and volume kept.
+      enabled: true
+      # Delete what left Git (after every wave, see PruneLast below)
       prune: true
+      # Undo changes made in the cluster by hand: Git wins
       selfHeal: true
     syncOptions:
       # Delete what left Git only at the end, once every wave is healthy:
