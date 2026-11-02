@@ -126,7 +126,8 @@ label {
 }
 
 input,
-select {
+select,
+textarea {
   min-width: 0;
   padding: 0.5rem 0.6rem;
   border: 1px solid var(--border);
@@ -142,7 +143,7 @@ fieldset {
   border: none;
 }
 
-:is(input, select, button):focus-visible {
+:is(input, select, textarea, button):focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 1px;
 }
@@ -430,4 +431,74 @@ button.workout-card:hover:not(:disabled) {
 .sets {
   margin: 0;
   padding-left: 1.5rem;
+}
+
+.card-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+/* Editor */
+
+textarea {
+  resize: vertical;
+}
+
+.date-field {
+  max-width: 12rem;
+}
+
+.exercise-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-width: 0;
+  padding: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.exercise-block legend {
+  padding: 0 0.25rem;
+  font-size: 0.9rem;
+}
+
+.exercise-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 0.5rem;
+}
+
+.exercise-head .grow {
+  min-width: 10rem;
+}
+
+/* Set number, reps, weight, remove: the inputs share what is left */
+.set-row {
+  display: grid;
+  grid-template-columns: 1.5rem minmax(0, 1fr) minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 0.5rem;
+}
+
+.set-row > .muted {
+  padding-bottom: 0.55rem;
+  text-align: right;
+}
+
+.set-row input {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.set-row .icon {
+  margin-bottom: 0.2rem;
+}
+
+.add-exercise {
+  align-self: flex-start;
 }
