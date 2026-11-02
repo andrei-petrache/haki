@@ -47,8 +47,9 @@ k8s/scripts/check-manifests.sh
 
 No cluster needed. For every overlay it runs `kustomize build`, validates the
 result with [kubeconform](https://github.com/yannh/kubeconform) against the API
-schemas of the Kubernetes version in `kind-config.yaml` (`-strict`: unknown
-fields such as typos fail too), checks that PostgreSQL runs the image pinned
+schemas of the Kubernetes version in `kind-config.yaml`, taken from a fixed
+commit of the schema repository (`-strict`: unknown fields such as typos fail
+too), checks that PostgreSQL runs the image pinned
 in `compose.yaml`, and that the app images are pinned to a full commit SHA.
 It needs kustomize, kubeconform and mikefarah/yq, at the versions in
 `scripts/install-tools.sh`. CI runs it in the `manifests` job.

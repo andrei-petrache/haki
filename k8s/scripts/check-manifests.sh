@@ -20,6 +20,15 @@ k8s_version="${k8s_version%%@*}"
 [[ "$k8s_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] \
   || fail "cannot read the Kubernetes version from '$node_image'"
 
+# The API schemas at a fixed commit of yannh/kubernetes-json-schema: the
+# default location follows its master branch, which changes at any time.
+# When the node image moves to a Kubernetes version this commit has no
+# schemas for, every resource fails with "could not find schema": move the
+# commit forward too.
+schemas_commit=e0c72a1bc5f409d1685c0e1323460c8a98cd7459
+schemas="https://raw.githubusercontent.com/yannh/kubernetes-json-schema/$schemas_commit"
+schema_location="$schemas/{{ .NormalizedKubernetesVersion }}-standalone{{ .StrictSuffix }}/{{ .ResourceKind }}{{ .KindSuffix }}.json"
+
 db_image="$(yq '.services.db.image' compose.yaml)"
 
 for overlay in k8s/overlays/*/; do
@@ -28,7 +37,8 @@ for overlay in k8s/overlays/*/; do
   rendered="$(kustomize build "$overlay")"
 
   # -strict also rejects fields the schema does not know, e.g. a typo
-  kubeconform -strict -summary -kubernetes-version "$k8s_version" <<<"$rendered"
+  kubeconform -strict -summary -kubernetes-version "$k8s_version" \
+    -schema-location "$schema_location" <<<"$rendered"
 
   images="$(yq -N '.. | select(has("image")) | .image' <<<"$rendered" | sort -u)"
 
