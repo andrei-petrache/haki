@@ -147,6 +147,14 @@ backend before its tables exist. In the last step the StatefulSet may show as
 `configured`: kubectl only updates its bookkeeping annotation, the pod is not
 restarted (`kubectl diff -k $O` shows no change).
 
+The HTTPRoute may show as `configured` too, on every apply after the first,
+with nothing changed: the API server fills in defaults the manifest leaves
+out (`group`, `kind`, `weight: 1`, a `PathPrefix /` match), kubectl's
+client-side apply sees a difference and sends a patch, and the server finds
+nothing to change. To confirm, `metadata.generation` stays the same, the
+route's `managedFields` gain no new kubectl entry and `kubectl diff -k $O`
+shows no change.
+
 Open the app through the Gateway, with a tunnel to its Envoy proxy's Service
 (8081, so the Compose stack can keep 8080):
 
@@ -157,7 +165,8 @@ kubectl -n envoy-gateway-system port-forward "$svc" 8081:80   # http://127.0.0.1
 scripts/smoke-test.sh http://127.0.0.1:8081                   # in another terminal
 ```
 
-The smoke test creates a throwaway user and food in the cluster's database.
+The smoke test creates a throwaway user, food, exercise and workout in the
+cluster's database.
 
 ## Secrets
 
@@ -181,6 +190,30 @@ The ConfigMaps a change replaces are not deleted: `kubectl apply` leaves alone
 what is no longer in the manifests. They are harmless; to remove the unused
 ones, list them with `kubectl -n $NS get configmap -l haki/phase=config` and
 delete those that no pod refers to.
+
+### Back up before a migration
+
+A migration changes the database for good, and a new image cannot undo it.
+Before phase 4 on prod, dump the database to a file outside the repository,
+readable only by you:
+
+```bash
+NS=haki
+mkdir -p -m 700 ~/haki-backups
+f=~/haki-backups/haki-$NS-$(date +%Y%m%d-%H%M%S).dump
+# Custom format (-Fc): compressed, read by pg_restore. No -t: binary-safe
+(umask 077 && kubectl -n $NS exec -i haki-db-0 -c postgres -- \
+  sh -c 'pg_dump -Fc -U "$POSTGRES_USER" -d "$POSTGRES_DB"' > "$f")
+ls -l "$f"                                           # -rw-------, not empty
+kubectl -n $NS exec -i haki-db-0 -c postgres -- pg_restore --list < "$f" \
+  | grep -E '^; +(Format|TOC Entries)'               # readable: CUSTOM, N entries
+```
+
+The credentials stay in the pod (`$POSTGRES_USER` and `$POSTGRES_DB` are
+expanded there) and nothing is printed but the archive's header. Stop if
+`pg_dump` fails or the file is empty. The dump holds every user's data: keep
+it out of the repository and delete it once it is no longer needed.
+Restoring is a decision of its own, not part of a deploy.
 
 ### Moving a cluster from before Kustomize
 
