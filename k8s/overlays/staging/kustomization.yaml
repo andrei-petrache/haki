@@ -1,6 +1,11 @@
 # Staging: its own namespace (and so its own database) next to prod, with one
 # backend replica. New image tags are tried here before prod.
 #   kubectl apply -k k8s/overlays/staging  (in phases: see k8s/README.md)
+#
+# TEST BRANCH test/s8-failing-migration: never merged, no pull request.
+# A migration that fails must stop the ArgoCD sync before the backend: the
+# backend and frontend must keep their old images, and PruneLast must keep
+# the old backend ConfigMap.
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
@@ -16,10 +21,11 @@ replicas:
 # The only place staging's app images are pinned. The backend tag covers the
 # migration Job too, so the two always match.
 images:
+  # TEST: a newer image, which the backend must NOT get
   - name: ghcr.io/andrei-petrache/haki-backend
-    newTag: 081c5f21498071b536c23dcdb18d22aa213a5afe
+    newTag: 7ece061d8ea3fb705752de646be64173b3723491
   - name: ghcr.io/andrei-petrache/haki-frontend
-    newTag: 081c5f21498071b536c23dcdb18d22aa213a5afe
+    newTag: 7ece061d8ea3fb705752de646be64173b3723491
 
 configMapGenerator:
   # The backend Service in this namespace, by its full name: Nginx resolves
@@ -29,3 +35,22 @@ configMapGenerator:
     behavior: merge
     literals:
       - BACKEND_URL=http://haki-backend.haki-staging.svc.cluster.local:8000
+  # TEST: a new backend ConfigMap hash, so PruneLast has an old one to keep
+  - name: haki-backend-config
+    behavior: merge
+    literals:
+      - S8_PROBE=1
+
+patches:
+  # TEST: a migration that fails without touching the database (an unknown
+  # revision), and no retries, so it fails in seconds
+  - target:
+      kind: Job
+      name: haki-migrate
+    patch: |
+      - op: replace
+        path: /spec/template/spec/containers/0/command
+        value: ["alembic", "upgrade", "s8-does-not-exist"]
+      - op: replace
+        path: /spec/backoffLimit
+        value: 0
