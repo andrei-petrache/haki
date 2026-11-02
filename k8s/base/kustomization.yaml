@@ -11,6 +11,7 @@ resources:
   - migrate-job.yaml
   - backend.yaml
   - frontend.yaml
+  - gateway.yaml
 
 # Non-secret settings, one ConfigMap per component. Kustomize appends a hash
 # of the contents to each name and updates the references, so a change

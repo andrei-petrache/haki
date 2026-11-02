@@ -16,6 +16,8 @@ every environment shares, and each overlay in `overlays/` adds what differs.
 | `base/migrate-job.yaml` | Job `haki-migrate`: `alembic upgrade head`, once |
 | `base/backend.yaml` | Deployment `haki-backend` (2 replicas), Service on port 8000 |
 | `base/frontend.yaml` | Deployment `haki-frontend` (1 replica), Service on port 8080 |
+| `base/gateway.yaml` | Gateway `haki` (HTTP, port 80) and HTTPRoute to the frontend; the Envoy proxy's settings (EnvoyProxy, ClientTrafficPolicy) |
+| `platform/gatewayclass.yaml` | the GatewayClass `envoy-gateway`: cluster-wide, applied once, not by an overlay |
 | `overlays/prod/` | namespace `haki`; the app image tags; the frontend's `BACKEND_URL` |
 | `overlays/staging/` | namespace `haki-staging`, its own database, 1 backend replica; its own image tags and `BACKEND_URL` |
 
@@ -37,7 +39,8 @@ an `emptyDir` volume.
 ## Requirements
 
 Docker, kind v0.33.0 (the node image digest in `kind-config.yaml` belongs to
-it) and kubectl within one minor version of Kubernetes 1.37.
+it), kubectl within one minor version of Kubernetes 1.37, and Helm v4.3.1 for
+Envoy Gateway (below).
 
 ## Check the manifests
 
@@ -45,14 +48,57 @@ it) and kubectl within one minor version of Kubernetes 1.37.
 k8s/scripts/check-manifests.sh
 ```
 
-No cluster needed. For every overlay it runs `kustomize build`, validates the
-result with [kubeconform](https://github.com/yannh/kubeconform) against the API
-schemas of the Kubernetes version in `kind-config.yaml`, taken from a fixed
-commit of the schema repository (`-strict`: unknown fields such as typos fail
-too), checks that PostgreSQL runs the image pinned
-in `compose.yaml`, and that the app images are pinned to a full commit SHA.
-It needs kustomize, kubeconform and mikefarah/yq, at the versions in
-`scripts/install-tools.sh`. CI runs it in the `manifests` job.
+No cluster needed. It validates `platform/` and the `kustomize build` output
+of every overlay with [kubeconform](https://github.com/yannh/kubeconform)
+against the API schemas of the Kubernetes version in `kind-config.yaml`
+(`-strict`: unknown fields such as typos fail too). Those schemas come from a
+fixed commit of
+yannh/kubernetes-json-schema; the Gateway API and Envoy Gateway ones from a
+fixed commit of datreeio/CRDs-catalog. It also checks that PostgreSQL runs the
+image pinned in `compose.yaml`, that the app images are pinned to a full
+commit SHA, and that each overlay's frontend proxies to the backend of its
+own namespace. It needs kustomize, kubeconform and mikefarah/yq, at the
+versions in `scripts/install-tools.sh`. CI runs it in the `manifests` job.
+
+## Envoy Gateway
+
+The Gateway API resources in `base/gateway.yaml` need a controller that
+implements them: [Envoy Gateway](https://gateway.envoyproxy.io) v1.9.3,
+installed by hand with Helm, once per cluster, outside the overlays. The
+chart is pulled from its OCI registry and installed only after its SHA-256
+matches (a registry tag can move, a checksum cannot):
+
+```bash
+kubectl config current-context   # must print kind-haki
+
+tmp="$(mktemp -d)" && cd "$tmp"
+helm pull oci://docker.io/envoyproxy/gateway-helm --version v1.9.3
+sha256sum -c - <<'EOF'
+1a152513adbcdb0527d7bbe3ea9b090abeb87e4ec9f34b2c18ac8c37f3177541  gateway-helm-v1.9.3.tgz
+EOF
+helm install eg ./gateway-helm-v1.9.3.tgz \
+  --namespace envoy-gateway-system --create-namespace \
+  --kube-context kind-haki
+cd - >/dev/null && rm -rf "$tmp"
+
+kubectl -n envoy-gateway-system wait --for=condition=Available \
+  deployment/envoy-gateway --timeout=5m
+# Gateway API CRDs: 10 standard-group + 3 experimental-group = 13
+kubectl get crd -o name | grep -cE 'gateway\.networking\.(x-)?k8s\.io$'
+
+kubectl apply -f k8s/platform/gatewayclass.yaml
+kubectl wait --for=condition=Accepted gatewayclass/envoy-gateway --timeout=2m
+```
+
+`helm list -n envoy-gateway-system` shows the release `eg`. To reinstall:
+`helm uninstall eg -n envoy-gateway-system`, then the commands above. Helm
+never deletes or upgrades the CRDs a chart ships, so the Gateway API CRDs (and
+the Gateways and routes using them) survive an uninstall, and an upgrade to a
+new version needs the CRD steps from that release's upgrade notes as well as
+`helm upgrade eg <new chart> -n envoy-gateway-system`.
+
+For each Gateway, Envoy Gateway runs an Envoy proxy (Deployment and Service)
+in `envoy-gateway-system`, named after the Gateway's namespace and name.
 
 ## Start from scratch
 
@@ -71,6 +117,7 @@ For staging, use `O=k8s/overlays/staging NS=haki-staging`.
 
 ```bash
 kind create cluster --config k8s/kind-config.yaml    # kubectl context: kind-haki
+# then Envoy Gateway and the GatewayClass, once per cluster (above)
 O=k8s/overlays/prod NS=haki
 
 kubectl apply -k $O -l haki/phase=config
@@ -92,6 +139,7 @@ kubectl -n $NS wait --for=condition=complete job/haki-migrate --timeout=5m
 kubectl apply -k $O
 kubectl -n $NS rollout status deployment/haki-backend
 kubectl -n $NS rollout status deployment/haki-frontend
+kubectl -n $NS wait --for=condition=Programmed gateway/haki --timeout=5m
 ```
 
 Applying everything at once (`kubectl apply -k $O` alone) would start the
@@ -99,12 +147,14 @@ backend before its tables exist. In the last step the StatefulSet may show as
 `configured`: kubectl only updates its bookkeeping annotation, the pod is not
 restarted (`kubectl diff -k $O` shows no change).
 
-Open the app through a tunnel to the frontend Service (8081, so the Compose
-stack can keep 8080):
+Open the app through the Gateway, with a tunnel to its Envoy proxy's Service
+(8081, so the Compose stack can keep 8080):
 
 ```bash
-kubectl -n haki port-forward svc/haki-frontend 8081:8080   # http://127.0.0.1:8081
-scripts/smoke-test.sh http://127.0.0.1:8081                # in another terminal
+svc="$(kubectl -n envoy-gateway-system get service -o name \
+  -l gateway.envoyproxy.io/owning-gateway-namespace=$NS,gateway.envoyproxy.io/owning-gateway-name=haki)"
+kubectl -n envoy-gateway-system port-forward "$svc" 8081:80   # http://127.0.0.1:8081
+scripts/smoke-test.sh http://127.0.0.1:8081                   # in another terminal
 ```
 
 The smoke test creates a throwaway user and food in the cluster's database.
@@ -172,8 +222,33 @@ this touches the Compose `db-data` volume.
   match.
 - **Phases by hand:** kubectl does not know the order above. ArgoCD (S8)
   takes it over, and also deletes the ConfigMaps a change replaced.
-- **Rate limit through port-forward:** every request reaches Nginx from
-  `127.0.0.1`, so all clients share one login/signup budget (6 requests, then
-  429). The limit is per Nginx replica, hence one frontend replica.
+- **Rate limit through port-forward:** kubectl port-forward connects to
+  Envoy from the Envoy pod's own address, so every client looks the same and
+  all share one login/signup budget (6 requests, then 429; a smoke test run
+  uses two). The limit is per Nginx replica, hence one frontend replica.
+- **Nginx trusts X-Forwarded-For from the whole pod CIDR** (`REAL_IP_FROM`,
+  `10.244.0.0/16`), not only from Envoy: any pod in the cluster can call the
+  frontend Service directly with an X-Forwarded-For of its choice and get a
+  fresh login/signup budget per value (tested). Through the Gateway this is
+  closed: Envoy drops the client's X-Forwarded-For first (ClientTrafficPolicy
+  in `base/gateway.yaml`). Fix later with a NetworkPolicy that lets only the
+  Envoy pods reach the frontend (check that the cluster's CNI enforces it).
+- **Envoy Gateway v1.9 is not tested on Kubernetes 1.37:** its compatibility
+  matrix lists 1.33-1.36 (supported until 2027-02-14); 1.37 arrives with
+  v1.10. Move to v1.10 once it is released and past the 7-day cooldown used
+  in `.github/dependabot.yml`.
+- **Gateway API CRDs from the experimental channel:** the chart installs
+  v1.6.1 of the experimental channel (stable resources plus ones still being
+  tried). The manifests use only stable ones (GatewayClass, Gateway,
+  HTTPRoute). On AWS, install the standard channel instead: the CRDs on their
+  own, and the chart with `--set crds.enabled=false`.
+- **Envoy Gateway is installed by hand,** with Helm, outside Kustomize and CI
+  (version, checksum and reinstall above). Its version is pinned only in this
+  README; ArgoCD (S8) can take the Helm release over.
+- **Client IP behind a load balancer (AWS):** the ClientTrafficPolicy drops
+  every incoming X-Forwarded-For because nothing stands in front of Envoy
+  here. Behind a load balancer that sets the header, keep its entry instead
+  (`clientIPDetection` with `numTrustedHops` or `trustedCIDRs`), and set
+  `REAL_IP_FROM` to the cluster's pod CIDR there.
 - **Volume size:** kind's local-path storage does not enforce the 1 GiB.
 - See also the Kubernetes / AWS notes and L16 in `docs/review-2026-11.md`.

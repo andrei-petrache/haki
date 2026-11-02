@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
-# Checks every overlay in k8s/overlays: it builds with kustomize, every
-# resource matches the API schemas of the cluster's Kubernetes version (taken
-# from the node image in k8s/kind-config.yaml), PostgreSQL runs the image
-# pinned in compose.yaml, the app images are pinned to a commit SHA, and the
-# frontend proxies to the backend of its own namespace.
+# Checks k8s/platform and every overlay in k8s/overlays: each overlay builds
+# with kustomize, every resource matches the API schemas of the cluster's
+# Kubernetes version (taken from the node image in k8s/kind-config.yaml) or
+# of its custom resource, PostgreSQL runs the image pinned in compose.yaml,
+# the app images are pinned to a commit SHA, and the frontend proxies to the
+# backend of its own namespace.
 #
 # Usage: k8s/scripts/check-manifests.sh   (from the repository root)
 # Needs kustomize, kubeconform and mikefarah/yq (scripts/install-tools.sh).
@@ -30,16 +31,32 @@ schemas_commit=e0c72a1bc5f409d1685c0e1323460c8a98cd7459
 schemas="https://raw.githubusercontent.com/yannh/kubernetes-json-schema/$schemas_commit"
 schema_location="$schemas/{{ .NormalizedKubernetesVersion }}-standalone{{ .StrictSuffix }}/{{ .ResourceKind }}{{ .KindSuffix }}.json"
 
+# Custom resources (Gateway API, Envoy Gateway) are not in that repository:
+# their schemas come from datreeio/CRDs-catalog, also at a fixed commit.
+# Move it forward when Envoy Gateway (and its Gateway API CRDs) is upgraded.
+crd_schemas_commit=27233a506de0085e71c7f9702597806a7f95eb24
+crd_schemas="https://raw.githubusercontent.com/datreeio/CRDs-catalog/$crd_schemas_commit"
+crd_schema_location="$crd_schemas/{{ .Group }}/{{ .ResourceKind }}_{{ .ResourceAPIVersion }}.json"
+
+validate() {  # validate [files or directories...], else stdin
+  # -strict also rejects fields the schema does not know, e.g. a typo
+  kubeconform -strict -summary -kubernetes-version "$k8s_version" \
+    -schema-location "$schema_location" -schema-location "$crd_schema_location" \
+    "$@"
+}
+
 db_image="$(yq '.services.db.image' compose.yaml)"
+
+# Cluster-wide resources, applied once per cluster, not by an overlay
+echo "== k8s/platform (Kubernetes $k8s_version)"
+validate k8s/platform
 
 for overlay in k8s/overlays/*/; do
   overlay="${overlay%/}"
   echo "== $overlay (Kubernetes $k8s_version)"
   rendered="$(kustomize build "$overlay")"
 
-  # -strict also rejects fields the schema does not know, e.g. a typo
-  kubeconform -strict -summary -kubernetes-version "$k8s_version" \
-    -schema-location "$schema_location" <<<"$rendered"
+  validate <<<"$rendered"
 
   images="$(yq -N '.. | select(has("image")) | .image' <<<"$rendered" | sort -u)"
 
