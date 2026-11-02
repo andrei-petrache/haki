@@ -14,6 +14,15 @@ resources:
 # too, so the two always match.
 images:
   - name: ghcr.io/andrei-petrache/haki-backend
-    newTag: 3feeb2d54f43b8fb999e7d90db8b81f48ecf40f9
+    newTag: 728af6ce951e8386d83226ee5537950bb911d20d
   - name: ghcr.io/andrei-petrache/haki-frontend
-    newTag: 3feeb2d54f43b8fb999e7d90db8b81f48ecf40f9
+    newTag: 728af6ce951e8386d83226ee5537950bb911d20d
+
+configMapGenerator:
+  # The backend Service in this namespace, by its full name: Nginx resolves
+  # it itself and ignores resolv.conf's search domains. CI checks that the
+  # namespace here is this overlay's.
+  - name: haki-frontend-config
+    behavior: merge
+    literals:
+      - BACKEND_URL=http://haki-backend.haki.svc.cluster.local:8000

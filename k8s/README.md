@@ -16,8 +16,8 @@ every environment shares, and each overlay in `overlays/` adds what differs.
 | `base/migrate-job.yaml` | Job `haki-migrate`: `alembic upgrade head`, once |
 | `base/backend.yaml` | Deployment `haki-backend` (2 replicas), Service on port 8000 |
 | `base/frontend.yaml` | Deployment `haki-frontend` (1 replica), Service on port 8080 |
-| `overlays/prod/` | namespace `haki`; the app image tags |
-| `overlays/staging/` | namespace `haki-staging`, its own database, 1 backend replica; its own image tags |
+| `overlays/prod/` | namespace `haki`; the app image tags; the frontend's `BACKEND_URL` |
+| `overlays/staging/` | namespace `haki-staging`, its own database, 1 backend replica; its own image tags and `BACKEND_URL` |
 
 To see what an overlay produces: `kubectl kustomize k8s/overlays/prod`.
 
@@ -162,10 +162,6 @@ this touches the Compose `db-data` volume.
 - **No probes yet:** Kubernetes treats a pod as ready as soon as its container
   starts, so `rollout status` can finish before the app answers, and a
   rolling update can send traffic to a pod that is still starting.
-- **Frontend restarts after a cluster start:** after `docker start`, Nginx
-  can start before the cluster's DNS and exit with `host not found in
-  upstream "haki-backend"`. Kubernetes restarts it until DNS answers (three
-  restarts, under a minute, when tested); nothing to do.
 - **The PostgreSQL pin is in two places:** `images:` in
   `base/kustomization.yaml` and `services.db.image` in `compose.yaml`
   (Dependabot updates only the latter). The `manifests` job fails until both

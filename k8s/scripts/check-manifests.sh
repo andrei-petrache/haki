@@ -2,7 +2,8 @@
 # Checks every overlay in k8s/overlays: it builds with kustomize, every
 # resource matches the API schemas of the cluster's Kubernetes version (taken
 # from the node image in k8s/kind-config.yaml), PostgreSQL runs the image
-# pinned in compose.yaml, and the app images are pinned to a commit SHA.
+# pinned in compose.yaml, the app images are pinned to a commit SHA, and the
+# frontend proxies to the backend of its own namespace.
 #
 # Usage: k8s/scripts/check-manifests.sh   (from the repository root)
 # Needs kustomize, kubeconform and mikefarah/yq (scripts/install-tools.sh).
@@ -54,6 +55,17 @@ for overlay in k8s/overlays/*/; do
       || fail "$overlay: '$image' is not pinned to a full commit SHA"
   done < <(grep '^ghcr.io/andrei-petrache/' <<<"$images")
 
+  # The frontend must proxy to the backend of its own namespace, by full
+  # name: a copied overlay could otherwise send staging's API calls to prod
+  namespace="$(yq -N 'select(.kind == "Deployment" and .metadata.name == "haki-frontend")
+    | .metadata.namespace' <<<"$rendered")"
+  backend_url="$(yq -N 'select(.kind == "ConfigMap"
+    and .metadata.name == "haki-frontend-config*") | .data.BACKEND_URL' <<<"$rendered")"
+  expected="http://haki-backend.$namespace.svc.cluster.local:8000"
+  [[ "$backend_url" == "$expected" ]] \
+    || fail "$overlay: BACKEND_URL is '$backend_url', expected '$expected'"
+
   echo "PostgreSQL: $k8s_db_image"
+  echo "Backend URL: $backend_url"
   echo "Images: $(tr '\n' ' ' <<<"$images")"
 done

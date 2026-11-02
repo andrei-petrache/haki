@@ -2,8 +2,8 @@
 # backend Service.
 #   kubectl -n haki port-forward svc/haki-frontend 8081:8080
 # then open http://127.0.0.1:8081 (8080 stays free for docker compose).
-# Nginx resolves the backend's name once at start and exits if it does not
-# resolve yet; Kubernetes restarts it until it does.
+# Nginx resolves the backend's name per request, so it starts even before
+# the backend or the cluster's DNS is up.
 
 apiVersion: v1
 kind: Service
@@ -68,6 +68,11 @@ spec:
                 configMapKeyRef:
                   name: haki-frontend-config
                   key: BACKEND_URL
+            - name: REAL_IP_FROM
+              valueFrom:
+                configMapKeyRef:
+                  name: haki-frontend-config
+                  key: REAL_IP_FROM
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
