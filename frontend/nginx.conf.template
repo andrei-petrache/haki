@@ -13,9 +13,12 @@ map $request_method $auth_limit_key {
 # 5 requests per minute per IP; 10 MB of state tracks ~160,000 addresses
 limit_req_zone $auth_limit_key zone=auth:10m rate=5r/m;
 
-# Retry-After only on 429 responses (an empty value sends no header)
-map $status $retry_after {
-    429     60;
+# Retry-After on 429 responses and on the 503 that replaces an unreachable
+# backend (an empty value sends no header). The backend's own 503 already
+# carries one, so $backend_unavailable tells the two apart.
+map "$status:$backend_unavailable" $retry_after {
+    ~^429:  60;
+    503:1   5;
     default "";
 }
 
@@ -41,8 +44,9 @@ server {
     # The backend's name is resolved per request (cached 30 s), not once at
     # start: Nginx then starts even before the name resolves (e.g. a cold
     # cluster start, DNS not up yet), and only the requests made meanwhile
-    # get 502. The entrypoint fills NGINX_LOCAL_RESOLVERS from
-    # /etc/resolv.conf: CoreDNS in Kubernetes, Docker's DNS in Compose.
+    # get 503 (see error_page below). The entrypoint fills
+    # NGINX_LOCAL_RESOLVERS from /etc/resolv.conf: CoreDNS in Kubernetes,
+    # Docker's DNS in Compose.
     # This resolver ignores /etc/hosts and resolv.conf's search domains, so
     # in Kubernetes BACKEND_URL needs the full name
     # (http://haki-backend.<namespace>.svc.cluster.local:8000).
@@ -50,6 +54,16 @@ server {
     resolver_timeout 5s;
     # A variable in proxy_pass is what makes Nginx resolve at request time
     set $backend ${BACKEND_URL};
+    set $backend_unavailable "";
+
+    # An unreachable backend (no endpoints while every pod fails readiness,
+    # a name that does not resolve, a refused connection) makes Nginx itself
+    # answer 502, which reads as a broken gateway. Answer what the backend
+    # answers when the database is down instead: 503, the same JSON body and
+    # Retry-After: 5, so clients know to try again shortly. Only Nginx's own
+    # 502s: without proxy_intercept_errors, the backend's responses pass as
+    # they are.
+    error_page 502 =503 @backend_unavailable;
 
     # The client's real IP, for the rate limit and the logs, when a proxy
     # (the Gateway in Kubernetes) stands in front: from a REAL_IP_FROM
@@ -94,6 +108,12 @@ server {
         limit_req zone=auth burst=5 nodelay;
         rewrite ^/api(/.*)$ $1 break;
         proxy_pass $backend;
+    }
+
+    location @backend_unavailable {
+        set $backend_unavailable 1;
+        default_type application/json;
+        return 503 '{"detail":"Service temporarily unavailable, try again shortly"}\n';
     }
 
     # Health of Nginx itself, for the Compose healthcheck and Kubernetes
