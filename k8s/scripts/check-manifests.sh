@@ -119,6 +119,66 @@ for overlay in k8s/overlays/*/; do
   [[ "$backend_url" == "$expected" ]] \
     || fail "$overlay: BACKEND_URL is '$backend_url', expected '$expected'"
 
+  # ArgoCD's order and protections (staging syncs through ArgoCD; on prod
+  # the annotations are inert). The migration is a Sync hook between the
+  # database and the backend, never PreSync (it would start before the new
+  # hash-named ConfigMaps exist), and no TTL deletes it before ArgoCD reads
+  # its result.
+  # Picked out first, then read: see project() above
+  migrate="$(yq -N 'select(.kind == "Job" and .metadata.name == "haki-migrate")' <<<"$rendered" |
+    yq -N '[.metadata.annotations["argocd.argoproj.io/hook"],
+       .metadata.annotations["argocd.argoproj.io/hook-delete-policy"],
+       (.spec.ttlSecondsAfterFinished // "no-ttl")] | join(" ")')"
+  [[ "$migrate" == "Sync BeforeHookCreation no-ttl" ]] \
+    || fail "$overlay: haki-migrate must be a Sync hook with BeforeHookCreation and no TTL (got '$migrate')"
+  [[ "$(yq -N 'select(.metadata.annotations["argocd.argoproj.io/hook"] == "PreSync")
+    | .metadata.name' <<<"$rendered")" == "" ]] \
+    || fail "$overlay: no PreSync hooks"
+  # The namespace and the database must survive a prune or a deleted
+  # Application: deleting either would delete the data
+  while read -r kind; do
+    opts="$(yq -N "select(.kind == \"$kind\")" <<<"$rendered" |
+      yq -N '.metadata.annotations["argocd.argoproj.io/sync-options"]')"
+    [[ "$opts" == "Prune=false,Delete=false" ]] \
+      || fail "$overlay: the $kind must carry sync-options Prune=false,Delete=false"
+  done <<<$'Namespace\nStatefulSet'
+  # Waves in phase order: config, database, migrations, backend, frontend,
+  # gateway. Every resource has one.
+  waves="$(yq -N '.kind + "/" + .metadata.name + "=" +
+    (.metadata.annotations["argocd.argoproj.io/sync-wave"] // "none")' <<<"$rendered")"
+  expected_waves="$(cat <<'EOF'
+Namespace=-2
+ConfigMap=-2
+Service/haki-db=-1
+StatefulSet=-1
+Job=0
+Service/haki-backend=1
+Deployment/haki-backend=1
+Service/haki-frontend=2
+Deployment/haki-frontend=2
+EnvoyProxy=3
+Gateway=3
+HTTPRoute=3
+ClientTrafficPolicy=3
+EOF
+)"
+  while IFS= read -r line; do
+    resource="${line%=*}" wave="${line##*=}"
+    want=""
+    while IFS='=' read -r key value; do
+      [[ "$resource" == "$key" || "$resource" == "$key/"* ]] && want="$value"
+    done <<<"$expected_waves"
+    [[ -n "$want" ]] || fail "$overlay: $resource has no expected sync wave (add it here)"
+    [[ "$wave" == "$want" ]] || fail "$overlay: $resource is in wave '$wave', expected '$want'"
+  done <<<"$waves"
+  # On the object, never in a pod template: there it would restart the pods
+  [[ "$(yq -N '.. | select(has("template")) | .template.metadata.annotations // {}
+    | keys | .[] | select(test("^argocd\\.argoproj\\.io/"))' <<<"$rendered")" == "" ]] \
+    || fail "$overlay: ArgoCD annotations belong on the object, not in its pod template"
+  [[ "$(yq -N 'select(.kind == "Secret" or .kind == "PersistentVolumeClaim")
+    | .metadata.name' <<<"$rendered")" == "" ]] \
+    || fail "$overlay: Secrets and PersistentVolumeClaims stay out of Git"
+
   echo "PostgreSQL: $k8s_db_image"
   echo "Backend URL: $backend_url"
   echo "Images: $(tr '\n' ' ' <<<"$images")"

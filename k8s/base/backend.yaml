@@ -6,6 +6,9 @@ apiVersion: v1
 kind: Service
 metadata:
   name: haki-backend
+  annotations:
+    # ArgoCD (staging): after the migrations
+    argocd.argoproj.io/sync-wave: "1"
   labels:
     app.kubernetes.io/name: haki-backend
     app.kubernetes.io/component: api
@@ -23,6 +26,10 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: haki-backend
+  annotations:
+    # ArgoCD (staging): only after the migration hook (wave 0) succeeded, so
+    # a new image never runs on an old schema
+    argocd.argoproj.io/sync-wave: "1"
   labels:
     app.kubernetes.io/name: haki-backend
     app.kubernetes.io/component: api

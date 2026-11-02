@@ -14,6 +14,9 @@ apiVersion: gateway.envoyproxy.io/v1alpha1
 kind: EnvoyProxy
 metadata:
   name: haki
+  annotations:
+    # ArgoCD (staging): the way in comes last, after the app it routes to
+    argocd.argoproj.io/sync-wave: "3"
   labels:
     app.kubernetes.io/component: gateway
     app.kubernetes.io/part-of: haki
@@ -40,6 +43,8 @@ apiVersion: gateway.networking.k8s.io/v1
 kind: Gateway
 metadata:
   name: haki
+  annotations:
+    argocd.argoproj.io/sync-wave: "3"
   labels:
     app.kubernetes.io/component: gateway
     app.kubernetes.io/part-of: haki
@@ -64,6 +69,8 @@ apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
   name: haki
+  annotations:
+    argocd.argoproj.io/sync-wave: "3"
   labels:
     app.kubernetes.io/component: gateway
     app.kubernetes.io/part-of: haki
@@ -88,6 +95,8 @@ apiVersion: gateway.envoyproxy.io/v1alpha1
 kind: ClientTrafficPolicy
 metadata:
   name: haki
+  annotations:
+    argocd.argoproj.io/sync-wave: "3"
   labels:
     app.kubernetes.io/component: gateway
     app.kubernetes.io/part-of: haki
