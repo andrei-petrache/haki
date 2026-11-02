@@ -1,8 +1,16 @@
+import os
+import subprocess
+import sys
+from pathlib import Path
+
 import pytest
 from pydantic import ValidationError
 from sqlalchemy import create_engine, make_url
 
 from app.config import Settings
+from app.db_config import DatabaseSettings
+
+BACKEND_DIR = Path(__file__).resolve().parents[1]
 
 DATABASE_URL = "postgresql+psycopg://test:test@localhost:5432/test"
 STRONG_KEY = "k" * 32
@@ -129,3 +137,73 @@ def test_database_error_does_not_reveal_the_password() -> None:
     assert TRICKY_PASSWORD not in repr(
         make_db_settings(**DB_PARTS, database_url=None).db_url
     )
+
+
+# Least privilege: the migrations get only the database settings (review L16)
+
+
+def test_database_settings_load_without_the_jwt_secret(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.delenv("JWT_SECRET_KEY", raising=False)
+
+    url = DatabaseSettings(_env_file=None, **DB_PARTS, database_url=None).db_url
+
+    assert url.password == TRICKY_PASSWORD
+
+
+def test_database_settings_never_hold_the_jwt_secret(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("JWT_SECRET_KEY", STRONG_KEY)
+
+    db_settings = DatabaseSettings(_env_file=None, **DB_PARTS, database_url=None)
+
+    assert "jwt_secret_key" not in DatabaseSettings.model_fields
+    assert STRONG_KEY not in repr(db_settings)
+
+
+def test_app_settings_still_require_the_jwt_secret(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.delenv("JWT_SECRET_KEY", raising=False)
+
+    with pytest.raises(ValidationError, match="jwt_secret_key"):
+        Settings(_env_file=None, **DB_PARTS, database_url=None)
+
+
+def test_app_settings_keep_the_database_rules() -> None:
+    with pytest.raises(ValidationError, match="not both"):
+        make_db_settings(**DB_PARTS, database_url=DATABASE_URL)
+
+
+# Runs Alembic itself, offline (--sql: prints the SQL, no database needed),
+# with no JWT_SECRET_KEY and no .env: it fails if migrations/env.py loads the
+# app's settings again, directly or through an import.
+RUN_ALEMBIC_WITHOUT_ENV_FILE = """
+from app import db_config
+db_config.DatabaseSettings.model_config["env_file"] = None
+from alembic.config import main
+main(argv=["upgrade", "head", "--sql"])
+"""
+
+
+def test_migrations_run_without_the_jwt_secret() -> None:
+    env = {
+        key: value
+        for key, value in os.environ.items()
+        if key != "JWT_SECRET_KEY" and not key.startswith("DB_")
+    }
+    env["DATABASE_URL"] = DATABASE_URL
+
+    result = subprocess.run(
+        [sys.executable, "-c", RUN_ALEMBIC_WITHOUT_ENV_FILE],
+        cwd=BACKEND_DIR,
+        env=env,
+        capture_output=True,
+        text=True,
+        timeout=60,
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert "CREATE TABLE users" in result.stdout
