@@ -8,10 +8,15 @@ import {
 } from './api'
 import type { Workout, WorkoutSummary } from './api'
 import { formatCounts, formatDay, formatSet, shorten } from './format'
+import WorkoutEditor from './WorkoutEditor'
 
 const NOTE_PREVIEW_LENGTH = 80
 
-type View = { kind: 'list' } | { kind: 'detail'; id: number }
+type View =
+  | { kind: 'list' }
+  | { kind: 'detail'; id: number }
+  | { kind: 'new' }
+  | { kind: 'edit'; workout: Workout }
 
 /**
  * The workouts, newest first, a page at a time.
@@ -22,9 +27,11 @@ type View = { kind: 'list' } | { kind: 'detail'; id: number }
 function WorkoutList({
   token,
   onOpen,
+  onNew,
 }: {
   token: string
   onOpen: (id: number) => void
+  onNew: () => void
 }) {
   const [workouts, setWorkouts] = useState<WorkoutSummary[] | null>(null)
   // A full page means there may be more; an empty next page then just ends it
@@ -66,7 +73,12 @@ function WorkoutList({
 
   return (
     <section className="card">
-      <h2>Your workouts</h2>
+      <div className="card-head">
+        <h2>Your workouts</h2>
+        <button type="button" onClick={onNew}>
+          New workout
+        </button>
+      </div>
       {error && <p className="error">{error}</p>}
       {workouts === null && !error && <p className="muted">Loading…</p>}
       {workouts?.length === 0 && <p className="muted empty">No workouts yet</p>}
@@ -107,10 +119,12 @@ function WorkoutDetail({
   token,
   id,
   onBack,
+  onEdit,
 }: {
   token: string
   id: number
   onBack: () => void
+  onEdit: (workout: Workout) => void
 }) {
   const [workout, setWorkout] = useState<Workout | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -173,6 +187,14 @@ function WorkoutDetail({
               type="button"
               className="secondary"
               disabled={deleting}
+              onClick={() => onEdit(workout)}
+            >
+              Edit
+            </button>
+            <button
+              type="button"
+              className="secondary"
+              disabled={deleting}
               onClick={() => void handleDelete(workout)}
             >
               {deleting ? 'Deleting…' : 'Delete'}
@@ -187,14 +209,40 @@ function WorkoutDetail({
 export default function WorkoutsPage({ token }: { token: string }) {
   const [view, setView] = useState<View>({ kind: 'list' })
   const showList = () => setView({ kind: 'list' })
+  const showDetail = (id: number) => setView({ kind: 'detail', id })
 
   return (
     <div className="page">
       {view.kind === 'list' && (
-        <WorkoutList token={token} onOpen={(id) => setView({ kind: 'detail', id })} />
+        <WorkoutList
+          token={token}
+          onOpen={showDetail}
+          onNew={() => setView({ kind: 'new' })}
+        />
       )}
       {view.kind === 'detail' && (
-        <WorkoutDetail token={token} id={view.id} onBack={showList} />
+        <WorkoutDetail
+          token={token}
+          id={view.id}
+          onBack={showList}
+          onEdit={(workout) => setView({ kind: 'edit', workout })}
+        />
+      )}
+      {view.kind === 'new' && (
+        <WorkoutEditor
+          token={token}
+          initial={null}
+          onSaved={showDetail}
+          onCancel={showList}
+        />
+      )}
+      {view.kind === 'edit' && (
+        <WorkoutEditor
+          token={token}
+          initial={view.workout}
+          onSaved={showDetail}
+          onCancel={() => showDetail(view.workout.id)}
+        />
       )}
     </div>
   )
