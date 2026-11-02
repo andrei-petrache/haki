@@ -242,13 +242,15 @@ this touches the Compose `db-data` volume.
 
 ## Known limits
 
-- **A database outage gives 502, not 503:** the backend's readiness probe
-  calls `/ready`, which fails while PostgreSQL is unreachable. With a single
-  database every backend pod fails it at once, so the Service has no
-  endpoints left, and Nginx answers 502 instead of the backend's 503 with
-  `Retry-After`. The pods are not restarted (liveness uses `/health`) and
-  come back on their own. The first requests after the outage starts may
-  still reach a backend, until kube-proxy updates its rules.
+- **A database outage takes every backend pod out of service:** the
+  readiness probe calls `/ready`, which fails while PostgreSQL is
+  unreachable, and with a single database every pod fails it at once. The
+  Service then has no endpoints, and Nginx answers the API itself with the
+  backend's own 503, JSON body and `Retry-After: 5` (`error_page` in
+  `frontend/nginx.conf.template`, review L19). The pods are not restarted
+  (liveness uses `/health`) and come back on their own; the app itself (`/`)
+  keeps loading. The first requests after the outage starts may still reach
+  a backend, until kube-proxy updates its rules.
 - **The PostgreSQL pin is in two places:** `images:` in
   `base/kustomization.yaml` and `services.db.image` in `compose.yaml`
   (Dependabot updates only the latter). The `manifests` job fails until both

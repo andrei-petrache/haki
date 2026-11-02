@@ -35,4 +35,6 @@ can be verified, even when it is slower.
 | Nginx crash-looped on a cold cluster start | Frontend down until the backend existed | Resolve the backend per request: `resolver` + a variable in `proxy_pass` |
 | A forged X-Forwarded-For bypassed the rate limit | A fresh login budget per header value | Trust the header only from a known proxy (Envoy) |
 | The editor did not validate the date range | A 422 from the API without saying which field | Mirror the backend's rules in the form, with the error next to the field |
+| `pg_isready` on the socket passed on PostgreSQL's temporary init server (L18) | `migrate` and `backend` starting just before the database restarts | Check readiness the way clients connect: over TCP |
+| A database outage gave 502 from Nginx in Kubernetes (L19) | Clients saw a broken gateway instead of "try again in 5 s" | When the proxy answers for the backend, answer what the backend would |
 | My own review suggested PreSync for migrations | The migration would look for a ConfigMap that does not exist yet | Check the official documentation, even for what you wrote yourself |
