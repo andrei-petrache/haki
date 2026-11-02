@@ -9,6 +9,10 @@ apiVersion: v1
 kind: Service
 metadata:
   name: haki-db
+  annotations:
+    # ArgoCD (staging): with the database, after the config, before the
+    # migrations
+    argocd.argoproj.io/sync-wave: "-1"
   labels:
     app.kubernetes.io/name: haki-db
     app.kubernetes.io/component: database
@@ -26,6 +30,12 @@ apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   name: haki-db
+  annotations:
+    # ArgoCD (staging): healthy (pod ready) before the migrations start.
+    # Never pruned, never deleted with the Application: the database stays
+    # up whatever happens to the rest of the app.
+    argocd.argoproj.io/sync-wave: "-1"
+    argocd.argoproj.io/sync-options: Prune=false,Delete=false
   labels:
     app.kubernetes.io/name: haki-db
     app.kubernetes.io/component: database

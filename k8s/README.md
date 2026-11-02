@@ -293,9 +293,10 @@ the same namespace, names and volume. Run phases 1, 3, 4 and 5 (the Secret
 stays). PostgreSQL restarts once, because it now reads `haki-db-config`.
 Then delete the old ConfigMap: `kubectl -n haki delete configmap haki-config`.
 
-A finished migration Job deletes itself after an hour, with its logs. While
-it is there, `kubectl logs job/haki-migrate` shows one of its pods, not
-necessarily the last: after retries, pick the pod by name from
+A finished migration Job stays, with its logs, until the next run replaces
+it (phase 4 deletes it first): it has no TTL, because ArgoCD must still find
+it to read its result. `kubectl logs job/haki-migrate` shows one of its
+pods, not necessarily the last: after retries, pick the pod by name from
 `kubectl -n haki get pods -l app.kubernetes.io/name=haki-migrate`.
 
 ## Stop, start, delete
@@ -326,8 +327,12 @@ this touches the Compose `db-data` volume.
   `base/kustomization.yaml` and `services.db.image` in `compose.yaml`
   (Dependabot updates only the latter). The `manifests` job fails until both
   match.
-- **Phases by hand:** kubectl does not know the order above. ArgoCD (S8)
-  takes it over, and also deletes the ConfigMaps a change replaced.
+- **Phases by hand:** kubectl does not know the order above. The manifests
+  now carry it for ArgoCD as sync waves (`argocd.argoproj.io/sync-wave`:
+  config -2, database -1, migrations 0 as a Sync hook, backend 1, frontend 2,
+  gateway 3); `check-manifests.sh` checks the order. kubectl ignores those
+  annotations, so prod keeps the manual phases until S9; staging moves to
+  ArgoCD in S8.
 - **Rate limit through port-forward:** kubectl port-forward connects to
   Envoy from the Envoy pod's own address, so every client looks the same and
   all share one login/signup budget (6 requests, then 429; a smoke test run

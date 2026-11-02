@@ -19,12 +19,16 @@ resources:
 # DB_PASSWORD, JWT_SECRET_KEY) live in the Secret haki-secrets, created by
 # hand with kubectl and never committed.
 # The label haki/phase=config lets these be applied before everything else
-# (see k8s/README.md).
+# (see k8s/README.md); for ArgoCD (staging), the annotation puts them in the
+# first sync wave, with the namespace. Annotations do not change the hash in
+# the names, so adding them restarts nothing.
 configMapGenerator:
   # Read by PostgreSQL. The name is used only when the data directory is
   # created; it is copied from haki-backend-config below.
   - name: haki-db-config
     options:
+      annotations:
+        argocd.argoproj.io/sync-wave: "-2"
       labels:
         app.kubernetes.io/component: database
         app.kubernetes.io/part-of: haki
@@ -34,6 +38,8 @@ configMapGenerator:
   # Read by the backend and the migration Job
   - name: haki-backend-config
     options:
+      annotations:
+        argocd.argoproj.io/sync-wave: "-2"
       labels:
         app.kubernetes.io/component: api
         app.kubernetes.io/part-of: haki
@@ -47,6 +53,8 @@ configMapGenerator:
   # the overlay's own namespace, so each overlay sets it.
   - name: haki-frontend-config
     options:
+      annotations:
+        argocd.argoproj.io/sync-wave: "-2"
       labels:
         app.kubernetes.io/component: web
         app.kubernetes.io/part-of: haki

@@ -7,10 +7,20 @@
 # A Job's pod template cannot be changed after creation, hence the delete.
 # A Job, not an initContainer: Alembic takes no lock, so migrations must run
 # once, not once per backend replica.
+# On staging, ArgoCD runs it instead, as a hook on every full sync.
 apiVersion: batch/v1
 kind: Job
 metadata:
   name: haki-migrate
+  annotations:
+    # ArgoCD (staging): runs in the Sync phase, after the ConfigMaps (wave -2)
+    # and the database (-1), before the backend (1); if it fails, the sync
+    # stops and the backend keeps its old image. Not PreSync: a PreSync hook
+    # starts before this sync's new hash-named ConfigMaps exist.
+    argocd.argoproj.io/hook: Sync
+    argocd.argoproj.io/sync-wave: "0"
+    # The previous run (and its logs) stays until the next sync replaces it
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
   labels:
     app.kubernetes.io/name: haki-migrate
     app.kubernetes.io/component: migrations
@@ -22,8 +32,9 @@ spec:
   # A replacement pod starts only once the previous one has fully stopped,
   # so two migrations never run at the same time
   podReplacementPolicy: Failed
-  # Deleted an hour after it finishes; its logs go with it
-  ttlSecondsAfterFinished: 3600
+  # No ttlSecondsAfterFinished: ArgoCD reads the finished Job to learn the
+  # result and must not find it deleted. It stays, with its logs, until the
+  # next run: phase 4 deletes it on prod, the next sync on staging.
   template:
     metadata:
       labels:
