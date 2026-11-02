@@ -10,15 +10,17 @@ import {
 import type { User } from './api'
 import FoodsPage from './FoodsPage'
 import TodayPage from './TodayPage'
+import WorkoutsPage from './WorkoutsPage'
 import './App.css'
 
 const TOKEN_KEY = 'haki_token'
 
-type Tab = 'today' | 'foods' | 'profile'
+type Tab = 'today' | 'foods' | 'workouts' | 'profile'
 
 const TABS: { id: Tab; label: string }[] = [
   { id: 'today', label: 'Today' },
   { id: 'foods', label: 'Foods' },
+  { id: 'workouts', label: 'Workouts' },
   { id: 'profile', label: 'Profile' },
 ]
 
@@ -235,6 +237,7 @@ function App() {
         <TodayPage token={token} onGoToFoods={() => setTab('foods')} />
       )}
       {user && tab === 'foods' && <FoodsPage token={token} />}
+      {user && tab === 'workouts' && <WorkoutsPage token={token} />}
       {user && tab === 'profile' && <Profile user={user} />}
     </main>
   )
