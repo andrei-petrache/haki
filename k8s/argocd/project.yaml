@@ -1,0 +1,41 @@
+# The ArgoCD project for Haki: what its Applications may deploy, and where.
+# A whitelist: whatever is not listed is refused. Applied by hand, once per
+# ArgoCD install (see k8s/README.md, "ArgoCD").
+#   kubectl apply -f k8s/argocd/project.yaml
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: haki
+  namespace: argocd
+  # No finalizers: nothing here may delete resources in cascade
+spec:
+  description: Haki staging, deployed from this repository only
+  # Public repository: no credentials, no repository Secret
+  sourceRepos:
+    - https://github.com/andrei-petrache/haki.git
+  # Only the staging namespace of this cluster: prod (haki) stays manual
+  # until S9
+  destinations:
+    - server: https://kubernetes.default.svc
+      namespace: haki-staging
+  # Cluster-scoped: only the staging Namespace itself, by name
+  clusterResourceWhitelist:
+    - group: ""
+      kind: Namespace
+      name: haki-staging
+  # Namespaced: only the kinds k8s/overlays/staging renders. No Secret and no
+  # PersistentVolumeClaim: ArgoCD can neither create, change nor delete the
+  # secrets or the database volume. Pod and ReplicaSet only so the UI shows
+  # the pods: Git holds none, so ArgoCD has nothing to do with them.
+  namespaceResourceWhitelist:
+    - { group: "", kind: ConfigMap }
+    - { group: "", kind: Service }
+    - { group: "", kind: Pod }
+    - { group: apps, kind: Deployment }
+    - { group: apps, kind: ReplicaSet }
+    - { group: apps, kind: StatefulSet }
+    - { group: batch, kind: Job }
+    - { group: gateway.networking.k8s.io, kind: Gateway }
+    - { group: gateway.networking.k8s.io, kind: HTTPRoute }
+    - { group: gateway.envoyproxy.io, kind: EnvoyProxy }
+    - { group: gateway.envoyproxy.io, kind: ClientTrafficPolicy }
