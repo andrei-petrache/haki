@@ -2,18 +2,22 @@
 #   docker compose up -d db          only PostgreSQL, for uvicorn + Vite on the host
 #   docker compose up -d --build     the whole app on http://127.0.0.1:8080
 
-# Shared by migrate and backend. The DATABASE_URL in .env points to localhost
-# for host development; inside the compose network the database host is "db".
-# The parts are passed separately, so any password works as-is, unescaped.
+# The database settings, shared by migrate and backend. The DATABASE_URL in
+# .env points to localhost for host development; inside the compose network
+# the database host is "db". The parts are passed separately, so any password
+# works as-is, unescaped.
+x-db-env: &db-env
+  DB_USER: ${POSTGRES_USER:?set POSTGRES_USER in .env}
+  DB_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+  DB_HOST: db
+  DB_NAME: ${POSTGRES_DB:?set POSTGRES_DB in .env}
+
+# Shared by migrate and backend: the same image. Only the backend gets the
+# JWT secret: the migrations need only the database (least privilege).
 x-backend: &backend
   build: ./backend
   image: haki-backend:dev
-  environment:
-    DB_USER: ${POSTGRES_USER:?set POSTGRES_USER in .env}
-    DB_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
-    DB_HOST: db
-    DB_NAME: ${POSTGRES_DB:?set POSTGRES_DB in .env}
-    JWT_SECRET_KEY: ${JWT_SECRET_KEY:?set JWT_SECRET_KEY in .env (python -c "import secrets; print(secrets.token_urlsafe(32))")}
+  environment: *db-env
 
 services:
   db:
@@ -50,6 +54,9 @@ services:
 
   backend:
     <<: *backend
+    environment:
+      <<: *db-env
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:?set JWT_SECRET_KEY in .env (python -c "import secrets; print(secrets.token_urlsafe(32))")}
     depends_on:
       db:
         condition: service_healthy
