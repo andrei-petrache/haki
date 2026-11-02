@@ -56,13 +56,16 @@ docker run --rm --network "$net" -e NGINX_ENTRYPOINT_QUIET_LOGS=1 \
   "$image" nginx -t
 
 # A backend that does not resolve (yet): Nginx still starts and serves the
-# app; only the API answers 502
+# app and its own health check; only the API answers 502
 start -e BACKEND_URL=http://haki-missing-backend.invalid:8000
 app="$(status GET /)"
 api="$(status GET /api/health)"
 echo "Unresolvable backend:      GET / $app, GET /api/health $api"
 [[ "$app" == 200 && "$api" == 502 ]] ||
   fail "expected the app (200) without a backend, and 502 from the API"
+health="$(curl -s "$base/health")"
+echo "GET /health:               ${health:-<empty>}"
+[[ "$health" == ok ]] || fail "/health should answer \"ok\" without the backend"
 stop
 
 start --network-alias backend

@@ -75,10 +75,10 @@ services:
         condition: service_healthy
     ports:
       - "127.0.0.1:8080:8080"
-    # Checks Nginx itself, not the backend: a backend outage should not
-    # mark the frontend unhealthy
+    # Checks Nginx itself (/health never reaches the backend): a backend
+    # outage should not mark the frontend unhealthy
     healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:8080/"]
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:8080/health"]
       interval: 10s
       timeout: 3s
       retries: 3

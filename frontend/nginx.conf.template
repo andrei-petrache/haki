@@ -96,6 +96,16 @@ server {
         proxy_pass $backend;
     }
 
+    # Health of Nginx itself, for the Compose healthcheck and Kubernetes
+    # probes. Answered here, without the backend: a backend outage must not
+    # restart the frontend or take it out of service. Not logged, since
+    # probes call it every few seconds.
+    location = /health {
+        access_log off;
+        default_type text/plain;
+        return 200 "ok\n";
+    }
+
     # Vite names these files after a hash of their content: a new build gets
     # new names, so browsers may keep them for a year without asking again.
     location /assets/ {
