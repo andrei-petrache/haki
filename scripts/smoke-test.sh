@@ -4,8 +4,9 @@
 #
 # Usage: scripts/smoke-test.sh [base URL]   (default http://127.0.0.1:8080)
 #
-# It creates a throwaway user and food. CI runs it against a fresh stack; run
-# it locally only against a stack whose database may keep that test user.
+# It creates a throwaway user, food, exercise and workout. CI runs it against
+# a fresh stack; run it locally only against a stack whose database may keep
+# that test user.
 set -euo pipefail
 
 base="${1:-http://127.0.0.1:8080}"
@@ -76,6 +77,27 @@ call GET /api/foods "" "$token"
 expect 200 "list foods"
 [[ "$(json '[f["name"] for f in d]')" == "['Smoke rice']" ]] ||
   fail "list foods: the new food is missing"
+
+call POST /api/exercises '{"name": "Smoke squat"}' "$token"
+expect 201 "create an exercise"
+exercise_id="$(json 'd["id"]')"
+
+workout="{\"performed_on\": \"$(date +%F)\", \"note\": \"Smoke\",
+          \"exercises\": [{\"exercise_id\": $exercise_id,
+                           \"sets\": [{\"reps\": 5, \"weight_kg\": 100}]}]}"
+call POST /api/workouts "$workout" "$token"
+expect 201 "log a workout"
+workout_id="$(json 'd["id"]')"
+
+call GET "/api/workouts/$workout_id" "" "$token"
+expect 200 "read the workout"
+[[ "$(json 'd["exercises"][0]["exercise_name"]')" == "Smoke squat" ]] ||
+  fail "read the workout: wrong exercise"
+
+call GET /api/workouts "" "$token"
+expect 200 "list workouts"
+[[ "$(json '[(w["id"], w["set_count"]) for w in d]')" == "[($workout_id, 1)]" ]] ||
+  fail "list workouts: the new workout is missing"
 
 call GET /api/auth/me
 expect 401 "no token is rejected"
