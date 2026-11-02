@@ -14,9 +14,9 @@ resources:
 # too, so the two always match.
 images:
   - name: ghcr.io/andrei-petrache/haki-backend
-    newTag: 8043e8b16584853e211c04449e0fc53790352ba7
+    newTag: 081c5f21498071b536c23dcdb18d22aa213a5afe
   - name: ghcr.io/andrei-petrache/haki-frontend
-    newTag: 8043e8b16584853e211c04449e0fc53790352ba7
+    newTag: 081c5f21498071b536c23dcdb18d22aa213a5afe
 
 configMapGenerator:
   # The backend Service in this namespace, by its full name: Nginx resolves
