@@ -28,8 +28,11 @@ services:
       - "127.0.0.1:5432:5432"
     volumes:
       - db-data:/var/lib/postgresql
+    # Over TCP (-h 127.0.0.1), not the socket, like the Kubernetes probes: on
+    # the first start the image runs a temporary server on the socket only,
+    # then restarts it, so a socket check can pass before the real server is up
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 5s
       timeout: 3s
       retries: 10
