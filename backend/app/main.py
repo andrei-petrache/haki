@@ -9,6 +9,7 @@ from sqlalchemy.exc import TimeoutError as PoolTimeoutError
 from app.auth import router as auth_router
 from app.db import database_is_reachable
 from app.entries import router as entries_router
+from app.exercises import router as exercises_router
 from app.foods import router as foods_router
 from app.security import HashingBusy
 from app.summary import router as summary_router
@@ -20,6 +21,7 @@ app.include_router(auth_router)
 app.include_router(foods_router)
 app.include_router(entries_router)
 app.include_router(summary_router)
+app.include_router(exercises_router)
 
 
 @app.exception_handler(OperationalError)

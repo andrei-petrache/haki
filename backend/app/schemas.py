@@ -14,6 +14,9 @@ from pydantic import (
 FoodName = Annotated[
     str, StringConstraints(strip_whitespace=True, min_length=1, max_length=100)
 ]
+ExerciseName = Annotated[
+    str, StringConstraints(strip_whitespace=True, min_length=1, max_length=100)
+]
 # Must match MEAL_TYPES in app/models.py
 MealType = Literal["breakfast", "lunch", "dinner", "snack"]
 
@@ -69,6 +72,16 @@ class FoodIn(BaseModel):
 
 
 class FoodResponse(FoodIn):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+
+
+class ExerciseIn(BaseModel):
+    name: ExerciseName
+
+
+class ExerciseResponse(ExerciseIn):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
