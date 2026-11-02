@@ -51,8 +51,17 @@ def headers(make_user: Callable[[str], User]) -> dict[str, str]:
         lambda id_: ("DELETE", f"/foods/{id_}", None),
         lambda id_: ("DELETE", f"/entries/{id_}", None),
         lambda id_: ("POST", "/entries", entry(id_)),
+        lambda id_: ("PUT", f"/exercises/{id_}", {"name": "Squat"}),
+        lambda id_: ("DELETE", f"/exercises/{id_}", None),
     ],
-    ids=["update food", "delete food", "delete entry", "log entry"],
+    ids=[
+        "update food",
+        "delete food",
+        "delete entry",
+        "log entry",
+        "rename exercise",
+        "delete exercise",
+    ],
 )
 def test_ids_at_the_postgres_integer_limit(
     pg_client: TestClient,
