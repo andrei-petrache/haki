@@ -3,7 +3,8 @@
 [![CI](https://github.com/andrei-petrache/haki/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/andrei-petrache/haki/actions/workflows/ci.yml)
 
 A fitness and nutrition tracker, built as an end-to-end DevOps learning project:
-from local development to a production-grade deployment on AWS.
+from local development to a production-grade deployment on AWS. What was
+built, what I learned and why: see the [learning journal](docs/journal/README.md).
 
 ## Stack
 
@@ -12,8 +13,9 @@ from local development to a production-grade deployment on AWS.
 - **Auth:** Argon2 password hashing, JWT access tokens
 - **Containers:** Docker images for backend and frontend (Nginx), Docker Compose
 - **CI:** GitHub Actions (lint, tests, build, Docker images) on every pull request
-- **Kubernetes:** a local kind cluster running the published images
-- **Coming next:** Ingress and Kustomize, ArgoCD, Terraform on AWS
+- **Kubernetes:** a local kind cluster running the published images, with
+  Kustomize overlays for staging and prod and Envoy Gateway in front
+- **Coming next:** ArgoCD, Terraform on AWS
 
 ## Configuration
 
