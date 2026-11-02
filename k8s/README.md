@@ -286,4 +286,4 @@ this touches the Compose `db-data` volume.
   (`clientIPDetection` with `numTrustedHops` or `trustedCIDRs`), and set
   `REAL_IP_FROM` to the cluster's pod CIDR there.
 - **Volume size:** kind's local-path storage does not enforce the 1 GiB.
-- See also the Kubernetes / AWS notes and L16 in `docs/review-2026-11.md`.
+- See also the Kubernetes / AWS notes in `docs/review-2026-11.md`.
