@@ -16,10 +16,11 @@ See README.md for setup.
 - **Never `git push`.** Andrei does all pushing; an OK for a commit covers
   only the commit.
 - **Never commit on `main`.** It is protected: changes land only through pull
-  requests with all 8 required CI checks green (`backend`, `frontend`,
+  requests with all 9 required CI checks green (`backend`, `frontend`,
   `docker (backend)`, `docker (frontend)`, `postgres-image`, `integration`,
-  `manifests`, `smoke`); no direct or force pushes. When a change adds or
-  renames a CI job, tell Andrei to update the ruleset's required checks.
+  `manifests`, `smoke`, `tag-pr-scope`) and the branch up to date with
+  `main`; no direct or force pushes. When a change adds or renames a CI job,
+  tell Andrei to update the ruleset's required checks.
 - Start every change on a new branch from an up-to-date `main`, named after
   the change with a type prefix: `feat/...`, `fix/...`, `ci/...`, `docs/...`,
   `refactor/...`, `chore/...` (e.g. `feat/weekly-summary`). Andrei pushes the

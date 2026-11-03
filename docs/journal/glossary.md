@@ -50,7 +50,8 @@ the list when it first shows up in the code or in a review.
 | Healthcheck | The command Docker runs to decide whether a container is healthy; `depends_on: service_healthy` waits for it |
 | `error_page` / named location | Nginx's way to replace an error response; `@name` is an internal location no URL can reach |
 | Dependabot | Opens pull requests that bump dependencies, after a 7-day cooldown |
-| Ruleset | GitHub rules on `main`: pull requests only, with all 8 required checks green |
+| Ruleset | GitHub rules on `main`: pull requests only, with all 9 required checks green and the branch up to date |
+| Auto-merge | GitHub merges a pull request by itself once every required check passes; here only the tag bot's, behind a switch |
 | GHCR | GitHub Container Registry, where the images are published by commit SHA |
 
 ## Kubernetes

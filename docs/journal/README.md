@@ -40,7 +40,7 @@ Two Claude sessions and me in the middle:
 - **Claude Code** (in a terminal, on Ubuntu): writes the code, runs the
   tests, shows me the diff and waits for my OK before every commit.
 - **Me**: carry the messages, give the OKs, push, open the pull requests and
-  merge them once all 8 CI checks are green.
+  merge them once all 9 required CI checks are green.
 
 The rules live in [`CLAUDE.md`](../../CLAUDE.md): small steps with tests after
 each, explanations in Romanian, never read `.env`, never commit on `main`, one

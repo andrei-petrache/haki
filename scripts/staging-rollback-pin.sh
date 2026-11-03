@@ -13,8 +13,9 @@
 #                                the pinned migration tag in its history.
 #
 # Run from a clone with the full history of main (the SHAs are checked with
-# git). Needs yq (scripts/install-tools.sh). See k8s/README.md, "Roll back
-# staging after a migration".
+# git). Needs yq (scripts/install-tools.sh) and docker: a SHA whose images
+# are not on GHCR is refused (they are public, no login needed). See
+# k8s/README.md, "Roll back staging after a migration".
 set -euo pipefail
 
 fail() {
@@ -32,6 +33,14 @@ frontend=ghcr.io/andrei-petrache/haki-frontend
 tag() { yq ".images[] | select(.name == \"$1\") | .newTag" "$file"; }
 full_sha() { [[ "$1" =~ ^[0-9a-f]{40}$ ]] || fail "Not a full commit SHA: $1"; }
 known() { git cat-file -e "$1^{commit}" 2>/dev/null || fail "Commit $1 is not in this clone's history"; }
+# Staging may only be told to run images CI published
+published() {
+  command -v docker >/dev/null || fail "docker is needed to check the images on GHCR"
+  for image in "$backend" "$frontend"; do
+    docker buildx imagetools inspect "$image:$1" >/dev/null 2>&1 \
+      || fail "$image:$1 is not on GHCR: only a commit of main with published images can be deployed"
+  done
+}
 
 case "${1:-}" in
   start)
@@ -45,6 +54,7 @@ case "${1:-}" in
     [[ "$older" != "$current" ]] || fail "Staging already runs $older"
     known "$older"
     known "$current"
+    published "$older"
     git merge-base --is-ancestor "$older" "$current" \
       || fail "$older is not older than the current tag $current: a rollback goes back in history"
 
@@ -69,6 +79,7 @@ case "${1:-}" in
     migrate="$(yq '.migrateTag' "$pin")"
     known "$fixed"
     known "$migrate"
+    published "$fixed"
     git merge-base --is-ancestor "$migrate" "$fixed" \
       || fail "$fixed does not contain $migrate: its migrations would not know the database's revision"
 
