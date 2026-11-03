@@ -326,9 +326,11 @@ The image tag is the full commit SHA of `main`, set once per overlay under
 Job too).
 
 - **Staging:** a pull request that changes `overlays/staging`. Once it is
-  merged, ArgoCD applies it in wave order, migration included (above). CI
-  does not update the tag yet (S9): a code change reaches staging through a
-  second pull request that changes the tag, once its images are published.
+  merged, ArgoCD applies it in wave order, migration included (above). After
+  a push to `main` that changes `backend/` or `frontend/`, the CI job
+  `bump-staging` opens that pull request itself (`scripts/bump-staging-tag.sh`),
+  always on the branch `bot/bump-staging`: a newer commit updates the same
+  pull request. Andrei merges it.
 - **Prod:** after changing the tag, or anything in `haki-backend-config`,
   migrate before the backend: phases 4 and 5 above. A Job cannot be changed
   once created, so it is deleted first. Other changes need only phase 5.

@@ -420,3 +420,146 @@ jobs:
             digest="$(docker image inspect --format '{{index .RepoDigests 0}}' "$REGISTRY/$name:$SHA")"
             echo "| \`$REGISTRY/$name:$SHA\` | \`${digest#*@}\` |" >> "$GITHUB_STEP_SUMMARY"
           done
+
+  # Opens, or updates, the one pull request that moves staging to the images
+  # just published; Andrei merges it and ArgoCD deploys it. Only for pushes
+  # that change what goes into the images (backend/ or frontend/): the tag
+  # pull request changes only k8s/, so merging it publishes again but never
+  # opens another bump. Not a required check: it never runs on pull requests.
+  bump-staging:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: publish
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    # The tag bot's private key lives only in this environment, which accepts
+    # jobs from main alone
+    environment: tag-bot
+    # One bump at a time, never cancelled: a newer commit's bump waits for the
+    # running one (GitHub keeps only the newest waiting run)
+    concurrency:
+      group: bump-staging
+      cancel-in-progress: false
+    # Writes go through the tag bot's token, not the GITHUB_TOKEN: pull
+    # requests opened with the GITHUB_TOKEN would not run the CI checks
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Check whether this push changed the images
+        id: changes
+        env:
+          BEFORE: ${{ github.event.before }}
+        run: |
+          # main always has a previous commit; all zeros means a new branch
+          if [[ "$BEFORE" =~ ^0+$ ]] || ! git cat-file -e "$BEFORE^{commit}" 2>/dev/null; then
+            echo "::error::Previous commit '$BEFORE' unknown: cannot tell what changed; bump by hand"
+            exit 1
+          fi
+          if git diff --quiet "$BEFORE" HEAD -- backend frontend; then
+            echo "No change in backend/ or frontend/: staging keeps its images"
+            echo "bump=false" >> "$GITHUB_OUTPUT"
+          else
+            git diff --stat "$BEFORE" HEAD -- backend frontend
+            echo "bump=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      # The bump script reads with yq; check-manifests.sh also needs the other two
+      - name: Install kustomize, kubeconform and yq
+        if: steps.changes.outputs.bump == 'true'
+        run: |
+          scripts/install-tools.sh "$RUNNER_TEMP/bin" kustomize kubeconform yq
+          echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
+
+      # Never move staging back: a newer commit's bump may already be on the
+      # bot's branch, or merged into main. Read fresh, after the queue wait.
+      - name: Check that staging would move forward
+        if: steps.changes.outputs.bump == 'true'
+        id: forward
+        env:
+          SHA: ${{ github.sha }}
+          BRANCH: bot/bump-staging
+        run: |
+          file=k8s/overlays/staging/kustomization.yaml
+          tag_of() {
+            git show "$1:$file" \
+              | yq '.images[] | select(.name == "ghcr.io/andrei-petrache/haki-backend") | .newTag'
+          }
+          git fetch -q origin main
+          refs=(origin/main)
+          if git fetch -q origin "+refs/heads/$BRANCH:refs/remotes/origin/$BRANCH" 2>/dev/null; then
+            refs+=("origin/$BRANCH")
+          fi
+          for ref in "${refs[@]}"; do
+            tag="$(tag_of "$ref")"
+            if [ "$tag" != "$SHA" ] && git merge-base --is-ancestor "$SHA" "$tag" 2>/dev/null; then
+              echo "$ref already moves staging to ${tag:0:7}, newer than ${SHA:0:7}: no change"
+              echo "forward=false" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+          done
+          echo "forward=true" >> "$GITHUB_OUTPUT"
+
+      # A token valid for an hour, for this repository only, with only the
+      # two rights the bot needs; revoked when the job ends
+      - name: Create the tag bot's token
+        if: steps.forward.outputs.forward == 'true'
+        id: app
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          client-id: ${{ vars.TAG_BOT_CLIENT_ID }}
+          private-key: ${{ secrets.TAG_BOT_PRIVATE_KEY }}
+          permission-contents: write
+          permission-pull-requests: write
+
+      # Always the same branch and the same pull request: a newer commit
+      # replaces the older bump instead of opening a competing one
+      - name: Open or update the staging tag pull request
+        if: steps.forward.outputs.forward == 'true'
+        env:
+          GH_TOKEN: ${{ steps.app.outputs.token }}
+          BOT: ${{ steps.app.outputs.app-slug }}
+          SHA: ${{ github.sha }}
+          REPO: ${{ github.repository }}
+          BRANCH: bot/bump-staging
+        run: |
+          git switch -C "$BRANCH" origin/main
+          old="$(scripts/bump-staging-tag.sh "$SHA")"
+          if [ "$old" = "$SHA" ]; then
+            echo "Staging already runs $SHA"
+            exit 0
+          fi
+          k8s/scripts/check-manifests.sh > /dev/null
+
+          id="$(gh api "/users/${BOT}%5Bbot%5D" --jq .id)"
+          git -c user.name="${BOT}[bot]" \
+              -c user.email="${id}+${BOT}[bot]@users.noreply.github.com" \
+              commit -q -am "Move staging to ${SHA:0:7}" \
+              -m "Images published for $SHA by the CI run on main."
+          git push -q --force \
+            "https://x-access-token:${GH_TOKEN}@github.com/${REPO}.git" \
+            "HEAD:refs/heads/$BRANCH"
+
+          title="Move staging to ${SHA:0:7}"
+          {
+            echo "Moves staging from \`${old:0:7}\` to the images published for \`$SHA\`."
+            echo
+            echo "Changes to backend/ and frontend/ since \`${old:0:7}\`:"
+            echo
+            echo '```'
+            git log --oneline "$old..$SHA" -- backend frontend 2>/dev/null \
+              || echo "(history from ${old:0:7} not found)"
+            echo '```'
+            echo
+            echo "Opened by the bump-staging job; ArgoCD deploys it once merged."
+          } > body.md
+          pr="$(gh pr list --head "$BRANCH" --state open --json number --jq '.[0].number')"
+          if [ -n "$pr" ]; then
+            gh pr edit "$pr" --title "$title" --body-file body.md
+            echo "Updated pull request #$pr"
+          else
+            gh pr create --base main --head "$BRANCH" --title "$title" --body-file body.md
+          fi
