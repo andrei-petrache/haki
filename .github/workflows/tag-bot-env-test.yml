@@ -1,0 +1,23 @@
+# TEMPORARY, never merged: proves that a job started from a branch other than
+# main cannot use the tag-bot environment or read its secret.
+name: tag-bot environment test
+
+on:
+  pull_request:
+
+permissions: {}
+
+jobs:
+  try-tag-bot:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    environment: tag-bot
+    steps:
+      # Prints only whether the secret reached the job, never its value
+      - name: Is the secret visible here?
+        env:
+          KEY: ${{ secrets.TAG_BOT_PRIVATE_KEY }}
+          CLIENT_ID: ${{ vars.TAG_BOT_CLIENT_ID }}
+        run: |
+          if [ -n "$KEY" ]; then echo "FAIL: the secret reached a pull request job"; exit 1; fi
+          echo "secret empty; client id set: $([ -n "$CLIENT_ID" ] && echo yes || echo no)"
