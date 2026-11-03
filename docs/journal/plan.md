@@ -12,8 +12,8 @@ Sprint numbers are those of the original plan, with the shifts noted below.
 | S5 | 2. CI | Images published to GHCR by commit SHA, Trivy scan, releases from tags | Done |
 | S6-S7 | 3. Kubernetes (local) | kind, manifests, StatefulSet, probes, self-healing, resource limits, Kustomize for staging and prod, Gateway | Done |
 | - | Feature | **Workouts**, planned with S5, shipped after S7 as the first release through Kustomize, Gateway and probes | Done |
-| S8 | 4. GitOps | ArgoCD: the cluster's state lives in Git; staging updates itself on merge | In progress |
-| S9 | 4. GitOps | Prod updated only with approval: promotion between environments behind a gate. Feature **Programs** (weekly plans, e.g. Push/Pull/Legs), shipped staging first, then prod | Next |
+| S8 | 4. GitOps | ArgoCD: the cluster's state lives in Git; staging updates itself on merge; a rollback is a `git revert` | Done |
+| S9 | 4. GitOps | Prod updated only with approval: promotion between environments behind a gate. CI updates the image tag in Git (until then, a code change reaches staging through a separate pull request that changes the tag). Choose and test the explicit exception that lets an older image pass the migration hook for a rollback. Feature **Programs** (weekly plans, e.g. Push/Pull/Legs), shipped staging first, then prod, with a revert drill of its migration on staging | Next |
 | S9-S10 | 6. Hardening (local) | Prometheus and Grafana with alerts; Argo Rollouts (blue-green, automatic rollback); scheduled database backups and a restore drill | Next |
 | S11 | 6. Hardening (local) | Feature **Dashboard** (weekly calories and training volume), shipped blue-green; a broken release rolls back on its own | Next |
 | S11-S13 | 5. AWS with Terraform | VPC, EKS and IAM as code; everything that works locally moves to the cloud; secrets in AWS Secrets Manager synced into the cluster | Next |

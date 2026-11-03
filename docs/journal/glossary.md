@@ -15,6 +15,9 @@ the list when it first shows up in the code or in a review.
 | JWT | The signed token the API hands out after login; the backend checks the signature on every request |
 | Rate limiting | A cap on requests per client; here Nginx answers 429 for too many logins or signups |
 | 503 + `Retry-After` | "Temporarily unavailable, try again later": what the backend answers while the database is down |
+| `alembic_version` | The table where Alembic keeps the database's current revision; an image that does not know it stops with an error |
+| Expand / contract | A schema change in two releases: first only add (the old code still works), remove later |
+| `pg_dump` / `pg_restore` | PostgreSQL's backup to a file, and the tool that reads it back |
 
 ## Frontend
 
@@ -64,6 +67,7 @@ the list when it first shows up in the code or in a review.
 | Envoy Gateway | The Gateway API implementation used here |
 | kubeconform | Validates manifests against the Kubernetes schemas, in CI |
 | `reclaimPolicy: Delete` | Deleting the PVC also deletes the volume, and so the data |
+| Grace period / `deletionTimestamp` | A pod being stopped gets up to 30 s to exit; `deletionTimestamp` marks the end of that window, not the moment the pod is gone |
 
 ## GitOps
 
@@ -77,3 +81,5 @@ the list when it first shows up in the code or in a review.
 | Server-side apply | The API server merges the fields instead of kubectl; ArgoCD's large CRDs need it |
 | Release candidate | A trial version before the final one; never used in the cluster |
 | Compatibility matrix | The official list of Kubernetes versions a release is tested on |
+| Polling | ArgoCD checks Git about every 3 minutes; without a webhook, a merge waits up to that long |
+| Rollback by `git revert` | A new commit that undoes an earlier one; ArgoCD applies it like any other change |
