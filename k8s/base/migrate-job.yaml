@@ -56,8 +56,11 @@ spec:
           type: RuntimeDefault
       containers:
         - name: migrate
-          # The tag comes from the overlay's images: (same as the backend)
-          image: ghcr.io/andrei-petrache/haki-backend
+          # A name of its own, so an overlay can set this tag apart from the
+          # backend's: each overlay's images: maps haki-migrate to the backend
+          # image, with the backend's tag except during a rollback pin
+          # (k8s/README.md). CI fails if the name ever reaches the cluster.
+          image: haki-migrate
           imagePullPolicy: IfNotPresent
           command: ["alembic", "upgrade", "head"]
           env:

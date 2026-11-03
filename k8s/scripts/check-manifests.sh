@@ -4,8 +4,9 @@
 # cluster's Kubernetes version (taken from the node image in
 # k8s/kind-config.yaml) or of its custom resource, the ArgoCD projects allow
 # no more than staging from this repository, PostgreSQL runs the image pinned
-# in compose.yaml, the app images are pinned to a commit SHA, and the frontend
-# proxies to the backend of its own namespace.
+# in compose.yaml, the app images are pinned to a commit SHA, the migration
+# Job runs the backend's tag unless a rollback pin says otherwise, and the
+# frontend proxies to the backend of its own namespace.
 #
 # Usage: k8s/scripts/check-manifests.sh   (from the repository root)
 # Needs kustomize, kubeconform and mikefarah/yq (scripts/install-tools.sh).
@@ -128,6 +129,41 @@ for overlay in k8s/overlays/*/; do
     [[ "$image" =~ :[0-9a-f]{40}$ ]] \
       || fail "$overlay: '$image' is not pinned to a full commit SHA"
   done < <(grep '^ghcr.io/andrei-petrache/' <<<"$images")
+
+  # The migration Job runs the backend image under the name haki-migrate,
+  # with the backend's tag. Only an active rollback-pin.yaml lets the two
+  # differ, and then the backend may run nothing but the pinned tag: no new
+  # backend tag reaches the overlay until the pin is lifted.
+  image_of() {  # image_of <kind> <name>
+    yq -N "select(.kind == \"$1\" and .metadata.name == \"$2\")
+      | .spec.template.spec.containers[0].image" <<<"$rendered"
+  }
+  backend_image="$(image_of Deployment haki-backend)"
+  frontend_image="$(image_of Deployment haki-frontend)"
+  job_image="$(image_of Job haki-migrate)"
+  [[ "$job_image" == ghcr.io/andrei-petrache/haki-backend:* ]] \
+    || fail "$overlay: the migration Job runs '$job_image'; list haki-migrate under images: with newName ghcr.io/andrei-petrache/haki-backend"
+  backend_tag="${backend_image##*:}" job_tag="${job_image##*:}"
+  pin="$overlay/rollback-pin.yaml"
+  if [[ -e "$pin" ]]; then
+    pin_backend="$(yq '.backendTag' "$pin")" pin_migrate="$(yq '.migrateTag' "$pin")"
+    [[ "$pin_backend" =~ ^[0-9a-f]{40}$ && "$pin_migrate" =~ ^[0-9a-f]{40}$ ]] \
+      || fail "$pin: backendTag and migrateTag must be full commit SHAs"
+    [[ "$pin_backend" != "$pin_migrate" ]] \
+      || fail "$pin: backendTag and migrateTag are equal, so it pins nothing: delete it"
+    [[ -n "$(yq '.reason // ""' "$pin")" ]] || fail "$pin: a reason is required"
+    [[ "$(yq '.since' "$pin")" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]] \
+      || fail "$pin: since must be a date (YYYY-MM-DD)"
+    frontend_tag="${frontend_image##*:}"
+    [[ "$backend_tag" == "$pin_backend" && "$frontend_tag" == "$pin_backend" ]] \
+      || fail "$overlay: a rollback pin is active, so backend and frontend stay on ${pin_backend:0:7} (got ${backend_tag:0:7} and ${frontend_tag:0:7}); lift the pin first"
+    [[ "$job_tag" == "$pin_migrate" ]] \
+      || fail "$overlay: a rollback pin is active, so the migration Job stays on ${pin_migrate:0:7} (got ${job_tag:0:7})"
+    echo "Rollback pin: backend ${pin_backend:0:7}, migration ${pin_migrate:0:7}, since $(yq '.since' "$pin")"
+  else
+    [[ "$job_tag" == "$backend_tag" ]] \
+      || fail "$overlay: the migration Job runs ${job_tag:0:7}, the backend ${backend_tag:0:7}; they must match unless rollback-pin.yaml is active"
+  fi
 
   # The frontend must proxy to the backend of its own namespace, by full
   # name: a copied overlay could otherwise send staging's API calls to prod

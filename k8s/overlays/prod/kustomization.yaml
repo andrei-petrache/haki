@@ -10,13 +10,17 @@ resources:
   - ../../base
 
 # The only place the app images are pinned: the images CI built, scanned and
-# published for one commit of main. The backend tag covers the migration Job
-# too, so the two always match.
+# published for one commit of main. The migration Job runs the backend image
+# under its own name, with the backend's tag; only an active rollback-pin.yaml
+# lets the two differ (CI checks both).
 images:
   - name: ghcr.io/andrei-petrache/haki-backend
     newTag: 081c5f21498071b536c23dcdb18d22aa213a5afe
   - name: ghcr.io/andrei-petrache/haki-frontend
     newTag: 081c5f21498071b536c23dcdb18d22aa213a5afe
+  - name: haki-migrate
+    newTag: 081c5f21498071b536c23dcdb18d22aa213a5afe
+    newName: ghcr.io/andrei-petrache/haki-backend
 
 configMapGenerator:
   # The backend Service in this namespace, by its full name: Nginx resolves
