@@ -17,6 +17,7 @@ Newest first. Sprints follow the project plan; the review is
 
 | Date | Sprint | What shipped | Key commits |
 | --- | --- | --- | --- |
+| 3 Nov | S8 (done) | A tag change and its `git revert` reached staging through pull requests and ArgoCD alone (21 s and 94-95 s from merge to the first new pod Ready); the rollback limit after a migration checked on a throwaway database | `62841b0`, `384f067` |
 | 2 Nov | Review fixes | L16: the migrations no longer get the JWT secret (Compose and Kubernetes), on staging and prod | `69ce02a`, `081c5f2` |
 | 2 Nov | Review fixes | L18: PostgreSQL healthcheck over TCP in Compose; L19: 503 instead of 502 when the backend is unreachable, on staging and prod | `55c15c1`, `75ddf7c`, `239baf2` |
 | 2 Nov | S8 (day 1) | ArgoCD v3.5.7 installed; projects locked to staging; sync waves; staging taken over with every pod and volume kept; automated sync; drift, self-heal and failed-migration tests passed | `4aa0aa3`, `6d7fe48`, `7ece061` |
@@ -36,8 +37,8 @@ Two Claude sessions and me in the middle:
 
 - **Mentor** (claude.ai): plans each sprint, writes the prompts and reviews
   the reports and diffs.
-- **Claude Code** (VS Code): writes the code, runs the tests, shows me the
-  diff and waits for my OK before every commit.
+- **Claude Code** (in a terminal, on Ubuntu): writes the code, runs the
+  tests, shows me the diff and waits for my OK before every commit.
 - **Me**: carry the messages, give the OKs, push, open the pull requests and
   merge them once all 8 CI checks are green.
 
@@ -49,10 +50,11 @@ without my OK.
 ## Where I am
 
 Staging and prod run `081c5f2`: Workouts and the L16, L18 and L19 fixes.
-S8 is half done: since 2 November 2026 ArgoCD v3.5.7 manages staging, with
-automated sync, prune and self-heal; prod stays manual until S9.
+S8 is done (3 November 2026): ArgoCD v3.5.7 manages staging, with automated
+sync, prune and self-heal, and a merged pull request is the only way a
+change reaches it; prod stays manual until S9.
 
-S8 results so far, all on staging:
+S8 results, all on staging unless noted:
 
 | Test | Result |
 | --- | --- |
@@ -62,9 +64,12 @@ S8 results so far, all on staging:
 | A Deployment deleted by hand | Recreated in about 1 s by a selective sync; the migration did not run |
 | A failing migration | The sync stopped at the hook: backend and frontend kept their images and pods, the old ConfigMap stayed (PruneLast), no retry, the app kept working |
 | Back to `main` | Synced and Healthy; the test ConfigMap was pruned |
+| A tag change through a pull request | First new pod Ready 21 s after the merge, sync finished at 26 s: 7 s waiting for ArgoCD, 19 s sync (one run, reconstructed from timestamps) |
+| Its `git revert` through a pull request | First new pod Ready 94-95 s after the merge, sync finished at 97 s: 82 s waiting for ArgoCD, 15 s sync (observed live); rows, the database pod and prod's pods unchanged; smoke test passed |
+| A revert after a migration (throwaway database, not staging) | An image older than the database stops at `alembic upgrade head` with exit 255 and changes nothing, so the revert would stop at the hook and leave the new version active |
 
-Next in S8: a change through a pull request, timed from merge to cluster,
-and a rollback with `git revert`. Then S9 (see the [plan](plan.md)).
+The deploy itself takes 15-19 s; ArgoCD's poll can take the total to about
+3 min 20 s. Next: S9 (see the [plan](plan.md)).
 
 Open items, outside the sprints:
 

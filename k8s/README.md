@@ -206,6 +206,41 @@ delete it from the UI or with `argocd app delete`: both delete in cascade by
 default, which would take the Deployments, Services and Gateway down (the
 namespace, the database and its volume would still stay).
 
+### Roll back staging
+
+A rollback is a `git revert` of the commit that changed `overlays/staging`,
+through a pull request like any other change. Measured in S8 (3 November
+2026, ArgoCD v3.5.7), in seconds after the merge:
+
+| Change | First new pod Ready | Sync finished | Of which waiting for ArgoCD to poll | Of which sync (`startedAt` to `finishedAt`) | How |
+| --- | --- | --- | --- | --- | --- |
+| New tag (`62841b0`) | 21 s | 26 s | 7 s | 19 s | One run, reconstructed from ArgoCD and Kubernetes timestamps |
+| Its revert (`384f067`) | 94-95 s | 97 s | 82 s | 15 s | Observed live |
+
+The deploy itself takes 15-19 s; the poll can take the total to about
+3 min 20 s. The migration runs before the backend: the sync waves guarantee
+it (the backend's wave starts only once the hook has succeeded); timestamps
+to the second cannot tell the two apart.
+
+**After a migration, `git revert` can fail at the hook, and the new version
+stays active:**
+
+- **Proven** (on a throwaway PostgreSQL, 3 November 2026): `alembic upgrade
+  head` from an image older than the database stops with exit 255,
+  `Can't locate revision identified by '...'`, and changes nothing.
+- **Inferred for this case**, from the failed-migration test: the migration
+  Job fails (after its retries, `backoffLimit: 4`), the sync stops at the
+  hook, backend and frontend keep the new image and keep working, and the
+  sync is not retried; staging stays OutOfSync on the new version.
+- **Not tested:** a real revert on staging after a migration (S9, with
+  Programs).
+
+So a revert is a simple rollback only for a release without a migration.
+Migrations stay backward-compatible, deletions in a later release
+(`docs/journal/decisions.md`); how an older image may pass the hook for a
+rollback is chosen in S9. Backups: the manual `pg_dump` before a prod
+migration exists (below); scheduled backups and a tested restore do not yet.
+
 ## Start from scratch
 
 Run from the repository root. An overlay is applied in phases, selected by
@@ -291,7 +326,9 @@ The image tag is the full commit SHA of `main`, set once per overlay under
 Job too).
 
 - **Staging:** a pull request that changes `overlays/staging`. Once it is
-  merged, ArgoCD applies it in wave order, migration included (above).
+  merged, ArgoCD applies it in wave order, migration included (above). CI
+  does not update the tag yet (S9): a code change reaches staging through a
+  second pull request that changes the tag, once its images are published.
 - **Prod:** after changing the tag, or anything in `haki-backend-config`,
   migrate before the backend: phases 4 and 5 above. A Job cannot be changed
   once created, so it is deleted first. Other changes need only phase 5.
@@ -415,12 +452,18 @@ this touches the Compose `db-data` volume.
   commit, or sync by hand. The API server stores the zero limit as
   `retry: {}`, so `kubectl diff -f k8s/argocd/haki-staging.yaml` always shows
   that line; ArgoCD still treats it as no retries (tested).
-- **Up to 3 minutes from merge to staging:** ArgoCD polls Git, there is no
-  webhook. Refresh in the UI to look sooner.
+- **Up to about 3 min 20 s from merge to staging:** ArgoCD polls Git about
+  every 3 minutes, there is no webhook; the sync itself took 15-19 s (see
+  Roll back staging). Refresh in the UI to look sooner.
 - **ConfigMaps left from before the takeover** (applied by kubectl) are not
   tracked by ArgoCD, so never pruned: remove them by hand as on prod.
 - **A revert in Git does not revert the database:** a rollback to an older
-  image leaves the schema its migration created.
+  image leaves the schema its migration created, and that image's migration
+  hook stops with an error (see Roll back staging).
+- **`hookPhase: Running` after a successful sync:** in the S8 tag change, the
+  four wave-3 resources (Gateway, HTTPRoute, EnvoyProxy,
+  ClientTrafficPolicy) kept `hookPhase: Running` in `syncResult` while the
+  sync was `Succeeded` and the app `Healthy`. Not explained yet.
 - **Client IP behind a load balancer (AWS):** the ClientTrafficPolicy drops
   every incoming X-Forwarded-For because nothing stands in front of Envoy
   here. Behind a load balancer that sets the header, keep its entry instead

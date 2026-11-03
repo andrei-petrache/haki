@@ -26,6 +26,11 @@ can be verified, even when it is slower.
 | No automatic retry of a failed sync (`retry.limit: 0`) | The default is 5 retries, and each would run the migration again |
 | Prune only at the end of a sync (`PruneLast`) | An old ConfigMap must stay while a pod may still use it; the failed-migration test showed it |
 | No ArgoCD CLI; `kubectl` and the UI only | One binary less to download and pin; `kubectl patch` starts a sync |
+| Migrations stay compatible with the previous version (expand/contract); deletions come in a later release | The previous image can still run on the new schema, which a rollback needs |
+| A manual `pg_dump` before every migration on prod, with the steps in `k8s/README.md`, until scheduled backups exist | A new image cannot undo a migration; the dump is the way back for the data |
+| An image older than the database stops with an error, by default | A safe failure (tested: exit 255, nothing changed), but it blocks a simple rollback after a migration |
+| In S9, choose and test an explicit exception for a rollback only, visible in Git: a flag in the overlay or a separately pinned migration image. Neither is chosen yet | A silent tolerance of a newer database would also hide a real mismatch |
+| The first real revert after a migration is done on staging, with Programs | So far that case is only inferred, not tested |
 
 ## Bugs caught before they shipped
 
@@ -47,3 +52,4 @@ can be verified, even when it is slower.
 | My own review suggested PreSync for migrations | The migration would look for a ConfigMap that does not exist yet | Check the official documentation, even for what you wrote yourself |
 | The S8 plan, read from v3.6-rc4's code, said self-heal never runs the migration | Wrong expectations about when Alembic runs | A test beats a code reading: on v3.5.7 a full sync runs it, a selective self-heal does not |
 | In yq, `== "*"` matches anything, and `-N` merges files into one document | CI checks that always pass, or always fail | Test every new check against a broken copy before trusting it |
+| The S8 rollout observer started late and without its arguments (the wrapper dropped them) | The first timed change was measured only after the fact | Start the observer before the merge and check that its log fills before saying "merge" |
