@@ -17,9 +17,9 @@ replicas:
 # migration Job too, so the two always match.
 images:
   - name: ghcr.io/andrei-petrache/haki-backend
-    newTag: 081c5f21498071b536c23dcdb18d22aa213a5afe
+    newTag: 79503a629bfa39a873e9517dc82d760763bfc167
   - name: ghcr.io/andrei-petrache/haki-frontend
-    newTag: 081c5f21498071b536c23dcdb18d22aa213a5afe
+    newTag: 79503a629bfa39a873e9517dc82d760763bfc167
 
 configMapGenerator:
   # The backend Service in this namespace, by its full name: Nginx resolves
