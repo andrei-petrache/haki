@@ -25,6 +25,13 @@ def database_down() -> Iterator[None]:
     app.dependency_overrides.clear()
 
 
+def test_openapi_reports_the_api_version() -> None:
+    response = client.get("/openapi.json")
+
+    assert response.status_code == 200
+    assert response.json()["info"] == {"title": "Haki API", "version": "0.2.0.dev0"}
+
+
 def test_health_returns_ok() -> None:
     response = client.get("/health")
 

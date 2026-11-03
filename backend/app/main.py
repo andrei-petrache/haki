@@ -17,7 +17,12 @@ from app.workouts import router as workouts_router
 
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="Haki API")
+# Shown in /docs and /openapi.json. Without it FastAPI reports its default,
+# "0.1.0", which looks like the v0.1.0 release. The last release is v0.1.1;
+# Workouts came after it, so this is the next minor, not released yet.
+API_VERSION = "0.2.0.dev0"
+
+app = FastAPI(title="Haki API", version=API_VERSION)
 app.include_router(auth_router)
 app.include_router(foods_router)
 app.include_router(entries_router)
