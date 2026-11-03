@@ -237,9 +237,60 @@ stays active:**
 
 So a revert is a simple rollback only for a release without a migration.
 Migrations stay backward-compatible, deletions in a later release
-(`docs/journal/decisions.md`); how an older image may pass the hook for a
-rollback is chosen in S9. Backups: the manual `pg_dump` before a prod
-migration exists (below); scheduled backups and a tested restore do not yet.
+(`docs/journal/decisions.md`), and an older image passes the hook only through
+the rollback pin below. Backups: the manual `pg_dump` before a prod migration
+exists (below); scheduled backups and a tested restore do not yet.
+
+### Roll back staging after a migration
+
+Not a `git revert`: backend and frontend go back to the older images, while
+the migration Job stays on the newer tag. Its `alembic upgrade head` then
+finds the database already at its own head and does nothing; the older code
+runs on the newer schema, which expand/contract migrations allow. The file
+`overlays/staging/rollback-pin.yaml` records the two tags while this lasts.
+
+One pull request, prepared by a script (by hand it is easy to move the wrong
+tag):
+
+```bash
+git switch -c fix/rollback-staging origin/main
+scripts/staging-rollback-pin.sh start <older SHA> "<reason>"
+k8s/scripts/check-manifests.sh
+git add -A k8s/overlays/staging && git commit -m "Roll staging back to <older>"
+```
+
+The script refuses a SHA that is not older than the current tag, and a start
+while a pin is already active. Before opening that pull request, close the
+bot's open tag pull request, if there is one (see below).
+
+While the pin exists, staging takes no new backend tag: `check-manifests.sh`
+fails on any backend or frontend tag other than `backendTag`, or a migration
+tag other than `migrateTag`, and the `bump-staging` job fails on `main` with
+"A rollback pin is active". Code merged in the meantime stays on `main`; its
+bump is not retried.
+
+**Lift the pin** in one pull request, once the fix is merged and its images
+are published:
+
+```bash
+git switch -c fix/lift-rollback-pin origin/main
+scripts/staging-rollback-pin.sh end <SHA of main, with the fix>
+k8s/scripts/check-manifests.sh
+git add -A k8s/overlays/staging && git commit -m "Lift the staging rollback pin"
+```
+
+`end` deletes the pin and moves all three tags to that SHA. It must contain
+`migrateTag` in its history, or its migrations would not know the database's
+revision; the script checks it. Main is linear, so its newest commit carries
+everything merged during the pin: use that SHA, which also recovers the code
+whose bump was refused. Check its images first:
+`docker buildx imagetools inspect ghcr.io/andrei-petrache/haki-backend:<SHA>`.
+
+**A tag pull request opened before the pin** could still merge after it: its
+CI ran on the `main` of that moment. Close it when the pin starts; with the
+ruleset's "Require branches to be up to date before merging", GitHub also
+refuses to merge it until it is updated, and the update reruns the
+`manifests` check against the pin, which fails.
 
 ## Start from scratch
 
