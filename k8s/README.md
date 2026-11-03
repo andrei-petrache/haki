@@ -381,7 +381,7 @@ Job too).
   a push to `main` that changes `backend/` or `frontend/`, the CI job
   `bump-staging` opens that pull request itself (`scripts/bump-staging-tag.sh`),
   always on the branch `bot/bump-staging`: a newer commit updates the same
-  pull request. Andrei merges it.
+  pull request. Andrei merges it, or auto-merge does (below).
 - **Prod:** after changing the tag, or anything in `haki-backend-config`,
   migrate before the backend: phases 4 and 5 above. A Job cannot be changed
   once created, so it is deleted first. Other changes need only phase 5.
@@ -392,6 +392,35 @@ remove the unused ones, list them with
 `kubectl -n $NS get configmap -l haki/phase=config` and delete those that no
 pod refers to. On staging, ArgoCD prunes the ones it created; those left
 from before the takeover (applied by kubectl) are not tracked and stay.
+
+### Auto-merge of the tag pull request
+
+The `bump-staging` job arms auto-merge on its pull request when the
+repository variable `TAG_BOT_AUTO_MERGE` is `true`. GitHub then merges it
+(rebase) once every required check passes and the branch is up to date with
+`main`. The check `tag-pr-scope` (`scripts/check-tag-pr.sh`) is what makes
+this safe: a pull request from `bot/bump-staging` passes only if it changes
+nothing but the three `newTag` lines of `overlays/staging/kustomization.yaml`
+(backend, frontend, migration), all to one full SHA, with no rollback pin.
+Every other pull request passes it at once.
+
+Turning it on, in this order (each step needs the one before):
+
+1. Ruleset `protect-main`: add `tag-pr-scope` to the required checks, after
+   the pull request that adds the job is merged (before, every open pull
+   request would wait for a check that never reports). That makes 9.
+2. Settings → General: tick **Allow auto-merge**.
+3. Settings → Secrets and variables → Actions → Variables: set
+   `TAG_BOT_AUTO_MERGE` to `true`.
+
+The variable only decides whether new runs arm auto-merge. **A pull request
+already armed stays armed** when the variable changes: stop it there with
+`gh pr merge --disable-auto <number>`, or **Disable auto-merge** on the pull
+request's page. A tag pull request behind `main` (after another merge) waits
+until it is updated: **Update branch** on its page, or the next bump.
+
+The first real test is the tag pull request of the Programs API: follow it
+from the bump to staging (checks, auto-merge, sync, pods).
 
 ### Back up before a migration
 

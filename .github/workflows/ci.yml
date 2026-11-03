@@ -197,6 +197,34 @@ jobs:
       - name: Check the manifests
         run: k8s/scripts/check-manifests.sh
 
+  # A pull request from the tag bot's branch may only move the three staging
+  # tags (backend, frontend, migration) to one SHA: what auto-merge relies on.
+  # Any other pull request passes at once. A required check, so it runs on
+  # every pull request and is never skipped there (a skipped required check
+  # counts as passed).
+  tag-pr-scope:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Install yq
+        run: |
+          scripts/install-tools.sh "$RUNNER_TEMP/bin" yq
+          echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
+
+      # Through env, never ${{ }} inside run: a branch name is user input
+      - name: Check what a tag pull request changes
+        env:
+          BRANCH: ${{ github.head_ref }}
+          BASE: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: scripts/check-tag-pr.sh "$BRANCH" "$BASE" "$HEAD_SHA"
+
   docker:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
@@ -525,6 +553,10 @@ jobs:
           SHA: ${{ github.sha }}
           REPO: ${{ github.repository }}
           BRANCH: bot/bump-staging
+          # The switch for auto-merge: a repository variable, so it turns off
+          # without a commit. It only decides whether new runs arm it; a pull
+          # request already armed stays armed (k8s/README.md)
+          AUTO_MERGE: ${{ vars.TAG_BOT_AUTO_MERGE }}
         run: |
           git switch -C "$BRANCH" origin/main
           old="$(scripts/bump-staging-tag.sh "$SHA")"
@@ -555,6 +587,9 @@ jobs:
             echo '```'
             echo
             echo "Opened by the bump-staging job; ArgoCD deploys it once merged."
+            if [ "$AUTO_MERGE" = true ]; then
+              echo "Auto-merge is on: it merges by itself once every required check passes."
+            fi
           } > body.md
           pr="$(gh pr list --head "$BRANCH" --state open --json number --jq '.[0].number')"
           if [ -n "$pr" ]; then
@@ -562,4 +597,12 @@ jobs:
             echo "Updated pull request #$pr"
           else
             gh pr create --base main --head "$BRANCH" --title "$title" --body-file body.md
+          fi
+
+          # Merges only once every required check passes, tag-pr-scope included
+          if [ "$AUTO_MERGE" = true ]; then
+            gh pr merge "$BRANCH" --auto --rebase
+            echo "Auto-merge armed"
+          else
+            echo "Auto-merge off (TAG_BOT_AUTO_MERGE is not 'true'): Andrei merges"
           fi
