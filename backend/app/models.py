@@ -188,3 +188,99 @@ class WorkoutSet(Base):
     weight_kg: Mapped[float]
 
     workout_exercise: Mapped[WorkoutExercise] = relationship(back_populates="sets")
+
+
+class Program(Base):
+    """A user's weekly training plan, e.g. "Push/Pull/Legs"."""
+
+    __tablename__ = "programs"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
+    name: Mapped[str] = mapped_column(String(100))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+    # Deleting the program leaves its days to ON DELETE CASCADE (passive_deletes)
+    days: Mapped[list[ProgramDay]] = relationship(
+        back_populates="program",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+        order_by="ProgramDay.position",
+    )
+
+
+# Unique per user whatever the case, as exercise names are. Its leading
+# user_id column also serves lookups by user.
+Index(
+    "uq_programs_user_id_lower_name",
+    Program.user_id,
+    func.lower(Program.name),
+    unique=True,
+)
+
+
+class ProgramDay(Base):
+    """One training day of a program, e.g. day 1, "Push"."""
+
+    __tablename__ = "program_days"
+    __table_args__ = (
+        # Its leading program_id column also serves lookups by program
+        UniqueConstraint(
+            "program_id", "position", name="uq_program_days_program_id_position"
+        ),
+        CheckConstraint("position BETWEEN 1 AND 7", name="ck_program_days_position"),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    program_id: Mapped[int] = mapped_column(
+        ForeignKey("programs.id", ondelete="CASCADE")
+    )
+    # The day's place in the week, 1 to 7
+    position: Mapped[int]
+    name: Mapped[str] = mapped_column(String(100))
+
+    program: Mapped[Program] = relationship(back_populates="days")
+    # In the order they were added, as in a workout
+    exercises: Mapped[list[ProgramExercise]] = relationship(
+        back_populates="day",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+        order_by="ProgramExercise.id",
+    )
+
+
+class ProgramExercise(Base):
+    """One planned exercise of a program day: sets of reps at a weight."""
+
+    __tablename__ = "program_exercises"
+    __table_args__ = (
+        CheckConstraint("sets > 0", name="ck_program_exercises_positive_sets"),
+        CheckConstraint("reps > 0", name="ck_program_exercises_positive_reps"),
+        CheckConstraint(
+            "weight_kg >= 0", name="ck_program_exercises_non_negative_weight"
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    program_day_id: Mapped[int] = mapped_column(
+        ForeignKey("program_days.id", ondelete="CASCADE"), index=True
+    )
+    # Deferred, as WorkoutExercise.exercise_id is, and for the same reason,
+    # one level further down: deleting a user reaches these rows only through
+    # programs and program_days. NO ACTION, not RESTRICT: PostgreSQL never
+    # defers RESTRICT. Deleting an exercise still in a plan fails at commit,
+    # in this version and in the previous one alike: a 409, nothing deleted.
+    exercise_id: Mapped[int] = mapped_column(
+        ForeignKey("exercises.id", deferrable=True, initially="DEFERRED"),
+        index=True,
+    )
+    sets: Mapped[int]
+    reps: Mapped[int]
+    # 0 for bodyweight exercises
+    weight_kg: Mapped[float]
+
+    day: Mapped[ProgramDay] = relationship(back_populates="exercises")
+    # One-way on purpose, as WorkoutExercise.exercise
+    exercise: Mapped[Exercise] = relationship()
