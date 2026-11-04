@@ -17,6 +17,7 @@ Newest first. Sprints follow the project plan; the review is
 
 | Date | Sprint | What shipped | Key commits |
 | --- | --- | --- | --- |
+| 3 Nov | S9 (day 1) | CI opens the staging tag pull request itself, as the GitHub App `haki-tag-bot` (first real bump: `f5d2daa`, through #55); a rollback pin that keeps the migration on the newer image; the `tag-pr-scope` check and a switch for the bot's auto-merge | `155609e`, `3aba5ca`, `9ebcabf`, `024f6de` |
 | 3 Nov | S8 (done) | A tag change and its `git revert` reached staging through pull requests and ArgoCD alone (21 s and 94-95 s from merge to the first new pod Ready); the rollback limit after a migration checked on a throwaway database | `62841b0`, `384f067` |
 | 2 Nov | Review fixes | L16: the migrations no longer get the JWT secret (Compose and Kubernetes), on staging and prod | `69ce02a`, `081c5f2` |
 | 2 Nov | Review fixes | L18: PostgreSQL healthcheck over TCP in Compose; L19: 503 instead of 502 when the backend is unreachable, on staging and prod | `55c15c1`, `75ddf7c`, `239baf2` |
@@ -37,8 +38,9 @@ Two Claude sessions and me in the middle:
 
 - **Mentor** (claude.ai): plans each sprint, writes the prompts and reviews
   the reports and diffs.
-- **Claude Code** (in a terminal, on Ubuntu): writes the code, runs the
-  tests, shows me the diff and waits for my OK before every commit.
+- **Claude Code** (on Windows, in Git Bash; the repository's commands run in
+  WSL Ubuntu): writes the code, runs the tests, shows me the diff and waits
+  for my OK before every commit.
 - **Me**: carry the messages, give the OKs, push, open the pull requests and
   merge them once all 9 required CI checks are green.
 
@@ -49,10 +51,28 @@ without my OK.
 
 ## Where I am
 
-Staging and prod run `081c5f2`: Workouts and the L16, L18 and L19 fixes.
+Staging runs `f5d2daa` (the API reports version `0.2.0.dev0`); prod runs
+`081c5f2`: Workouts and the L16, L18 and L19 fixes. S9 started on
+3 November 2026: a code change merged to `main` now reaches staging through
+a tag pull request that CI opens itself; prod stays manual.
+
+S9 so far, from the pull requests and their CI runs:
+
+| Step | Result |
+| --- | --- |
+| The `bump-staging` job (#52) | After a push to `main` that changes `backend/` or `frontend/`, CI sets the staging tags to that commit on `bot/bump-staging` and opens or updates one pull request, as the GitHub App `haki-tag-bot`, so the CI checks run on it |
+| The App's key, from `main` only (#53, never merged) | A pull request job that asked for the `tag-bot` environment was refused in 2 s: "Branch `refs/pull/53/merge` is not allowed to deploy to tag-bot" |
+| The first real bump (#54, then #55) | `f5d2daa` merged at 21:16:44 UTC; its images were published at 21:19:32; the bot's pull request opened at 21:20:17 and its checks passed at 21:22:18; I merged it at 21:23:50. ArgoCD shows staging Synced and Healthy on `f5d2daa` |
+| No loop | The pushes of #55, #56 and #57 each ran `bump-staging` (7-15 s, green) and none opened a new pull request |
+| Rollback pin (#56) | The migration Job runs the backend image under its own name, `haki-migrate`; `scripts/staging-rollback-pin.sh` moves backend and frontend back while the migration stays on the newer tag, recorded in `rollback-pin.yaml`. CI green; not yet tried on staging |
+| Auto-merge of the tag pull request (#57) | `tag-pr-scope` passes the bot's pull request only if it changes the three staging tags, to one SHA, with no pin; it is the 9th required check. The job arms auto-merge only while `TAG_BOT_AUTO_MERGE` is `true`. Not yet exercised: the first real test is the Programs tag pull request |
+
+Next in S9: Programs, staging first; its revert drill with the rollback pin;
+then prod updated only with approval (see the [plan](plan.md)).
+
 S8 is done (3 November 2026): ArgoCD v3.5.7 manages staging, with automated
 sync, prune and self-heal, and a merged pull request is the only way a
-change reaches it; prod stays manual until S9.
+change reaches it.
 
 S8 results, all on staging unless noted:
 
@@ -69,7 +89,7 @@ S8 results, all on staging unless noted:
 | A revert after a migration (throwaway database, not staging) | An image older than the database stops at `alembic upgrade head` with exit 255 and changes nothing, so the revert would stop at the hook and leave the new version active |
 
 The deploy itself takes 15-19 s; ArgoCD's poll can take the total to about
-3 min 20 s. Next: S9 (see the [plan](plan.md)).
+3 min 20 s.
 
 Open items, outside the sprints:
 

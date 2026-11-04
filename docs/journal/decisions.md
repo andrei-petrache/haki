@@ -29,8 +29,19 @@ can be verified, even when it is slower.
 | Migrations stay compatible with the previous version (expand/contract); deletions come in a later release | The previous image can still run on the new schema, which a rollback needs |
 | A manual `pg_dump` before every migration on prod, with the steps in `k8s/README.md`, until scheduled backups exist | A new image cannot undo a migration; the dump is the way back for the data |
 | An image older than the database stops with an error, by default | A safe failure (tested: exit 255, nothing changed), but it blocks a simple rollback after a migration |
-| In S9, choose and test an explicit exception for a rollback only, visible in Git: a flag in the overlay or a separately pinned migration image. Neither is chosen yet | A silent tolerance of a newer database would also hide a real mismatch |
+| In S9, choose and test an explicit exception for a rollback only, visible in Git: a flag in the overlay or a separately pinned migration image. Chosen on 3 November: the pinned image (below) | A silent tolerance of a newer database would also hide a real mismatch |
 | The first real revert after a migration is done on staging, with Programs | So far that case is only inferred, not tested |
+| CI changes the staging tag through a pull request, never by a push to `main` | `main` stays protected: the tag change passes the same required checks, and ArgoCD only ever sees merged commits |
+| The bot pushes and opens the pull request as a GitHub App (`haki-tag-bot`), not with `GITHUB_TOKEN` | A pull request opened with `GITHUB_TOKEN` starts no workflows, so its checks would never run |
+| The App's key lives in the environment `tag-bot`, which accepts jobs from `main` only | A pull request cannot reach the key; tested with #53, refused in 2 s |
+| The tag pull request changes only `k8s/`; a bump is opened only for changes to `backend/` or `frontend/` | Merging it never opens another bump: no loop (checked on #55, #56 and #57) |
+| One branch, `bot/bump-staging`, one pull request; a newer commit updates it | No queue of stale tag pull requests |
+| The rollback exception: the migration Job gets its own image name, `haki-migrate`, and stays on the newer tag while backend and frontend go back; `rollback-pin.yaml` records it (#56) | Visible in Git; `upgrade head` on the newer image has nothing to do, so the hook passes without tolerating a newer database in general |
+| While a pin exists, `check-manifests.sh` refuses any other tag and `bump-staging` fails | Nothing moves staging off the pin by accident |
+| The pin is lifted only to a SHA that has the pinned migration in its history, with images on GHCR | Otherwise the migrations would not know the database's revision, or the pods could not pull |
+| Auto-merge only for the bot's pull request, guarded by the `tag-pr-scope` check and the `TAG_BOT_AUTO_MERGE` variable (#57) | The check limits what can merge without me to the three staging tags, one SHA, no pin; the variable turns it off at once |
+| `tag-pr-scope` became a required check only after #57 was merged | Before that, every open pull request would have waited for a check that never reports |
+| The API reports version `0.2.0.dev0` (#54) | FastAPI's default `0.1.0` read like the v0.1.0 release; the API is past v0.1.1 |
 
 ## Bugs caught before they shipped
 
