@@ -10,6 +10,7 @@ from app.schemas import ExerciseIn, ExerciseResponse, IdPath
 router = APIRouter(prefix="/exercises", tags=["exercises"])
 
 DUPLICATE_NAME = "An exercise with this name already exists"
+IN_USE = "Exercise is used by workouts or programs"
 
 
 def get_own_exercise(session: Session, user: User, exercise_id: int) -> Exercise:
@@ -65,9 +66,10 @@ def rename_exercise(
 def delete_exercise(
     exercise_id: IdPath, current_user: CurrentUser, session: SessionDep
 ) -> Response:
-    """Delete one of the current user's exercises, unless a workout uses it."""
+    """Delete one of the user's exercises, unless a workout or a program uses it."""
     exercise = get_own_exercise(session, current_user, exercise_id)
     session.delete(exercise)
-    # workout_exercises.exercise_id is deferred: the database refuses at commit
-    commit_or_conflict(session, "Exercise is used by workouts")
+    # workout_exercises.exercise_id and program_exercises.exercise_id are
+    # deferred: the database refuses at commit
+    commit_or_conflict(session, IN_USE)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
