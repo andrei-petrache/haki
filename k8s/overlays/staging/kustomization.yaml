@@ -19,11 +19,11 @@ replicas:
 # line right under each name: scripts/set-staging-tags.sh relies on it.
 images:
   - name: ghcr.io/andrei-petrache/haki-backend
-    newTag: "f5d2daaeb117bca602b1759ac36f63b77eaa8315"
+    newTag: "387843a3a4496bbd504e8f5059d3ca43f48ddba9"
   - name: ghcr.io/andrei-petrache/haki-frontend
-    newTag: "f5d2daaeb117bca602b1759ac36f63b77eaa8315"
+    newTag: "387843a3a4496bbd504e8f5059d3ca43f48ddba9"
   - name: haki-migrate
-    newTag: "0ab4935bfa28765f8359d33b3d0c0d3496c31265"
+    newTag: "387843a3a4496bbd504e8f5059d3ca43f48ddba9"
     newName: ghcr.io/andrei-petrache/haki-backend
 
 configMapGenerator:
