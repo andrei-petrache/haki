@@ -19,6 +19,9 @@ ExerciseName = Annotated[
     str, StringConstraints(strip_whitespace=True, min_length=1, max_length=100)
 ]
 WorkoutNote = Annotated[str, StringConstraints(strip_whitespace=True, max_length=500)]
+ProgramName = Annotated[
+    str, StringConstraints(strip_whitespace=True, min_length=1, max_length=100)
+]
 # Must match MEAL_TYPES in app/models.py
 MealType = Literal["breakfast", "lunch", "dinner", "snack"]
 
@@ -93,12 +96,15 @@ class ExerciseResponse(ExerciseIn):
 MAX_EXERCISES_PER_WORKOUT = 50
 MAX_SETS_PER_EXERCISE = 50
 EARLIEST_WORKOUT_DATE = date(2000, 1, 1)
+# Shared by logged sets and planned ones
+Reps = Annotated[int, Field(ge=1, le=1000)]
+# 0 for bodyweight exercises
+WeightKg = Annotated[float, Field(ge=0, le=1000)]
 
 
 class WorkoutSetIn(BaseModel):
-    reps: int = Field(ge=1, le=1000)
-    # 0 for bodyweight exercises
-    weight_kg: float = Field(ge=0, le=1000)
+    reps: Reps
+    weight_kg: WeightKg
 
 
 class WorkoutExerciseIn(BaseModel):
@@ -160,6 +166,65 @@ class WorkoutSummary(BaseModel):
     note: str | None
     exercise_count: int
     set_count: int
+
+
+# A week has 7 days; 20 exercises a day is well past any real plan
+MAX_DAYS_PER_PROGRAM = 7
+MAX_EXERCISES_PER_PROGRAM_DAY = 20
+
+
+class ProgramExerciseIn(BaseModel):
+    """One planned exercise: `sets` sets of `reps` at `weight_kg`."""
+
+    exercise_id: DbId
+    sets: int = Field(ge=1, le=MAX_SETS_PER_EXERCISE)
+    reps: Reps
+    weight_kg: WeightKg
+
+
+class ProgramDayIn(BaseModel):
+    position: int = Field(ge=1, le=MAX_DAYS_PER_PROGRAM)
+    name: ProgramName
+    exercises: list[ProgramExerciseIn] = Field(
+        min_length=1, max_length=MAX_EXERCISES_PER_PROGRAM_DAY
+    )
+
+
+class ProgramIn(BaseModel):
+    """A whole program, created in one request."""
+
+    name: ProgramName
+    # Two days with the same position are a 409, from the database
+    days: list[ProgramDayIn] = Field(min_length=1, max_length=MAX_DAYS_PER_PROGRAM)
+
+
+class ProgramExerciseResponse(BaseModel):
+    exercise_id: int
+    exercise_name: str
+    sets: int
+    reps: int
+    weight_kg: float
+
+
+class ProgramDayResponse(BaseModel):
+    id: int
+    position: int
+    name: str
+    exercises: list[ProgramExerciseResponse]
+
+
+class ProgramResponse(BaseModel):
+    id: int
+    name: str
+    days: list[ProgramDayResponse]
+
+
+class ProgramSummary(BaseModel):
+    """One row of the program list: a count instead of the days."""
+
+    id: int
+    name: str
+    day_count: int
 
 
 class MealEntryIn(BaseModel):
