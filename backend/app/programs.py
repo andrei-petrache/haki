@@ -4,7 +4,16 @@ from sqlalchemy.orm import Session, selectinload
 
 from app.auth import CurrentUser, SessionDep
 from app.foods import commit_or_conflict
-from app.models import Exercise, Program, ProgramDay, ProgramExercise, User
+from app.models import (
+    Exercise,
+    Program,
+    ProgramDay,
+    ProgramExercise,
+    User,
+    Workout,
+    WorkoutExercise,
+    WorkoutSet,
+)
 from app.schemas import (
     IdPath,
     ProgramDayResponse,
@@ -12,8 +21,11 @@ from app.schemas import (
     ProgramIn,
     ProgramResponse,
     ProgramSummary,
+    WorkoutResponse,
+    WorkoutStartIn,
 )
 from app.workouts import LimitQuery, OffsetQuery, not_found
+from app.workouts import to_response as workout_response
 
 router = APIRouter(prefix="/programs", tags=["programs"])
 
@@ -170,3 +182,46 @@ def delete_program(
     session.delete(program)
     session.commit()
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.post(
+    "/{program_id}/days/{day_id}/workouts",
+    status_code=status.HTTP_201_CREATED,
+    response_model=WorkoutResponse,
+)
+def start_workout(
+    program_id: IdPath,
+    day_id: IdPath,
+    data: WorkoutStartIn,
+    current_user: CurrentUser,
+    session: SessionDep,
+) -> WorkoutResponse:
+    """Start a workout from one day of a program, with its planned sets.
+
+    The workout is an ordinary one, edited with PUT /workouts/{id}: a copy,
+    with no link back to the day, so changing or deleting the program never
+    touches it, and the previous version of the app reads it too.
+    """
+    program = get_own_program(session, current_user, program_id)
+    # A day of another program, even one of the user's own, is a 404 as well
+    day = next((day for day in program.days if day.id == day_id), None)
+    if day is None:
+        raise not_found("Program day not found")
+    workout = Workout(
+        user_id=current_user.id,
+        performed_on=data.performed_on,
+        # In the day's order; each planned set becomes one logged set
+        exercises=[
+            WorkoutExercise(
+                exercise=item.exercise,
+                sets=[
+                    WorkoutSet(reps=item.reps, weight_kg=item.weight_kg)
+                    for _ in range(item.sets)
+                ],
+            )
+            for item in day.exercises
+        ],
+    )
+    session.add(workout)
+    session.commit()
+    return workout_response(workout)

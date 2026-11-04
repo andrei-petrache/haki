@@ -3,6 +3,7 @@ from typing import Annotated, Literal
 
 from fastapi import Path
 from pydantic import (
+    AfterValidator,
     BaseModel,
     ConfigDict,
     EmailStr,
@@ -112,25 +113,28 @@ class WorkoutExerciseIn(BaseModel):
     sets: list[WorkoutSetIn] = Field(min_length=1, max_length=MAX_SETS_PER_EXERCISE)
 
 
+def performed_on_is_plausible(value: date) -> date:
+    """From 2000-01-01 to tomorrow.
+
+    Tomorrow because the client sends its own local day, which can be a
+    day ahead of the server's.
+    """
+    latest = date.today() + timedelta(days=1)
+    if not EARLIEST_WORKOUT_DATE <= value <= latest:
+        raise ValueError(f"must be between {EARLIEST_WORKOUT_DATE} and {latest}")
+    return value
+
+
+# The day of a workout, logged or started from a program
+PerformedOn = Annotated[date, AfterValidator(performed_on_is_plausible)]
+
+
 class WorkoutIn(BaseModel):
     """A whole workout: POST creates it, PUT replaces everything in it."""
 
-    performed_on: date
+    performed_on: PerformedOn
     note: WorkoutNote | None = None
     exercises: list[WorkoutExerciseIn] = Field(max_length=MAX_EXERCISES_PER_WORKOUT)
-
-    @field_validator("performed_on")
-    @classmethod
-    def performed_on_is_plausible(cls, value: date) -> date:
-        """From 2000-01-01 to tomorrow.
-
-        Tomorrow because the client sends its own local day, which can be a
-        day ahead of the server's.
-        """
-        latest = date.today() + timedelta(days=1)
-        if not EARLIEST_WORKOUT_DATE <= value <= latest:
-            raise ValueError(f"must be between {EARLIEST_WORKOUT_DATE} and {latest}")
-        return value
 
     @field_validator("note")
     @classmethod
@@ -225,6 +229,12 @@ class ProgramSummary(BaseModel):
     id: int
     name: str
     day_count: int
+
+
+class WorkoutStartIn(BaseModel):
+    """Start a workout from a program day: only its date; the rest is the plan."""
+
+    performed_on: PerformedOn
 
 
 class MealEntryIn(BaseModel):
