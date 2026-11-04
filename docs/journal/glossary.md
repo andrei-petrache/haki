@@ -53,6 +53,8 @@ the list when it first shows up in the code or in a review.
 | Ruleset | GitHub rules on `main`: pull requests only, with all 9 required checks green and the branch up to date |
 | Auto-merge | GitHub merges a pull request by itself once every required check passes; here only the tag bot's, behind a switch |
 | GHCR | GitHub Container Registry, where the images are published by commit SHA |
+| GitHub App | An identity of its own on GitHub, with only the permissions it was given; `haki-tag-bot` pushes the tag branch and opens its pull request, and unlike `GITHUB_TOKEN` its pull requests start CI |
+| Environment (GitHub) | A named set of secrets with its own rules; `tag-bot` holds the App's key and accepts jobs from `main` only |
 
 ## Kubernetes
 
@@ -84,3 +86,4 @@ the list when it first shows up in the code or in a review.
 | Compatibility matrix | The official list of Kubernetes versions a release is tested on |
 | Polling | ArgoCD checks Git about every 3 minutes; without a webhook, a merge waits up to that long |
 | Rollback by `git revert` | A new commit that undoes an earlier one; ArgoCD applies it like any other change |
+| Rollback pin | Backend and frontend go back to an older tag while the migration stays on the newer one, recorded in `rollback-pin.yaml`; while it exists, no other tag reaches staging |
