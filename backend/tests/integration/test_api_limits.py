@@ -43,6 +43,17 @@ def workout(exercise_id: int) -> dict[str, object]:
     }
 
 
+def program(exercise_id: int) -> dict[str, object]:
+    planned = {"exercise_id": exercise_id, "sets": 3, "reps": 5, "weight_kg": 100}
+    return {
+        "name": "Strength",
+        "days": [{"position": 1, "name": "Legs", "exercises": [planned]}],
+    }
+
+
+START = {"performed_on": "2026-11-01"}
+
+
 @pytest.fixture
 def headers(make_user: Callable[[str], User]) -> dict[str, str]:
     user = make_user("andrei@example.com")
@@ -66,6 +77,10 @@ def headers(make_user: Callable[[str], User]) -> dict[str, str]:
         lambda id_: ("PUT", f"/workouts/{id_}", workout(1)),
         lambda id_: ("DELETE", f"/workouts/{id_}", None),
         lambda id_: ("POST", "/workouts", workout(id_)),
+        lambda id_: ("GET", f"/programs/{id_}", None),
+        lambda id_: ("DELETE", f"/programs/{id_}", None),
+        lambda id_: ("POST", "/programs", program(id_)),
+        lambda id_: ("POST", f"/programs/{id_}/days/1/workouts", START),
     ],
     ids=[
         "update food",
@@ -78,6 +93,10 @@ def headers(make_user: Callable[[str], User]) -> dict[str, str]:
         "replace workout",
         "delete workout",
         "log workout exercise",
+        "read program",
+        "delete program",
+        "plan exercise",
+        "start from program",
     ],
 )
 def test_ids_at_the_postgres_integer_limit(
@@ -101,5 +120,40 @@ def test_workout_list_offset_at_the_postgres_integer_limit(
     pg_client: TestClient, headers: dict[str, str], offset: int, expected: int
 ) -> None:
     response = pg_client.get(f"/workouts?offset={offset}", headers=headers)
+
+    assert response.status_code == expected
+
+
+@pytest.mark.parametrize(
+    ("query", "expected"),
+    [
+        (f"offset={MAX_DB_ID}", 200),
+        (f"offset={MAX_DB_ID + 1}", 422),
+        ("limit=100", 200),
+        ("limit=101", 422),
+    ],
+)
+def test_program_list_paging_at_its_limits(
+    pg_client: TestClient, headers: dict[str, str], query: str, expected: int
+) -> None:
+    response = pg_client.get(f"/programs?{query}", headers=headers)
+
+    assert response.status_code == expected
+
+
+@pytest.mark.parametrize(
+    ("day_id", "expected"), [(MAX_DB_ID, 404), (MAX_DB_ID + 1, 422)]
+)
+def test_program_day_id_at_the_postgres_integer_limit(
+    pg_client: TestClient, headers: dict[str, str], day_id: int, expected: int
+) -> None:
+    # On a real program, so the day id is what decides the answer
+    squat = pg_client.post("/exercises", json={"name": "Squat"}, headers=headers)
+    created = pg_client.post(
+        "/programs", json=program(squat.json()["id"]), headers=headers
+    )
+    path = f"/programs/{created.json()['id']}/days/{day_id}/workouts"
+
+    response = pg_client.post(path, json=START, headers=headers)
 
     assert response.status_code == expected
