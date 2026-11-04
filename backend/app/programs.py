@@ -1,4 +1,4 @@
-from fastapi import APIRouter, status
+from fastapi import APIRouter, Response, status
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
 
@@ -158,3 +158,15 @@ def create_program(
     commit_or_conflict(session, CONFLICT)
     # The rows just written, still in the session (expire_on_commit=False)
     return to_response(program)
+
+
+@router.delete("/{program_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_program(
+    program_id: IdPath, current_user: CurrentUser, session: SessionDep
+) -> Response:
+    """Delete one of the current user's programs; the exercises stay in the catalog."""
+    # Nothing in it needs loading: the database deletes it (ON DELETE CASCADE)
+    program = check_own(session.get(Program, program_id), current_user)
+    session.delete(program)
+    session.commit()
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
