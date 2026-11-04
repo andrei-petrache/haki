@@ -30,7 +30,7 @@ can be verified, even when it is slower.
 | A manual `pg_dump` before every migration on prod, with the steps in `k8s/README.md`, until scheduled backups exist | A new image cannot undo a migration; the dump is the way back for the data |
 | An image older than the database stops with an error, by default | A safe failure (tested: exit 255, nothing changed), but it blocks a simple rollback after a migration |
 | In S9, choose and test an explicit exception for a rollback only, visible in Git: a flag in the overlay or a separately pinned migration image. Chosen on 3 November: the pinned image (below) | A silent tolerance of a newer database would also hide a real mismatch |
-| The first real revert after a migration is done on staging, with Programs | So far that case is only inferred, not tested |
+| The first real revert after a migration is done on staging, with Programs | Until then that case was only inferred; done on 4 November with the rollback pin (#61, #62) |
 | CI changes the staging tag through a pull request, never by a push to `main` | `main` stays protected: the tag change passes the same required checks, and ArgoCD only ever sees merged commits |
 | The bot pushes and opens the pull request as a GitHub App (`haki-tag-bot`), not with `GITHUB_TOKEN` | A pull request opened with `GITHUB_TOKEN` starts no workflows, so its checks would never run |
 | The App's key lives in the environment `tag-bot`, which accepts jobs from `main` only | A pull request cannot reach the key; tested with #53, refused in 2 s |
@@ -42,6 +42,10 @@ can be verified, even when it is slower.
 | Auto-merge only for the bot's pull request, guarded by the `tag-pr-scope` check and the `TAG_BOT_AUTO_MERGE` variable (#57) | The check limits what can merge without me to the three staging tags, one SHA, no pin; the variable turns it off at once |
 | `tag-pr-scope` became a required check only after #57 was merged | Before that, every open pull request would have waited for a check that never reports |
 | The API reports version `0.2.0.dev0` (#54) | FastAPI's default `0.1.0` read like the v0.1.0 release; the API is past v0.1.1 |
+| The Programs migration only adds tables (#59) | The previous version runs on the new schema, which the rollback pin needs; proven in the drill (#61) |
+| `program_exercises.exercise_id` is `NO ACTION`, `DEFERRABLE INITIALLY DEFERRED` | L20: deleting a user reaches these rows three levels down (programs, program days), its exercises one level down. PostgreSQL never defers `RESTRICT`; `CASCADE` or `SET NULL` would drop an exercise from plans without a word. Checked: with an immediate check, deleting a user fails (mutation test); deleting an exercise still in a plan is a 409, nothing deleted, in the new version and the old one (#61) |
+| A workout started from a program day is a copy, with no link to the day (#59) | No new column in `workouts`, so the migration only adds tables; editing or deleting the program never touches a past workout. The cost: a workout does not remember its day; if that is ever needed, a new link table, not a column |
+| `PUT /programs` left out of the first Programs pull request | It needs no migration and can come later. Replacing the days then needs `program.days.clear()` and a `session.flush()` before the new days are added: SQLAlchemy inserts before it deletes, and the insert would fail on `uq_program_days_program_id_position` |
 
 ## Bugs caught before they shipped
 

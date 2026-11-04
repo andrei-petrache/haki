@@ -232,8 +232,12 @@ stays active:**
   Job fails (after its retries, `backoffLimit: 4`), the sync stops at the
   hook, backend and frontend keep the new image and keep working, and the
   sync is not retried; staging stays OutOfSync on the new version.
-- **Not tested:** a real revert on staging after a migration (S9, with
-  Programs).
+- **Tested on staging** (4 November 2026, with Programs): a rollback after a
+  migration through the rollback pin below, not through `git revert`. The
+  Job stayed on the newer tag and changed nothing, the older backend and
+  frontend ran on the newer schema (#61), and lifting the pin brought the new
+  version back with the data intact (#62). A plain `git revert` after a
+  migration was not tried: it would stop at the hook, as above.
 
 So a revert is a simple rollback only for a release without a migration.
 Migrations stay backward-compatible, deletions in a later release
@@ -279,12 +283,14 @@ k8s/scripts/check-manifests.sh
 git add -A k8s/overlays/staging && git commit -m "Lift the staging rollback pin"
 ```
 
-`end` deletes the pin and moves all three tags to that SHA. It must contain
-`migrateTag` in its history, or its migrations would not know the database's
-revision; the script checks it. Main is linear, so its newest commit carries
+`end` deletes the pin and moves all three tags to that SHA. It accepts any
+commit of `main` that contains `migrateTag` in its history (or its
+migrations would not know the database's revision) and whose images are on
+GHCR; the script checks both. Every push to `main` publishes images, so this
+includes a commit that changed only `k8s/`, such as the merge of the pin
+itself (`387843a` in the drill). Main is linear, so its newest commit carries
 everything merged during the pin: use that SHA, which also recovers the code
-whose bump was refused. Check its images first:
-`docker buildx imagetools inspect ghcr.io/andrei-petrache/haki-backend:<SHA>`.
+whose bump was refused.
 
 **A tag pull request opened before the pin** could still merge after it: its
 CI ran on the `main` of that moment. Close it when the pin starts; with the
@@ -419,8 +425,10 @@ already armed stays armed** when the variable changes: stop it there with
 request's page. A tag pull request behind `main` (after another merge) waits
 until it is updated: **Update branch** on its page, or the next bump.
 
-The first real test is the tag pull request of the Programs API: follow it
-from the bump to staging (checks, auto-merge, sync, pods).
+First real run (4 November 2026): #60, the tag pull request of the Programs
+API. The bot armed auto-merge 3 s after opening it; GitHub merged it 51 s
+after its checks passed, and the first new pod was Ready 2 min 16 s later,
+most of it ArgoCD's poll.
 
 ### Back up before a migration
 

@@ -24,12 +24,12 @@ Sprint numbers are those of the original plan, with the shifts noted below.
 - [x] CI updates the image tag in Git: the `bump-staging` job opens the tag
   pull request (#52); first real bump through #55 (3 November)
 - [x] The explicit rollback exception, chosen and built: the migration image
-  pinned separately, `rollback-pin.yaml` (#56). Not yet tried on staging
+  pinned separately, `rollback-pin.yaml` (#56)
 - [x] Auto-merge of the tag pull request, behind `tag-pr-scope` and
-  `TAG_BOT_AUTO_MERGE` (#57). Not yet exercised
-- [ ] Feature **Programs** on staging; its tag pull request is the first real
-  test of auto-merge
-- [ ] Revert drill of the Programs migration on staging, with the rollback pin
+  `TAG_BOT_AUTO_MERGE` (#57); first real run with #60 (4 November)
+- [x] Feature **Programs** on staging (#59, then #60; 4 November)
+- [x] Revert drill of the Programs migration on staging, with the rollback
+  pin (#61) and its lift (#62; 4 November)
 - [ ] Prod updated only with approval, then Programs on prod
 
 ## Rules for AWS

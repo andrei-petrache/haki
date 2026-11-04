@@ -17,6 +17,7 @@ Newest first. Sprints follow the project plan; the review is
 
 | Date | Sprint | What shipped | Key commits |
 | --- | --- | --- | --- |
+| 4 Nov | S9 (day 2) | Programs API: weekly plans, their days and planned exercises, and a workout started from a day; on staging through the first real auto-merge (#60), 8 min 5 s from the merge to the last new pod Ready; the revert drill with the rollback pin (#61) and its lift (#62) | `0ab4935`, `f0d9605`, `387843a`, `3ecb61d` |
 | 3 Nov | S9 (day 1) | CI opens the staging tag pull request itself, as the GitHub App `haki-tag-bot` (first real bump: `f5d2daa`, through #55); a rollback pin that keeps the migration on the newer image; the `tag-pr-scope` check and a switch for the bot's auto-merge | `155609e`, `3aba5ca`, `9ebcabf`, `024f6de` |
 | 3 Nov | S8 (done) | A tag change and its `git revert` reached staging through pull requests and ArgoCD alone (21 s and 94-95 s from merge to the first new pod Ready); the rollback limit after a migration checked on a throwaway database | `62841b0`, `384f067` |
 | 2 Nov | Review fixes | L16: the migrations no longer get the JWT secret (Compose and Kubernetes), on staging and prod | `69ce02a`, `081c5f2` |
@@ -51,12 +52,29 @@ without my OK.
 
 ## Where I am
 
-Staging runs `f5d2daa` (the API reports version `0.2.0.dev0`); prod runs
-`081c5f2`: Workouts and the L16, L18 and L19 fixes. S9 started on
-3 November 2026: a code change merged to `main` now reaches staging through
-a tag pull request that CI opens itself; prod stays manual.
+Staging runs `387843a`: Programs (the API reports version `0.2.0.dev0`).
+Prod runs `081c5f2`: Workouts and the L16, L18 and L19 fixes. S9 started on
+3 November 2026: a code change merged to `main` reaches staging through a tag
+pull request that CI opens and merges itself; prod stays manual.
 
-S9 so far, from the pull requests and their CI runs:
+S9, day 2 (4 November 2026), from the pull requests, their CI runs and two
+live observers (times UTC):
+
+| Step | Result |
+| --- | --- |
+| Programs API (#59) | Six commits; migration `3bf97e2ee106` adds three tables and changes none; CI green; merged at 19:45:43 |
+| Images published | `publish` finished at 19:48:23, 2 min 40 s after the merge |
+| The bot's pull request (#60) | Opened at 19:48:36; the bot armed auto-merge at 19:48:39; its checks passed at 19:50:36 |
+| The first real auto-merge | `haki-tag-bot` merged #60 at 19:51:27, 51 s after its checks passed |
+| Sync and migration | ArgoCD started at 19:53:28, 2 min 1 s after #60 (its poll); the migration Job ran `b4a97ba12fd6 -> 3bf97e2ee106` in 6 s |
+| New pods | The first new pod Ready at 19:53:43, 8 min after the merge of #59; the sync finished at 19:53:48 |
+| Programs on staging | `/openapi.json` lists the three `/programs` paths; a test account created a plan and started a workout from a day, with every set copied in order; deleting an exercise of the plan gave 409 |
+| Rollback pin (#61) | Merged at 20:10:04; backend and frontend back on `f5d2daa`, the migration Job on `0ab4935`, where it changed nothing (`alembic_version` still `3bf97e2ee106`); the first old pod Ready 3 min 25 s after the merge |
+| The old version on the new schema | No `/programs` paths; it read the workout started from the plan; deleting an exercise used only by the plan (its plan row added with SQL) gave 409 "Exercise is used by workouts", and nothing was deleted |
+| Lifting the pin (#62) | Merged at 20:23:58; all three tags on `387843a`; the migration changed nothing; the first new pod Ready 3 min 10 s after the merge; the plan, its rows and the started workout intact; the same delete gave 409 with the new message |
+| Clean-up | The test account deleted with SQL in one checked transaction: nothing of it left in `programs`, `workouts` or `exercises` |
+
+S9, day 1 (3 November 2026), from the pull requests and their CI runs:
 
 | Step | Result |
 | --- | --- |
@@ -64,11 +82,11 @@ S9 so far, from the pull requests and their CI runs:
 | The App's key, from `main` only (#53, never merged) | A pull request job that asked for the `tag-bot` environment was refused in 2 s: "Branch `refs/pull/53/merge` is not allowed to deploy to tag-bot" |
 | The first real bump (#54, then #55) | `f5d2daa` merged at 21:16:44 UTC; its images were published at 21:19:32; the bot's pull request opened at 21:20:17 and its checks passed at 21:22:18; I merged it at 21:23:50. ArgoCD shows staging Synced and Healthy on `f5d2daa` |
 | No loop | The pushes of #55, #56 and #57 each ran `bump-staging` (7-15 s, green) and none opened a new pull request |
-| Rollback pin (#56) | The migration Job runs the backend image under its own name, `haki-migrate`; `scripts/staging-rollback-pin.sh` moves backend and frontend back while the migration stays on the newer tag, recorded in `rollback-pin.yaml`. CI green; not yet tried on staging |
-| Auto-merge of the tag pull request (#57) | `tag-pr-scope` passes the bot's pull request only if it changes the three staging tags, to one SHA, with no pin; it is the 9th required check. The job arms auto-merge only while `TAG_BOT_AUTO_MERGE` is `true`. Not yet exercised: the first real test is the Programs tag pull request |
+| Rollback pin (#56) | The migration Job runs the backend image under its own name, `haki-migrate`; `scripts/staging-rollback-pin.sh` moves backend and frontend back while the migration stays on the newer tag, recorded in `rollback-pin.yaml`. CI green; tried on staging on day 2 (#61, #62) |
+| Auto-merge of the tag pull request (#57) | `tag-pr-scope` passes the bot's pull request only if it changes the three staging tags, to one SHA, with no pin; it is the 9th required check. The job arms auto-merge only while `TAG_BOT_AUTO_MERGE` is `true`. First real run on day 2 (#60) |
 
-Next in S9: Programs, staging first; its revert drill with the rollback pin;
-then prod updated only with approval (see the [plan](plan.md)).
+Next in S9: prod updated only with approval, then Programs on prod (see the
+[plan](plan.md)).
 
 S8 is done (3 November 2026): ArgoCD v3.5.7 manages staging, with automated
 sync, prune and self-heal, and a merged pull request is the only way a
@@ -99,3 +117,4 @@ Open items, outside the sprints:
 - [ ] Group the Trivy findings in the backend image and pick a slimmer base
 - [ ] L21: an unsaved workout is lost when the tab changes
 - [ ] Move the Playwright browser checks into the repository, as a CI job
+- [ ] `scripts/smoke-test.sh` does not cover `/programs` yet

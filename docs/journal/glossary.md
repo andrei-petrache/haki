@@ -18,6 +18,8 @@ the list when it first shows up in the code or in a review.
 | `alembic_version` | The table where Alembic keeps the database's current revision; an image that does not know it stops with an error |
 | Expand / contract | A schema change in two releases: first only add (the old code still works), remove later |
 | `pg_dump` / `pg_restore` | PostgreSQL's backup to a file, and the tool that reads it back |
+| N+1 queries | One query for a list plus one more per row; the program list counts days in a subquery instead, and a test checks the query count stays the same for 1 or 5 programs |
+| `SET CONSTRAINTS ALL IMMEDIATE` | Runs the checks of deferred constraints now instead of at COMMIT; the integration tests use it, since their transactions never commit |
 
 ## Frontend
 
@@ -70,6 +72,7 @@ the list when it first shows up in the code or in a review.
 | Envoy Gateway | The Gateway API implementation used here |
 | kubeconform | Validates manifests against the Kubernetes schemas, in CI |
 | `reclaimPolicy: Delete` | Deleting the PVC also deletes the volume, and so the data |
+| `kubectl port-forward` | Opens a local port (here 127.0.0.1) that leads to a Service in the cluster, used to call the staging API directly in the revert drill |
 | Grace period / `deletionTimestamp` | A pod being stopped gets up to 30 s to exit; `deletionTimestamp` marks the end of that window, not the moment the pod is gone |
 
 ## GitOps
