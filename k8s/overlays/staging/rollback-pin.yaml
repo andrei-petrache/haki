@@ -1,0 +1,9 @@
+# Active rollback pin (k8s/README.md, "Roll back staging after a migration").
+# backendTag: what backend and frontend run; migrateTag: the newer tag the
+# database was migrated to, kept on the migration Job. CI and the bump job
+# refuse any other backend tag while this file exists. Lift it with
+# scripts/staging-rollback-pin.sh end <fixed SHA>.
+backendTag: "f5d2daaeb117bca602b1759ac36f63b77eaa8315"
+migrateTag: "0ab4935bfa28765f8359d33b3d0c0d3496c31265"
+reason: "S9 revert drill: Programs migration"
+since: "2026-11-04"
