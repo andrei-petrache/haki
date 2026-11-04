@@ -11,6 +11,7 @@ from app.db import database_is_reachable
 from app.entries import router as entries_router
 from app.exercises import router as exercises_router
 from app.foods import router as foods_router
+from app.programs import router as programs_router
 from app.security import HashingBusy
 from app.summary import router as summary_router
 from app.workouts import router as workouts_router
@@ -29,6 +30,7 @@ app.include_router(entries_router)
 app.include_router(summary_router)
 app.include_router(exercises_router)
 app.include_router(workouts_router)
+app.include_router(programs_router)
 
 
 @app.exception_handler(OperationalError)
