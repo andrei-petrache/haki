@@ -20,6 +20,9 @@ from app.models import (
     Exercise,
     Food,
     MealEntry,
+    Program,
+    ProgramDay,
+    ProgramExercise,
     User,
     Workout,
     WorkoutExercise,
@@ -90,6 +93,37 @@ def add_workout(
     db.add(workout)
     db.flush()
     return workout
+
+
+def add_program(
+    db: Session,
+    user: User,
+    exercise: Exercise,
+    name: str = "Push/Pull/Legs",
+    positions: tuple[int, ...] = (1,),
+    planned: tuple[int, int, float] = (3, 8, 60),
+) -> Program:
+    """A program with one day per position, each planning `exercise`."""
+    sets, reps, kg = planned
+    program = Program(
+        user_id=user.id,
+        name=name,
+        days=[
+            ProgramDay(
+                position=position,
+                name=f"Day {position}",
+                exercises=[
+                    ProgramExercise(
+                        exercise_id=exercise.id, sets=sets, reps=reps, weight_kg=kg
+                    )
+                ],
+            )
+            for position in positions
+        ],
+    )
+    db.add(program)
+    db.flush()
+    return program
 
 
 def check_deferred_constraints(db: Session) -> None:
@@ -305,3 +339,131 @@ def test_bodyweight_sets_are_allowed(db: Session, make_user: MakeUser) -> None:
     workout = add_workout(db, user, add_exercise(db, user, "Pull-up"), ((10, 0),))
 
     assert workout.exercises[0].sets[0].weight_kg == 0
+
+
+def test_program_names_are_unique_per_user_ignoring_case(
+    db: Session, make_user: MakeUser
+) -> None:
+    andrei = make_user("andrei@example.com")
+    other = make_user("other@example.com")
+    add_program(db, andrei, add_exercise(db, andrei), name="PPL")
+
+    with (
+        pytest.raises(IntegrityError, match="uq_programs_user_id_lower_name"),
+        db.begin_nested(),
+    ):
+        add_program(db, andrei, add_exercise(db, andrei, "Bench"), name="ppl")
+
+    add_program(db, other, add_exercise(db, other), name="PPL")  # another user
+    assert count(db, Program, user_id=andrei.id) == 1
+    assert count(db, Program, user_id=other.id) == 1
+
+
+def test_program_day_positions_are_unique_per_program(
+    db: Session, make_user: MakeUser
+) -> None:
+    user = make_user("andrei@example.com")
+    exercise = add_exercise(db, user)
+
+    with (
+        pytest.raises(IntegrityError, match="uq_program_days_program_id_position"),
+        db.begin_nested(),
+    ):
+        add_program(db, user, exercise, positions=(1, 1))
+
+    # The same position in another program is fine
+    add_program(db, user, exercise, name="A", positions=(1, 2))
+    add_program(db, user, exercise, name="B", positions=(1, 2))
+    assert count(db, ProgramDay, position=1) == 2
+
+
+@pytest.mark.parametrize("position", [0, 8])
+def test_program_day_position_is_a_day_of_the_week(
+    db: Session, make_user: MakeUser, position: int
+) -> None:
+    user = make_user("andrei@example.com")
+
+    with (
+        pytest.raises(IntegrityError, match="ck_program_days_position"),
+        db.begin_nested(),
+    ):
+        add_program(db, user, add_exercise(db, user), positions=(position,))
+
+
+@pytest.mark.parametrize(
+    ("planned", "constraint"),
+    [
+        ((0, 8, 60), "ck_program_exercises_positive_sets"),
+        ((3, 0, 60), "ck_program_exercises_positive_reps"),
+        ((3, 8, -0.5), "ck_program_exercises_non_negative_weight"),
+    ],
+)
+def test_program_exercises_check_constraints(
+    db: Session,
+    make_user: MakeUser,
+    planned: tuple[int, int, float],
+    constraint: str,
+) -> None:
+    user = make_user("andrei@example.com")
+
+    with pytest.raises(IntegrityError, match=constraint), db.begin_nested():
+        add_program(db, user, add_exercise(db, user), planned=planned)
+
+
+def test_exercise_used_by_a_program_cannot_be_deleted(
+    db: Session, make_user: MakeUser
+) -> None:
+    # What DELETE /exercises/{id} relies on, in this version and the previous
+    # one: the commit fails, and commit_or_conflict turns that into a 409
+    user = make_user("andrei@example.com")
+    exercise = add_exercise(db, user)
+    program = add_program(db, user, exercise)
+    day_id = program.days[0].id
+
+    with (
+        pytest.raises(IntegrityError, match="program_exercises_exercise_id_fkey"),
+        db.begin_nested(),
+    ):
+        db.execute(delete(Exercise).where(Exercise.id == exercise.id))
+        check_deferred_constraints(db)
+
+    assert count(db, Exercise, id=exercise.id) == 1
+    assert count(db, ProgramExercise, program_day_id=day_id) == 1
+
+
+def test_deleting_a_program_deletes_its_days_and_exercises(
+    db: Session, make_user: MakeUser
+) -> None:
+    user = make_user("andrei@example.com")
+    exercise = add_exercise(db, user)
+    program = add_program(db, user, exercise, positions=(1, 3))
+    day_ids = [day.id for day in program.days]
+
+    db.execute(delete(Program).where(Program.id == program.id))
+    check_deferred_constraints(db)
+
+    assert count(db, ProgramDay, program_id=program.id) == 0
+    for day_id in day_ids:
+        assert count(db, ProgramExercise, program_day_id=day_id) == 0
+    assert count(db, Exercise, id=exercise.id) == 1  # the catalog keeps it
+
+
+def test_deleting_a_user_deletes_their_programs(
+    db: Session, make_user: MakeUser
+) -> None:
+    # L20: the planned exercises are three levels below the user (programs,
+    # program_days), while the exercises they use are one level below
+    andrei = make_user("andrei@example.com")
+    other = make_user("other@example.com")
+    program = add_program(db, andrei, add_exercise(db, andrei))
+    day_id = program.days[0].id
+    add_program(db, other, add_exercise(db, other))
+
+    db.execute(delete(User).where(User.id == andrei.id))
+    check_deferred_constraints(db)
+
+    assert count(db, Program, user_id=andrei.id) == 0
+    assert count(db, ProgramDay, program_id=program.id) == 0
+    assert count(db, ProgramExercise, program_day_id=day_id) == 0
+    assert count(db, Exercise, user_id=andrei.id) == 0
+    assert count(db, Program, user_id=other.id) == 1
