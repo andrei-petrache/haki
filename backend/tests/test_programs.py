@@ -387,9 +387,42 @@ def test_user_cannot_plan_another_users_exercise(
     assert list_programs(client, other_auth_headers) == []
 
 
+def test_delete_program_removes_it_but_keeps_the_exercises(
+    client: TestClient, auth_headers: dict[str, str], squat: int
+) -> None:
+    created = create_program(client, auth_headers, program(squat))
+
+    response = client.delete(f"/programs/{created['id']}", headers=auth_headers)
+
+    assert response.status_code == 204
+    assert (
+        client.get(f"/programs/{created['id']}", headers=auth_headers).status_code
+        == 404
+    )
+    assert list_programs(client, auth_headers) == []
+    exercises = client.get("/exercises", headers=auth_headers).json()
+    assert [item["id"] for item in exercises] == [squat]
+
+
+def test_deleting_its_last_program_frees_an_exercise(
+    client: TestClient, auth_headers: dict[str, str], squat: int
+) -> None:
+    created = create_program(client, auth_headers, program(squat))
+    client.delete(f"/programs/{created['id']}", headers=auth_headers)
+
+    response = client.delete(f"/exercises/{squat}", headers=auth_headers)
+
+    assert response.status_code == 204
+
+
 @pytest.mark.parametrize(
     ("method", "path"),
-    [("GET", "/programs"), ("POST", "/programs"), ("GET", "/programs/1")],
+    [
+        ("GET", "/programs"),
+        ("POST", "/programs"),
+        ("GET", "/programs/1"),
+        ("DELETE", "/programs/1"),
+    ],
 )
 def test_programs_endpoints_require_authentication(
     client: TestClient, method: str, path: str
@@ -399,31 +432,39 @@ def test_programs_endpoints_require_authentication(
     assert response.status_code == 401
 
 
+@pytest.mark.parametrize("method", ["GET", "DELETE"])
 def test_unknown_program_returns_404(
-    client: TestClient, auth_headers: dict[str, str]
+    client: TestClient, auth_headers: dict[str, str], method: str
 ) -> None:
-    response = client.get("/programs/999", headers=auth_headers)
+    response = client.request(method, "/programs/999", headers=auth_headers)
 
     assert response.status_code == 404
 
 
+@pytest.mark.parametrize("method", ["GET", "DELETE"])
 @pytest.mark.parametrize("program_id", [0, -1, 2**31])
 def test_out_of_range_program_id_returns_422(
-    client: TestClient, auth_headers: dict[str, str], program_id: int
+    client: TestClient, auth_headers: dict[str, str], method: str, program_id: int
 ) -> None:
-    response = client.get(f"/programs/{program_id}", headers=auth_headers)
+    response = client.request(method, f"/programs/{program_id}", headers=auth_headers)
 
     assert response.status_code == 422
 
 
-def test_user_cannot_read_another_users_program(
+@pytest.mark.parametrize("method", ["GET", "DELETE"])
+def test_user_cannot_touch_another_users_program(
     client: TestClient,
     auth_headers: dict[str, str],
     other_auth_headers: dict[str, str],
     squat: int,
+    method: str,
 ) -> None:
     created = create_program(client, auth_headers, program(squat))
 
-    response = client.get(f"/programs/{created['id']}", headers=other_auth_headers)
+    response = client.request(
+        method, f"/programs/{created['id']}", headers=other_auth_headers
+    )
 
     assert response.status_code == 404
+    stored = client.get(f"/programs/{created['id']}", headers=auth_headers)
+    assert stored.json() == created
