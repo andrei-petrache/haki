@@ -1,3 +1,4 @@
+from datetime import date, timedelta
 from typing import Any
 
 import pytest
@@ -9,7 +10,7 @@ from app.schemas import (
     MAX_SETS_PER_EXERCISE,
 )
 from tests.test_exercises import create_exercise
-from tests.test_workouts import count_queries
+from tests.test_workouts import DAY, count_queries
 
 
 def planned(exercise_id: int, **overrides: Any) -> dict[str, Any]:
@@ -422,6 +423,7 @@ def test_deleting_its_last_program_frees_an_exercise(
         ("POST", "/programs"),
         ("GET", "/programs/1"),
         ("DELETE", "/programs/1"),
+        ("POST", "/programs/1/days/1/workouts"),
     ],
 )
 def test_programs_endpoints_require_authentication(
@@ -468,3 +470,212 @@ def test_user_cannot_touch_another_users_program(
     assert response.status_code == 404
     stored = client.get(f"/programs/{created['id']}", headers=auth_headers)
     assert stored.json() == created
+
+
+def start_path(created: dict[str, Any], day_index: int = 0) -> str:
+    """Where to start a workout from one day of a created program."""
+    return f"/programs/{created['id']}/days/{created['days'][day_index]['id']}/workouts"
+
+
+def list_workouts(client: TestClient, headers: dict[str, str]) -> list[Any]:
+    return client.get("/workouts", headers=headers).json()
+
+
+def test_start_workout_copies_the_days_plan_in_order(
+    client: TestClient, auth_headers: dict[str, str], squat: int, deadlift: int
+) -> None:
+    pull_up = create_exercise(client, auth_headers, "Pull-up")["id"]
+    created = create_program(
+        client,
+        auth_headers,
+        program(
+            days=[
+                {
+                    "position": 1,
+                    "name": "Pull",
+                    "exercises": [
+                        planned(deadlift, sets=2, reps=5, weight_kg=120.5),
+                        planned(pull_up, sets=3, reps=10, weight_kg=0),
+                        planned(squat, sets=1, reps=8, weight_kg=60),
+                    ],
+                }
+            ]
+        ),
+    )
+
+    response = client.post(
+        start_path(created), json={"performed_on": DAY}, headers=auth_headers
+    )
+
+    assert response.status_code == 201
+    started = response.json()
+    assert started == {
+        "id": started["id"],
+        "performed_on": DAY,
+        "note": None,
+        "exercises": [
+            {
+                "exercise_id": deadlift,
+                "exercise_name": "Deadlift",
+                "sets": [{"reps": 5, "weight_kg": 120.5}] * 2,
+            },
+            {
+                "exercise_id": pull_up,
+                "exercise_name": "Pull-up",
+                "sets": [{"reps": 10, "weight_kg": 0}] * 3,
+            },
+            {
+                "exercise_id": squat,
+                "exercise_name": "Squat",
+                "sets": [{"reps": 8, "weight_kg": 60}],
+            },
+        ],
+    }
+    stored = client.get(f"/workouts/{started['id']}", headers=auth_headers)
+    assert stored.json() == started
+
+
+def test_start_workout_uses_only_the_chosen_day(
+    client: TestClient, auth_headers: dict[str, str], squat: int, deadlift: int
+) -> None:
+    created = create_program(
+        client,
+        auth_headers,
+        program(days=[day(squat, position=1), day(deadlift, position=2)]),
+    )
+
+    response = client.post(
+        start_path(created, day_index=1),
+        json={"performed_on": DAY},
+        headers=auth_headers,
+    )
+
+    assert response.status_code == 201
+    assert [item["exercise_id"] for item in response.json()["exercises"]] == [deadlift]
+
+
+def test_deleting_the_program_keeps_the_started_workout(
+    client: TestClient, auth_headers: dict[str, str], squat: int
+) -> None:
+    created = create_program(client, auth_headers, program(squat))
+    started = client.post(
+        start_path(created), json={"performed_on": DAY}, headers=auth_headers
+    ).json()
+
+    client.delete(f"/programs/{created['id']}", headers=auth_headers)
+
+    stored = client.get(f"/workouts/{started['id']}", headers=auth_headers)
+    assert stored.json() == started
+
+
+def test_editing_the_started_workout_leaves_the_program_alone(
+    client: TestClient, auth_headers: dict[str, str], squat: int
+) -> None:
+    created = create_program(client, auth_headers, program(squat))
+    started = client.post(
+        start_path(created), json={"performed_on": DAY}, headers=auth_headers
+    ).json()
+    edited = {
+        "performed_on": DAY,
+        "exercises": [{"exercise_id": squat, "sets": [{"reps": 3, "weight_kg": 100}]}],
+    }
+
+    client.put(f"/workouts/{started['id']}", json=edited, headers=auth_headers)
+
+    stored = client.get(f"/programs/{created['id']}", headers=auth_headers)
+    assert stored.json() == created
+
+
+def test_start_workout_rejects_a_day_of_another_program(
+    client: TestClient, auth_headers: dict[str, str], squat: int
+) -> None:
+    first = create_program(client, auth_headers, program(squat, name="First"))
+    second = create_program(client, auth_headers, program(squat, name="Second"))
+    path = f"/programs/{first['id']}/days/{second['days'][0]['id']}/workouts"
+
+    response = client.post(path, json={"performed_on": DAY}, headers=auth_headers)
+
+    assert response.status_code == 404
+    assert list_workouts(client, auth_headers) == []
+
+
+def test_user_cannot_start_a_workout_from_another_users_program(
+    client: TestClient,
+    auth_headers: dict[str, str],
+    other_auth_headers: dict[str, str],
+    squat: int,
+) -> None:
+    created = create_program(client, auth_headers, program(squat))
+
+    response = client.post(
+        start_path(created), json={"performed_on": DAY}, headers=other_auth_headers
+    )
+
+    assert response.status_code == 404
+    assert list_workouts(client, other_auth_headers) == []
+    assert list_workouts(client, auth_headers) == []
+
+
+@pytest.mark.parametrize("path", ["/programs/999/days/1/workouts", "unknown day"])
+def test_start_workout_from_unknown_program_or_day_returns_404(
+    client: TestClient, auth_headers: dict[str, str], squat: int, path: str
+) -> None:
+    created = create_program(client, auth_headers, program(squat))
+    if path == "unknown day":
+        path = f"/programs/{created['id']}/days/999/workouts"
+
+    response = client.post(path, json={"performed_on": DAY}, headers=auth_headers)
+
+    assert response.status_code == 404
+    assert list_workouts(client, auth_headers) == []
+
+
+@pytest.mark.parametrize(
+    "performed_on",
+    [date(2000, 1, 1), date.today(), date.today() + timedelta(days=1)],
+)
+def test_start_workout_accepts_dates_in_range(
+    client: TestClient, auth_headers: dict[str, str], squat: int, performed_on: date
+) -> None:
+    created = create_program(client, auth_headers, program(squat))
+
+    response = client.post(
+        start_path(created),
+        json={"performed_on": performed_on.isoformat()},
+        headers=auth_headers,
+    )
+
+    assert response.status_code == 201
+    assert response.json()["performed_on"] == performed_on.isoformat()
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        {"performed_on": "1999-12-31"},
+        {"performed_on": (date.today() + timedelta(days=2)).isoformat()},
+        {"performed_on": "yesterday"},
+        {},
+    ],
+    ids=["before 2000", "after tomorrow", "not a date", "missing"],
+)
+def test_start_workout_rejects_invalid_dates(
+    client: TestClient, auth_headers: dict[str, str], squat: int, body: dict[str, Any]
+) -> None:
+    created = create_program(client, auth_headers, program(squat))
+
+    response = client.post(start_path(created), json=body, headers=auth_headers)
+
+    assert response.status_code == 422
+    assert list_workouts(client, auth_headers) == []
+
+
+@pytest.mark.parametrize(
+    "path", [f"/programs/{2**31}/days/1/workouts", f"/programs/1/days/{2**31}/workouts"]
+)
+def test_start_workout_rejects_out_of_range_ids(
+    client: TestClient, auth_headers: dict[str, str], path: str
+) -> None:
+    response = client.post(path, json={"performed_on": DAY}, headers=auth_headers)
+
+    assert response.status_code == 422
