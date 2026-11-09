@@ -10,11 +10,12 @@ See README.md for setup.
   term **in Romanian**. Code, comments, commit messages and docs stay in English.
 - Work in small steps and run the tests after each step.
 - **Never print, read out or commit `.env`.** Use `.env.example` for shape.
-- **Show the diff and wait for an explicit OK before any `git commit`.** New
-  files don't appear in `git diff`; show them too
-  (e.g. `git add -N <path> && git diff`).
-- **Never `git push`.** Andrei does all pushing; an OK for a commit covers
-  only the commit.
+- **Ordinary code and docs: one OK, before the push.** Work the change through
+  to the end (branch, commits, checks), then ask for an OK once, with a short
+  summary. The mentor reads the diff on GitHub.
+- **Ask for an OK on every step** only for: migrations, anything that touches
+  prod, security, GitHub settings and deleting data.
+- **Never `git push` or merge.** Pushing and merging are Andrei's.
 - **Never commit on `main`.** It is protected: changes land only through pull
   requests with all 9 required CI checks green (`backend`, `frontend`,
   `docker (backend)`, `docker (frontend)`, `postgres-image`, `integration`,
@@ -23,9 +24,11 @@ See README.md for setup.
   tell Andrei to update the ruleset's required checks.
 - Start every change on a new branch from an up-to-date `main`, named after
   the change with a type prefix: `feat/...`, `fix/...`, `ci/...`, `docs/...`,
-  `refactor/...`, `chore/...` (e.g. `feat/weekly-summary`). Andrei pushes the
-  branch and opens the PR. Claude's shell has no SSH agent, so `git fetch` and
-  `git pull` fail there: ask Andrei to pull `main` first.
+  `refactor/...`, `chore/...`, `test/...` (e.g. `feat/weekly-summary`). Andrei
+  pushes the branch and opens the PR.
+- Fetch and pull `main` yourself. Claude's shell has no SSH agent; when SSH
+  fails, use `git fetch https://github.com/andrei-petrache/haki main` and then
+  `git merge --ff-only FETCH_HEAD`.
 - Every commit must pass the CI steps on its own (ruff check, ruff format
   --check, pytest, npm run lint, npm test, npm run build). When models or
   migrations change, also run the integration steps (see Tests); when
@@ -34,11 +37,14 @@ See README.md for setup.
   `k8s/scripts/check-manifests.sh`.
 - Andrei may edit files between steps; re-read before editing and build on
   their version instead of overwriting it.
-- Keep the learning journal in `docs/journal/` up to date: when a sprint or a
-  feature ships, add its row to the timeline in `README.md` (newest first)
-  and update "Where I am"; add new terms to `glossary.md` and notable
-  choices or caught bugs to `decisions.md`. Same rules as other docs
-  (English, own commit, Andrei's OK).
+- Write the learning journal once per sprint, only in `docs/journal/`: add
+  the sprint's row to the timeline in `README.md` (newest first) and update
+  "Where I am"; add new terms to `glossary.md` and notable choices or caught
+  bugs to `decisions.md`. Same rules as other docs (English, own commit). The
+  DEVME journal is no longer updated.
+- Live observers with measured times only when Andrei asks for them.
+  Otherwise a change is done when CI is green and staging is Synced and
+  Healthy.
 
 ## Stack
 
