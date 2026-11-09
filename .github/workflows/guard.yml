@@ -1,0 +1,65 @@
+name: Guard
+
+# The checks a pull request must not be able to weaken: what may reach prod
+# (k8s/argocd/haki-prod.yaml) and what the tag bot's pull request may change
+# (auto-merge relies on it).
+#
+# pull_request_target runs this file and the scripts as they are on main,
+# never the pull request's version: a pull request that edits a rule is still
+# checked by the old one, and the new rule takes effect only once merged.
+# The pull request's commits are fetched as data and read with git and yq;
+# nothing from them is checked out or run. No secrets, a read-only token, and
+# no credentials kept in git: pull_request_target also runs for pull requests
+# from forks.
+on:
+  pull_request_target:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: guard-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  # A required check: it runs on every pull request to main
+  prod-guard:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      # main as it is now (pull_request_target's default), with its history
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Install yq
+        run: |
+          scripts/install-tools.sh "$RUNNER_TEMP/bin" yq
+          echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
+
+      # Into the object store only: no checkout, the working tree stays main's.
+      # The repository is public, so no credentials are needed.
+      - name: Fetch the pull request's commits, as data
+        env:
+          NUMBER: ${{ github.event.pull_request.number }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          git fetch --no-tags -q origin "+refs/pull/$NUMBER/head:refs/remotes/pull/head"
+          [ "$(git rev-parse refs/remotes/pull/head)" = "$HEAD_SHA" ] \
+            || { echo "::error::The pull request moved while this ran; the next run checks it"; exit 1; }
+
+      # Through env, never ${{ }} inside run: a branch name is user input
+      - name: Check prod's Application
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: scripts/check-prod-app.sh "$BASE" "$HEAD_SHA"
+
+      - name: Check what a tag pull request changes
+        env:
+          BRANCH: ${{ github.event.pull_request.head.ref }}
+          BASE: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: scripts/check-tag-pr.sh "$BRANCH" "$BASE" "$HEAD_SHA"

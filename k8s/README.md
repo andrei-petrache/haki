@@ -22,7 +22,9 @@ every environment shares, and each overlay in `overlays/` adds what differs.
 | `argocd/default-project.yaml` | ArgoCD's `default` project, emptied of every permission |
 | `argocd/haki-staging.yaml` | the ArgoCD Application `haki-staging`: `overlays/staging` on `main`, synced into `haki-staging` |
 | `argocd/project-prod.yaml` | the ArgoCD project `haki-prod`: this repository only, into `haki` only, no Secrets and no volumes |
-| `argocd/haki-prod.yaml` | the ArgoCD Application `haki-prod`: `overlays/prod` at one fixed commit of `main`, synced into `haki` |
+| `argocd/haki-prod.yaml` | the ArgoCD Application `haki-prod`: `overlays/prod` at one fixed commit of `main`, synced into `haki`; applied by `haki-apps` |
+| `argocd/project-apps.yaml` | the ArgoCD project `haki-apps`: Applications only, into `argocd` only, from this repository only |
+| `argocd/haki-apps.yaml` | the ArgoCD Application `haki-apps`: `argocd/haki-prod.yaml` on `main`, and no other file; never prunes |
 | `components/images/` | the app image tags (backend, frontend, migration) for the overlays that include it, today staging; an active `rollback-pin.yaml` sits next to them |
 | `overlays/prod/` | namespace `haki`; its own app image tags; the frontend's `BACKEND_URL` |
 | `overlays/staging/` | namespace `haki-staging`, its own database, 1 backend replica; the image tags from `components/images`; its `BACKEND_URL` |
@@ -218,8 +220,9 @@ The Application `haki-prod` syncs `k8s/overlays/prod` into `haki`, in the
 same waves as staging, from one fixed commit of `main`: its
 `targetRevision` is a full commit SHA, never a branch. A change merged to
 `main` therefore never reaches prod by itself, whether it changes the tags,
-the overlay or `base/`; prod gets it only when that SHA moves.
-`check-manifests.sh` refuses a branch or tag there.
+the overlay or `base/`; prod gets it only when that SHA moves. Since the
+takeover, `haki-apps` (below) applies `haki-prod.yaml` from `main`, and
+`prod-guard` refuses any pull request that changes its `targetRevision`.
 
 The takeover is done by hand, as for staging in S8: first without automated
 sync, so the diff is seen before anything changes. Each step needs Andrei's
@@ -253,9 +256,55 @@ kubectl -n argocd get application haki-prod \
 Then step 2 again: the same pods with the same start times, the same volume
 and the same database revision.
 
-To stop ArgoCD managing prod, delete only the Application, as for staging:
-`kubectl -n argocd delete application haki-prod`. It has no finalizer, so
-everything stays and prod goes back to the manual phases.
+To stop ArgoCD managing prod, delete `haki-apps` first (or it puts
+`haki-prod` back), then `haki-prod`:
+`kubectl -n argocd delete application haki-apps haki-prod`. Neither has a
+finalizer, so everything stays and prod goes back to the manual phases.
+
+### haki-apps and prod-guard
+
+`haki-apps` is an Application whose only resource is another Application
+(app of apps): it applies `k8s/argocd/haki-prod.yaml` from `main`, and no
+other file of the directory (`directory.include`). Its project `haki-apps`
+allows Applications only, in the `argocd` namespace only, from this
+repository only, and nothing cluster-scoped. It never prunes, and
+`haki-prod` carries `sync-options: Prune=false,Delete=false`: if
+`haki-prod.yaml` left `main`, or a sync with prune ran, `haki-prod` would
+stay. Self-heal puts back any change made to `haki-prod` by hand.
+
+What protects prod is then `haki-prod.yaml` on `main`, guarded by the
+required check `prod-guard` (`.github/workflows/guard.yml`). It runs on
+`pull_request_target`: the workflow and `scripts/check-prod-app.sh` come
+from `main`, never from the pull request, whose commits are only fetched and
+read as data. A pull request cannot weaken the rule it is checked by; a new
+rule takes effect once merged. It refuses a pull request that:
+
+- changes `targetRevision` (until promotions exist, nothing may; then only
+  the promotion's own pull request);
+- deletes the file, or adds a second document to it: ArgoCD v3.5.7 cannot
+  limit an Application's name in a project (`namespaceResourceWhitelist`
+  has no `name`), so a second Application in this file would be created,
+  with any revision (tried on a throwaway cluster, 9 November 2026);
+- changes the project, repository, path or destination, or adds anything
+  else to `spec` or `spec.source` (e.g. `source.kustomize.images` would
+  change prod's images without moving `targetRevision`);
+- turns on automated sync, or changes the sync options or retries.
+
+Comments stay free. `prod-guard` also runs `scripts/check-tag-pr.sh`, the
+scope of the tag bot's pull request (above), for the same reason.
+
+Applied by hand, once, after the pull request that adds them is merged:
+
+```bash
+kubectl apply -f k8s/argocd/project-apps.yaml -f k8s/argocd/haki-apps.yaml
+kubectl -n argocd get application haki-apps \
+  -o jsonpath='{.status.sync.status} {.status.health.status}{"\n"}'   # Synced Healthy
+kubectl -n argocd get application haki-prod \
+  -o jsonpath='{.spec.source.targetRevision} {.metadata.annotations}{"\n"}'
+```
+
+Taking `haki-prod` over changes only its annotations (tracking and
+`sync-options`); its `targetRevision` stays, so prod is not synced.
 
 ### Roll back staging
 
@@ -460,17 +509,20 @@ from before the takeover (applied by kubectl) are not tracked and stay.
 The `bump-staging` job arms auto-merge on its pull request when the
 repository variable `TAG_BOT_AUTO_MERGE` is `true`. GitHub then merges it
 (rebase) once every required check passes and the branch is up to date with
-`main`. The check `tag-pr-scope` (`scripts/check-tag-pr.sh`) is what makes
-this safe: a pull request from `bot/bump-staging` passes only if it changes
+`main`. The check `prod-guard` running `scripts/check-tag-pr.sh` (from
+`main`'s copy, see "haki-apps and prod-guard") is what makes this safe; until
+S9 it ran as `tag-pr-scope`, from the pull request's own copy. A pull request
+from `bot/bump-staging` passes only if it changes
 nothing but the three `newTag` lines of `components/images/kustomization.yaml`
 (backend, frontend, migration), all to one full SHA, with no rollback pin.
 Every other pull request passes it at once.
 
 Turning it on, in this order (each step needs the one before):
 
-1. Ruleset `protect-main`: add `tag-pr-scope` to the required checks, after
-   the pull request that adds the job is merged (before, every open pull
-   request would wait for a check that never reports). That makes 9.
+1. Ruleset `protect-main`: the check (now `prod-guard`) among the required
+   checks, added only after the pull request that adds its job is merged
+   (before, every open pull request would wait for a check that never
+   reports). That makes 9.
 2. Settings → General: tick **Allow auto-merge**.
 3. Settings → Secrets and variables → Actions → Variables: set
    `TAG_BOT_AUTO_MERGE` to `true`.

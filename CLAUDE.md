@@ -19,9 +19,13 @@ See README.md for setup.
 - **Never commit on `main`.** It is protected: changes land only through pull
   requests with all 9 required CI checks green (`backend`, `frontend`,
   `docker (backend)`, `docker (frontend)`, `postgres-image`, `integration`,
-  `manifests`, `smoke`, `tag-pr-scope`) and the branch up to date with
+  `manifests`, `smoke`, `prod-guard`) and the branch up to date with
   `main`; no direct or force pushes. When a change adds or renames a CI job,
   tell Andrei to update the ruleset's required checks.
+- `prod-guard` (`.github/workflows/guard.yml`) runs on `pull_request_target`,
+  from `main`'s copy of its workflow and scripts: a change to it takes effect
+  only once merged. Never check out or run the pull request's code there, and
+  give it no secrets.
 - Start every change on a new branch from an up-to-date `main`, named after
   the change with a type prefix: `feat/...`, `fix/...`, `ci/...`, `docs/...`,
   `refactor/...`, `chore/...`, `test/...` (e.g. `feat/weekly-summary`). Andrei
