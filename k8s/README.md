@@ -21,6 +21,8 @@ every environment shares, and each overlay in `overlays/` adds what differs.
 | `argocd/project.yaml` | the ArgoCD project `haki`: this repository only, into `haki-staging` only, no Secrets and no volumes |
 | `argocd/default-project.yaml` | ArgoCD's `default` project, emptied of every permission |
 | `argocd/haki-staging.yaml` | the ArgoCD Application `haki-staging`: `overlays/staging` on `main`, synced into `haki-staging` |
+| `argocd/project-prod.yaml` | the ArgoCD project `haki-prod`: this repository only, into `haki` only, no Secrets and no volumes |
+| `argocd/haki-prod.yaml` | the ArgoCD Application `haki-prod`: `overlays/prod` at one fixed commit of `main`, synced into `haki` |
 | `components/images/` | the app image tags (backend, frontend, migration) for the overlays that include it, today staging; an active `rollback-pin.yaml` sits next to them |
 | `overlays/prod/` | namespace `haki`; its own app image tags; the frontend's `BACKEND_URL` |
 | `overlays/staging/` | namespace `haki-staging`, its own database, 1 backend replica; the image tags from `components/images`; its `BACKEND_URL` |
@@ -108,8 +110,9 @@ in `envoy-gateway-system`, named after the Gateway's namespace and name.
 
 [ArgoCD](https://argo-cd.readthedocs.io) v3.5.7 keeps the cluster in line
 with Git (GitOps). It is installed by hand, once per cluster, like Envoy
-Gateway, in its own namespace `argocd`. In S8 it manages staging only; prod
-keeps the manual phases below until S9.
+Gateway, in its own namespace `argocd`. It manages staging since S8 and
+prod since S9 (below, "Prod through ArgoCD"); until prod is taken over, it
+keeps the manual phases below.
 
 The manifest is taken from the release's commit, not its tag (a tag can
 move, a commit cannot), and applied only after its SHA-256 matches. The
@@ -145,7 +148,9 @@ owned.
 
 The projects are ArgoCD's boundary: `project.yaml` allows this repository
 only, the `haki-staging` namespace only and only the kinds the staging
-overlay renders, never Secrets or PersistentVolumeClaims. The `default`
+overlay renders, never Secrets or PersistentVolumeClaims; `project-prod.yaml`
+allows the same, for the `haki` namespace only. Separate projects, so an
+Application of one environment can never deploy into the other. The `default`
 project allows nothing, so an Application without a project deploys
 nothing. `check-manifests.sh` fails on any change that widens them.
 
@@ -206,6 +211,51 @@ so every resource stays and staging goes back to the manual phases. Never
 delete it from the UI or with `argocd app delete`: both delete in cascade by
 default, which would take the Deployments, Services and Gateway down (the
 namespace, the database and its volume would still stay).
+
+### Prod through ArgoCD
+
+The Application `haki-prod` syncs `k8s/overlays/prod` into `haki`, in the
+same waves as staging, from one fixed commit of `main`: its
+`targetRevision` is a full commit SHA, never a branch. A change merged to
+`main` therefore never reaches prod by itself, whether it changes the tags,
+the overlay or `base/`; prod gets it only when that SHA moves.
+`check-manifests.sh` refuses a branch or tag there.
+
+The takeover is done by hand, as for staging in S8: first without automated
+sync, so the diff is seen before anything changes. Each step needs Andrei's
+OK.
+
+```bash
+# 1. Back up first: the takeover runs the migration hook again (expected to
+#    change nothing); dump to ~/backups as in "Back up before a migration"
+
+# 2. Before: pods, their start times, the volume, the database revision
+kubectl -n haki get pods -o custom-columns=NAME:.metadata.name,START:.status.startTime
+kubectl -n haki get pvc data-haki-db-0 -o jsonpath='{.metadata.uid}{"\n"}'
+kubectl -n haki exec haki-db-0 -c postgres -- \
+  sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -tAc "select version_num from alembic_version"'
+
+# 3. The project and the Application; ArgoCD only compares, nothing changes
+kubectl apply -f k8s/argocd/project-prod.yaml -f k8s/argocd/haki-prod.yaml
+kubectl -n argocd get application haki-prod \
+  -o jsonpath='{.spec.syncPolicy}{"\n"}'          # no "automated"
+kubectl -n argocd get application haki-prod \
+  -o jsonpath='{range .status.resources[*]}{.kind}/{.name} {.status}{"\n"}{end}'
+
+# 4. Sync by hand, without prune, on the fixed SHA
+kubectl -n argocd patch application haki-prod --type merge -p '{"operation":
+  {"initiatedBy": {"username": "andrei"},
+   "sync": {"revision": "<targetRevision>", "prune": false}}}'
+kubectl -n argocd get application haki-prod \
+  -o jsonpath='{.status.sync.status} {.status.health.status} {.status.sync.revision}{"\n"}'
+```
+
+Then step 2 again: the same pods with the same start times, the same volume
+and the same database revision.
+
+To stop ArgoCD managing prod, delete only the Application, as for staging:
+`kubectl -n argocd delete application haki-prod`. It has no finalizer, so
+everything stays and prod goes back to the manual phases.
 
 ### Roll back staging
 
@@ -390,9 +440,13 @@ too). An overlay that includes the component may not list images of its own.
   `bump-staging` opens that pull request itself (`scripts/bump-staging-tag.sh`),
   always on the branch `bot/bump-staging`: a newer commit updates the same
   pull request. Andrei merges it, or auto-merge does (below).
-- **Prod:** after changing the tag, or anything in `haki-backend-config`,
-  migrate before the backend: phases 4 and 5 above. A Job cannot be changed
-  once created, so it is deleted first. Other changes need only phase 5.
+- **Prod, once ArgoCD has taken it over:** only by moving the
+  `targetRevision` of `haki-prod` (above, "Prod through ArgoCD"); never
+  `kubectl apply` it by hand.
+- **Prod before the takeover:** after changing the tag, or anything in
+  `haki-backend-config`, migrate before the backend: phases 4 and 5 above. A
+  Job cannot be changed once created, so it is deleted first. Other changes
+  need only phase 5.
 
 On prod, the ConfigMaps a change replaces are not deleted: `kubectl apply`
 leaves alone what is no longer in the manifests. They are harmless; to
@@ -440,8 +494,8 @@ readable only by you:
 
 ```bash
 NS=haki
-mkdir -p -m 700 ~/haki-backups
-f=~/haki-backups/haki-$NS-$(date +%Y%m%d-%H%M%S).dump
+mkdir -p -m 700 ~/backups
+f=~/backups/haki-$NS-$(date +%Y%m%d-%H%M%S).dump
 # Custom format (-Fc): compressed, read by pg_restore. No -t: binary-safe
 (umask 077 && kubectl -n $NS exec -i haki-db-0 -c postgres -- \
   sh -c 'pg_dump -Fc -U "$POSTGRES_USER" -d "$POSTGRES_DB"' > "$f")
@@ -501,8 +555,8 @@ this touches the Compose `db-data` volume.
   now carry it for ArgoCD as sync waves (`argocd.argoproj.io/sync-wave`:
   config -2, database -1, migrations 0 as a Sync hook, backend 1, frontend 2,
   gateway 3); `check-manifests.sh` checks the order. kubectl ignores those
-  annotations, so prod keeps the manual phases until S9; staging moves to
-  ArgoCD in S8.
+  annotations, so prod keeps the manual phases until ArgoCD takes it over in
+  S9; staging moved to ArgoCD in S8.
 - **Rate limit through port-forward:** kubectl port-forward connects to
   Envoy from the Envoy pod's own address, so every client looks the same and
   all share one login/signup budget (6 requests, then 429; a smoke test run

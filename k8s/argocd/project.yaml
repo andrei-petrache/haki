@@ -13,8 +13,8 @@ spec:
   # Public repository: no credentials, no repository Secret
   sourceRepos:
     - https://github.com/andrei-petrache/haki.git
-  # Only the staging namespace of this cluster: prod (haki) stays manual
-  # until S9
+  # Only the staging namespace of this cluster: prod (haki) has its own
+  # project, project-prod.yaml
   destinations:
     - server: https://kubernetes.default.svc
       namespace: haki-staging
