@@ -4,9 +4,9 @@
 #
 # Usage: scripts/smoke-test.sh [base URL]   (default http://127.0.0.1:8080)
 #
-# It creates a throwaway user, food, exercise and workout. CI runs it against
-# a fresh stack; run it locally only against a stack whose database may keep
-# that test user.
+# It creates a throwaway user, food, exercise and two workouts, and a program
+# that it deletes again. CI runs it against a fresh stack; run it locally only
+# against a stack whose database may keep that test user.
 set -euo pipefail
 
 base="${1:-http://127.0.0.1:8080}"
@@ -98,6 +98,43 @@ call GET /api/workouts "" "$token"
 expect 200 "list workouts"
 [[ "$(json '[(w["id"], w["set_count"]) for w in d]')" == "[($workout_id, 1)]" ]] ||
   fail "list workouts: the new workout is missing"
+
+program="{\"name\": \"Smoke plan\",
+          \"days\": [{\"position\": 1, \"name\": \"Smoke day\",
+                      \"exercises\": [{\"exercise_id\": $exercise_id, \"sets\": 3,
+                                       \"reps\": 5, \"weight_kg\": 100}]}]}"
+call POST /api/programs "$program" "$token"
+expect 201 "create a program"
+program_id="$(json 'd["id"]')"
+day_id="$(json 'd["days"][0]["id"]')"
+
+call GET /api/programs "" "$token"
+expect 200 "list programs"
+[[ "$(json '[(p["id"], p["day_count"]) for p in d]')" == "[($program_id, 1)]" ]] ||
+  fail "list programs: the new program is missing"
+
+call GET "/api/programs/$program_id" "" "$token"
+expect 200 "read the program"
+[[ "$(json '[(e["exercise_name"], e["sets"]) for e in d["days"][0]["exercises"]]')" \
+   == "[('Smoke squat', 3)]" ]] ||
+  fail "read the program: wrong planned exercise"
+
+call POST "/api/programs/$program_id/days/$day_id/workouts" \
+  "{\"performed_on\": \"$(date +%F)\"}" "$token"
+expect 201 "start a workout from the program day"
+started_id="$(json 'd["id"]')"
+[[ "$(json '[len(e["sets"]) for e in d["exercises"]]')" == "[3]" ]] ||
+  fail "start a workout: the 3 planned sets are not there"
+
+call DELETE "/api/programs/$program_id" "" "$token"
+expect 204 "delete the program"
+
+call GET "/api/programs/$program_id" "" "$token"
+expect 404 "the deleted program is gone"
+
+# The started workout is a copy, with no link back to the program
+call GET "/api/workouts/$started_id" "" "$token"
+expect 200 "the started workout outlives its program"
 
 call GET /api/auth/me
 expect 401 "no token is rejected"

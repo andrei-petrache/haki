@@ -1,0 +1,17 @@
+# The app images, pinned once for every overlay that includes this component
+# (staging). The images CI built, scanned and published for one commit of
+# main. The migration Job runs the backend image under its own name, with the
+# backend's tag; only an active rollback-pin.yaml next to this file lets the
+# two differ (CI checks both). newTag stays on the line right under each name:
+# scripts/set-staging-tags.sh relies on it.
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+
+images:
+  - name: ghcr.io/andrei-petrache/haki-backend
+    newTag: "387843a3a4496bbd504e8f5059d3ca43f48ddba9"
+  - name: ghcr.io/andrei-petrache/haki-frontend
+    newTag: "387843a3a4496bbd504e8f5059d3ca43f48ddba9"
+  - name: haki-migrate
+    newTag: "387843a3a4496bbd504e8f5059d3ca43f48ddba9"
+    newName: ghcr.io/andrei-petrache/haki-backend

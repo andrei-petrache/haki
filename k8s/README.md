@@ -21,8 +21,13 @@ every environment shares, and each overlay in `overlays/` adds what differs.
 | `argocd/project.yaml` | the ArgoCD project `haki`: this repository only, into `haki-staging` only, no Secrets and no volumes |
 | `argocd/default-project.yaml` | ArgoCD's `default` project, emptied of every permission |
 | `argocd/haki-staging.yaml` | the ArgoCD Application `haki-staging`: `overlays/staging` on `main`, synced into `haki-staging` |
-| `overlays/prod/` | namespace `haki`; the app image tags; the frontend's `BACKEND_URL` |
-| `overlays/staging/` | namespace `haki-staging`, its own database, 1 backend replica; its own image tags and `BACKEND_URL` |
+| `argocd/project-prod.yaml` | the ArgoCD project `haki-prod`: this repository only, into `haki` only, no Secrets and no volumes |
+| `argocd/haki-prod.yaml` | the ArgoCD Application `haki-prod`: `overlays/prod` at one fixed commit of `main`, synced into `haki`; applied by `haki-apps` |
+| `argocd/project-apps.yaml` | the ArgoCD project `haki-apps`: Applications only, into `argocd` only, from this repository only |
+| `argocd/haki-apps.yaml` | the ArgoCD Application `haki-apps`: `argocd/haki-prod.yaml` on `main`, and no other file; never prunes |
+| `components/images/` | the app image tags (backend, frontend, migration) for the overlays that include it, today staging; an active `rollback-pin.yaml` sits next to them |
+| `overlays/prod/` | namespace `haki`; its own app image tags; the frontend's `BACKEND_URL` |
+| `overlays/staging/` | namespace `haki-staging`, its own database, 1 backend replica; the image tags from `components/images`; its `BACKEND_URL` |
 
 To see what an overlay produces: `kubectl kustomize k8s/overlays/prod`.
 
@@ -107,8 +112,9 @@ in `envoy-gateway-system`, named after the Gateway's namespace and name.
 
 [ArgoCD](https://argo-cd.readthedocs.io) v3.5.7 keeps the cluster in line
 with Git (GitOps). It is installed by hand, once per cluster, like Envoy
-Gateway, in its own namespace `argocd`. In S8 it manages staging only; prod
-keeps the manual phases below until S9.
+Gateway, in its own namespace `argocd`. It manages staging since S8 and
+prod since S9 (below, "Prod through ArgoCD"); until prod is taken over, it
+keeps the manual phases below.
 
 The manifest is taken from the release's commit, not its tag (a tag can
 move, a commit cannot), and applied only after its SHA-256 matches. The
@@ -144,7 +150,9 @@ owned.
 
 The projects are ArgoCD's boundary: `project.yaml` allows this repository
 only, the `haki-staging` namespace only and only the kinds the staging
-overlay renders, never Secrets or PersistentVolumeClaims. The `default`
+overlay renders, never Secrets or PersistentVolumeClaims; `project-prod.yaml`
+allows the same, for the `haki` namespace only. Separate projects, so an
+Application of one environment can never deploy into the other. The `default`
 project allows nothing, so an Application without a project deploys
 nothing. `check-manifests.sh` fails on any change that widens them.
 
@@ -206,9 +214,101 @@ delete it from the UI or with `argocd app delete`: both delete in cascade by
 default, which would take the Deployments, Services and Gateway down (the
 namespace, the database and its volume would still stay).
 
+### Prod through ArgoCD
+
+The Application `haki-prod` syncs `k8s/overlays/prod` into `haki`, in the
+same waves as staging, from one fixed commit of `main`: its
+`targetRevision` is a full commit SHA, never a branch. A change merged to
+`main` therefore never reaches prod by itself, whether it changes the tags,
+the overlay or `base/`; prod gets it only when that SHA moves. Since the
+takeover, `haki-apps` (below) applies `haki-prod.yaml` from `main`, and
+`prod-guard` refuses any pull request that changes its `targetRevision`.
+
+The takeover is done by hand, as for staging in S8: first without automated
+sync, so the diff is seen before anything changes. Each step needs Andrei's
+OK.
+
+```bash
+# 1. Back up first: the takeover runs the migration hook again (expected to
+#    change nothing); dump to ~/backups as in "Back up before a migration"
+
+# 2. Before: pods, their start times, the volume, the database revision
+kubectl -n haki get pods -o custom-columns=NAME:.metadata.name,START:.status.startTime
+kubectl -n haki get pvc data-haki-db-0 -o jsonpath='{.metadata.uid}{"\n"}'
+kubectl -n haki exec haki-db-0 -c postgres -- \
+  sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -tAc "select version_num from alembic_version"'
+
+# 3. The project and the Application; ArgoCD only compares, nothing changes
+kubectl apply -f k8s/argocd/project-prod.yaml -f k8s/argocd/haki-prod.yaml
+kubectl -n argocd get application haki-prod \
+  -o jsonpath='{.spec.syncPolicy}{"\n"}'          # no "automated"
+kubectl -n argocd get application haki-prod \
+  -o jsonpath='{range .status.resources[*]}{.kind}/{.name} {.status}{"\n"}{end}'
+
+# 4. Sync by hand, without prune, on the fixed SHA
+kubectl -n argocd patch application haki-prod --type merge -p '{"operation":
+  {"initiatedBy": {"username": "andrei"},
+   "sync": {"revision": "<targetRevision>", "prune": false}}}'
+kubectl -n argocd get application haki-prod \
+  -o jsonpath='{.status.sync.status} {.status.health.status} {.status.sync.revision}{"\n"}'
+```
+
+Then step 2 again: the same pods with the same start times, the same volume
+and the same database revision.
+
+To stop ArgoCD managing prod, delete `haki-apps` first (or it puts
+`haki-prod` back), then `haki-prod`:
+`kubectl -n argocd delete application haki-apps haki-prod`. Neither has a
+finalizer, so everything stays and prod goes back to the manual phases.
+
+### haki-apps and prod-guard
+
+`haki-apps` is an Application whose only resource is another Application
+(app of apps): it applies `k8s/argocd/haki-prod.yaml` from `main`, and no
+other file of the directory (`directory.include`). Its project `haki-apps`
+allows Applications only, in the `argocd` namespace only, from this
+repository only, and nothing cluster-scoped. It never prunes, and
+`haki-prod` carries `sync-options: Prune=false,Delete=false`: if
+`haki-prod.yaml` left `main`, or a sync with prune ran, `haki-prod` would
+stay. Self-heal puts back any change made to `haki-prod` by hand.
+
+What protects prod is then `haki-prod.yaml` on `main`, guarded by the
+required check `prod-guard` (`.github/workflows/guard.yml`). It runs on
+`pull_request_target`: the workflow and `scripts/check-prod-app.sh` come
+from `main`, never from the pull request, whose commits are only fetched and
+read as data. A pull request cannot weaken the rule it is checked by; a new
+rule takes effect once merged. It refuses a pull request that:
+
+- changes `targetRevision` (until promotions exist, nothing may; then only
+  the promotion's own pull request);
+- deletes the file, or adds a second document to it: ArgoCD v3.5.7 cannot
+  limit an Application's name in a project (`namespaceResourceWhitelist`
+  has no `name`), so a second Application in this file would be created,
+  with any revision (tried on a throwaway cluster, 9 November 2026);
+- changes the project, repository, path or destination, or adds anything
+  else to `spec` or `spec.source` (e.g. `source.kustomize.images` would
+  change prod's images without moving `targetRevision`);
+- turns on automated sync, or changes the sync options or retries.
+
+Comments stay free. `prod-guard` also runs `scripts/check-tag-pr.sh`, the
+scope of the tag bot's pull request (above), for the same reason.
+
+Applied by hand, once, after the pull request that adds them is merged:
+
+```bash
+kubectl apply -f k8s/argocd/project-apps.yaml -f k8s/argocd/haki-apps.yaml
+kubectl -n argocd get application haki-apps \
+  -o jsonpath='{.status.sync.status} {.status.health.status}{"\n"}'   # Synced Healthy
+kubectl -n argocd get application haki-prod \
+  -o jsonpath='{.spec.source.targetRevision} {.metadata.annotations}{"\n"}'
+```
+
+Taking `haki-prod` over changes only its annotations (tracking and
+`sync-options`); its `targetRevision` stays, so prod is not synced.
+
 ### Roll back staging
 
-A rollback is a `git revert` of the commit that changed `overlays/staging`,
+A rollback is a `git revert` of the commit that changed staging's tags,
 through a pull request like any other change. Measured in S8 (3 November
 2026, ArgoCD v3.5.7), in seconds after the merge:
 
@@ -251,7 +351,7 @@ Not a `git revert`: backend and frontend go back to the older images, while
 the migration Job stays on the newer tag. Its `alembic upgrade head` then
 finds the database already at its own head and does nothing; the older code
 runs on the newer schema, which expand/contract migrations allow. The file
-`overlays/staging/rollback-pin.yaml` records the two tags while this lasts.
+`components/images/rollback-pin.yaml` records the two tags while this lasts.
 
 One pull request, prepared by a script (by hand it is easy to move the wrong
 tag):
@@ -260,7 +360,7 @@ tag):
 git switch -c fix/rollback-staging origin/main
 scripts/staging-rollback-pin.sh start <older SHA> "<reason>"
 k8s/scripts/check-manifests.sh
-git add -A k8s/overlays/staging && git commit -m "Roll staging back to <older>"
+git add -A k8s/components/images && git commit -m "Roll staging back to <older>"
 ```
 
 The script refuses a SHA that is not older than the current tag, and a start
@@ -280,7 +380,7 @@ are published:
 git switch -c fix/lift-rollback-pin origin/main
 scripts/staging-rollback-pin.sh end <SHA of main, with the fix>
 k8s/scripts/check-manifests.sh
-git add -A k8s/overlays/staging && git commit -m "Lift the staging rollback pin"
+git add -A k8s/components/images && git commit -m "Lift the staging rollback pin"
 ```
 
 `end` deletes the pin and moves all three tags to that SHA. It accepts any
@@ -378,19 +478,24 @@ cluster's database.
 
 ## Deploy new images or settings
 
-The image tag is the full commit SHA of `main`, set once per overlay under
-`images:` in its `kustomization.yaml` (the backend tag covers the migration
-Job too).
+The image tag is the full commit SHA of `main`, set under `images:` once for
+staging, in `components/images/kustomization.yaml`, and once for prod, in
+`overlays/prod/kustomization.yaml` (the backend tag covers the migration Job
+too). An overlay that includes the component may not list images of its own.
 
-- **Staging:** a pull request that changes `overlays/staging`. Once it is
+- **Staging:** a pull request that changes `components/images`. Once it is
   merged, ArgoCD applies it in wave order, migration included (above). After
   a push to `main` that changes `backend/` or `frontend/`, the CI job
   `bump-staging` opens that pull request itself (`scripts/bump-staging-tag.sh`),
   always on the branch `bot/bump-staging`: a newer commit updates the same
   pull request. Andrei merges it, or auto-merge does (below).
-- **Prod:** after changing the tag, or anything in `haki-backend-config`,
-  migrate before the backend: phases 4 and 5 above. A Job cannot be changed
-  once created, so it is deleted first. Other changes need only phase 5.
+- **Prod, once ArgoCD has taken it over:** only by moving the
+  `targetRevision` of `haki-prod` (above, "Prod through ArgoCD"); never
+  `kubectl apply` it by hand.
+- **Prod before the takeover:** after changing the tag, or anything in
+  `haki-backend-config`, migrate before the backend: phases 4 and 5 above. A
+  Job cannot be changed once created, so it is deleted first. Other changes
+  need only phase 5.
 
 On prod, the ConfigMaps a change replaces are not deleted: `kubectl apply`
 leaves alone what is no longer in the manifests. They are harmless; to
@@ -404,17 +509,20 @@ from before the takeover (applied by kubectl) are not tracked and stay.
 The `bump-staging` job arms auto-merge on its pull request when the
 repository variable `TAG_BOT_AUTO_MERGE` is `true`. GitHub then merges it
 (rebase) once every required check passes and the branch is up to date with
-`main`. The check `tag-pr-scope` (`scripts/check-tag-pr.sh`) is what makes
-this safe: a pull request from `bot/bump-staging` passes only if it changes
-nothing but the three `newTag` lines of `overlays/staging/kustomization.yaml`
+`main`. The check `prod-guard` running `scripts/check-tag-pr.sh` (from
+`main`'s copy, see "haki-apps and prod-guard") is what makes this safe; until
+S9 it ran as `tag-pr-scope`, from the pull request's own copy. A pull request
+from `bot/bump-staging` passes only if it changes
+nothing but the three `newTag` lines of `components/images/kustomization.yaml`
 (backend, frontend, migration), all to one full SHA, with no rollback pin.
 Every other pull request passes it at once.
 
 Turning it on, in this order (each step needs the one before):
 
-1. Ruleset `protect-main`: add `tag-pr-scope` to the required checks, after
-   the pull request that adds the job is merged (before, every open pull
-   request would wait for a check that never reports). That makes 9.
+1. Ruleset `protect-main`: the check (now `prod-guard`) among the required
+   checks, added only after the pull request that adds its job is merged
+   (before, every open pull request would wait for a check that never
+   reports). That makes 9.
 2. Settings → General: tick **Allow auto-merge**.
 3. Settings → Secrets and variables → Actions → Variables: set
    `TAG_BOT_AUTO_MERGE` to `true`.
@@ -438,8 +546,8 @@ readable only by you:
 
 ```bash
 NS=haki
-mkdir -p -m 700 ~/haki-backups
-f=~/haki-backups/haki-$NS-$(date +%Y%m%d-%H%M%S).dump
+mkdir -p -m 700 ~/backups
+f=~/backups/haki-$NS-$(date +%Y%m%d-%H%M%S).dump
 # Custom format (-Fc): compressed, read by pg_restore. No -t: binary-safe
 (umask 077 && kubectl -n $NS exec -i haki-db-0 -c postgres -- \
   sh -c 'pg_dump -Fc -U "$POSTGRES_USER" -d "$POSTGRES_DB"' > "$f")
@@ -499,8 +607,8 @@ this touches the Compose `db-data` volume.
   now carry it for ArgoCD as sync waves (`argocd.argoproj.io/sync-wave`:
   config -2, database -1, migrations 0 as a Sync hook, backend 1, frontend 2,
   gateway 3); `check-manifests.sh` checks the order. kubectl ignores those
-  annotations, so prod keeps the manual phases until S9; staging moves to
-  ArgoCD in S8.
+  annotations, so prod keeps the manual phases until ArgoCD takes it over in
+  S9; staging moved to ArgoCD in S8.
 - **Rate limit through port-forward:** kubectl port-forward connects to
   Envoy from the Envoy pod's own address, so every client looks the same and
   all share one login/signup budget (6 requests, then 429; a smoke test run

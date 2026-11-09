@@ -13,18 +13,10 @@ replicas:
   - name: haki-backend
     count: 1
 
-# The only place staging's app images are pinned. The migration Job runs the
-# backend image under its own name, with the backend's tag; only an active
-# rollback-pin.yaml lets the two differ (CI checks both). newTag stays on the
-# line right under each name: scripts/set-staging-tags.sh relies on it.
-images:
-  - name: ghcr.io/andrei-petrache/haki-backend
-    newTag: "387843a3a4496bbd504e8f5059d3ca43f48ddba9"
-  - name: ghcr.io/andrei-petrache/haki-frontend
-    newTag: "387843a3a4496bbd504e8f5059d3ca43f48ddba9"
-  - name: haki-migrate
-    newTag: "387843a3a4496bbd504e8f5059d3ca43f48ddba9"
-    newName: ghcr.io/andrei-petrache/haki-backend
+# The app images come from the shared component, never from an images: list
+# here (CI refuses one): the tags live in one place only.
+components:
+  - ../../components/images
 
 configMapGenerator:
   # The backend Service in this namespace, by its full name: Nginx resolves
