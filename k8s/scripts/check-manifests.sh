@@ -3,8 +3,9 @@
 # overlay builds with kustomize, every resource matches the API schemas of the
 # cluster's Kubernetes version (taken from the node image in
 # k8s/kind-config.yaml) or of its custom resource, each ArgoCD project allows
-# no more than its one namespace from this repository, prod's Application
-# stays on a fixed commit, PostgreSQL runs the image pinned
+# no more than its one namespace from this repository, haki-apps applies only
+# prod's Application and never prunes (prod's Application itself is checked by
+# prod-guard, from main), PostgreSQL runs the image pinned
 # in compose.yaml, the app images are pinned to a commit SHA, the migration
 # Job runs the backend's tag unless a rollback pin says otherwise, and the
 # frontend proxies to the backend of its own namespace.
@@ -95,42 +96,50 @@ done
 [[ "$(project default '(.spec.sourceRepos | length) + (.spec.destinations | length)')" == 0 ]] \
   || fail "AppProject default must allow no repository and no destination"
 [[ "$(yq -N 'select(.kind == "Application") | .metadata.name' <<<"$argocd" | sort | tr '\n' ' ')" \
-  == "haki-prod haki-staging " ]] \
-  || fail "k8s/argocd: the only Applications are haki-staging and haki-prod"
+  == "haki-apps haki-prod haki-staging " ]] \
+  || fail "k8s/argocd: the only Applications are haki-staging, haki-prod and haki-apps"
+# haki-prod itself (k8s/argocd/haki-prod.yaml) is checked by prod-guard,
+# from main's copy of scripts/check-prod-app.sh, never from a pull request's
 
-# Each Application: this repository, its overlay, its project and namespace,
-# no retries, and none of the sync options that replace, force or take over
-# objects. Staging follows main; prod stays on one full commit SHA, which
-# only a promotion moves.
-for app_name in haki-staging haki-prod; do
-  app="$(yq -N "select(.kind == \"Application\" and .metadata.name == \"$app_name\")" <<<"$argocd")"
-  revision="$(yq -N '.spec.source.targetRevision' <<<"$app")"
-  if [[ "$app_name" == haki-staging ]]; then
-    expected="haki $repo k8s/overlays/staging https://kubernetes.default.svc haki-staging"
-    [[ "$revision" == main ]] || fail "Application haki-staging: targetRevision must be main"
-  else
-    expected="haki-prod $repo k8s/overlays/prod https://kubernetes.default.svc haki"
-    [[ "$revision" =~ ^[0-9a-f]{40}$ ]] \
-      || fail "Application haki-prod: targetRevision must be a full commit SHA, never a branch or tag ('$revision')"
-    # Until the takeover is done by hand and checked: no automated sync
-    [[ "$(yq -N '.spec.syncPolicy | has("automated")' <<<"$app")" == false ]] \
-      || fail "Application haki-prod: no automated sync yet"
-  fi
-  source_dest="$(yq -N '[.spec.project, .spec.source.repoURL,
-    .spec.source.path, .spec.destination.server, .spec.destination.namespace] | join(" ")' <<<"$app")"
-  [[ "$source_dest" == "$expected" ]] \
-    || fail "Application $app_name: project, source or destination changed ('$source_dest')"
-  sync_options="$(yq -N '.spec.syncPolicy.syncOptions // [] | join(",")' <<<"$app")"
-  [[ ",$sync_options," == *,PruneLast=true,* ]] \
-    || fail "Application $app_name: PruneLast=true is required (prune only once every wave is healthy)"
-  for option in Replace=true Force=true ServerSideApply=true CreateNamespace=true; do
-    [[ ",$sync_options," != *,$option,* ]] \
-      || fail "Application $app_name: sync option $option is not allowed"
-  done
-  [[ "$(yq -N '.spec.syncPolicy.retry.limit' <<<"$app")" == 0 ]] \
-    || fail "Application $app_name: retry.limit must be 0 (each retry runs the migration again)"
-  echo "Application $app_name: ${revision:0:12}:$(yq -N '.spec.source.path' <<<"$app") -> $(yq -N '.spec.destination.namespace' <<<"$app"), sync options $sync_options"
+# The staging Application: main of this repository, the staging overlay, the
+# haki project, no retries, and none of the sync options that replace,
+# force or take over objects
+app="$(yq -N 'select(.kind == "Application" and .metadata.name == "haki-staging")' <<<"$argocd")"
+source_dest="$(yq -N '[.spec.project, .spec.source.repoURL, .spec.source.targetRevision,
+  .spec.source.path, .spec.destination.server, .spec.destination.namespace] | join(" ")' <<<"$app")"
+[[ "$source_dest" == "haki $repo main k8s/overlays/staging https://kubernetes.default.svc haki-staging" ]] \
+  || fail "Application haki-staging: project, source or destination changed ('$source_dest')"
+sync_options="$(yq -N '.spec.syncPolicy.syncOptions // [] | join(",")' <<<"$app")"
+[[ ",$sync_options," == *,PruneLast=true,* ]] \
+  || fail "Application haki-staging: PruneLast=true is required (prune only once every wave is healthy)"
+for option in Replace=true Force=true ServerSideApply=true CreateNamespace=true; do
+  [[ ",$sync_options," != *,$option,* ]] \
+    || fail "Application haki-staging: sync option $option is not allowed"
 done
+[[ "$(yq -N '.spec.syncPolicy.retry.limit' <<<"$app")" == 0 ]] \
+  || fail "Application haki-staging: retry.limit must be 0 (each retry runs the migration again)"
+echo "Application haki-staging: main:k8s/overlays/staging -> haki-staging, sync options $sync_options"
+
+# haki-apps (app of apps): Applications only, into argocd only, and only the
+# file haki-prod.yaml of main; it never prunes, so haki-prod stays even if
+# that file left main
+[[ "$(project haki-apps '[.spec.sourceRepos | join(","),
+    (.spec.destinations | map(.server + " " + .namespace) | join(",")),
+    (.spec.clusterResourceWhitelist // [] | length | tostring),
+    (.spec.namespaceResourceWhitelist | map(.group + "/" + .kind) | join(","))] | join(" | ")')" \
+  == "$repo | https://kubernetes.default.svc argocd | 0 | argoproj.io/Application" ]] \
+  || fail "AppProject haki-apps: only Applications, only into argocd, only from $repo, nothing cluster-scoped"
+app="$(yq -N 'select(.kind == "Application" and .metadata.name == "haki-apps")' <<<"$argocd")"
+[[ "$(yq -N '[.spec.project, .spec.source.repoURL, .spec.source.targetRevision, .spec.source.path,
+    .spec.source.directory.include, (.spec.source.directory.recurse // false | tostring),
+    .spec.destination.server, .spec.destination.namespace] | join(" ")' <<<"$app")" \
+  == "haki-apps $repo main k8s/argocd haki-prod.yaml false https://kubernetes.default.svc argocd" ]] \
+  || fail "Application haki-apps: project, source (main, k8s/argocd, include haki-prod.yaml only) or destination changed"
+[[ "$(yq -N '[.spec.syncPolicy.automated.enabled, .spec.syncPolicy.automated.prune,
+    .spec.syncPolicy.automated.selfHeal, .spec.syncPolicy.retry.limit] | map(tostring) | join(" ")' <<<"$app")" \
+  == "true false true 0" ]] \
+  || fail "Application haki-apps: automated with prune false and selfHeal true, retry 0"
+echo "Application haki-apps: main:k8s/argocd/haki-prod.yaml -> argocd, prune off"
 
 for overlay in k8s/overlays/*/; do
   overlay="${overlay%/}"

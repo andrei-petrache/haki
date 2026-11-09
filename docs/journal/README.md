@@ -117,4 +117,15 @@ Open items, outside the sprints:
 - [ ] Group the Trivy findings in the backend image and pick a slimmer base
 - [ ] L21: an unsaved workout is lost when the tab changes
 - [ ] Move the Playwright browser checks into the repository, as a CI job
-- [ ] `scripts/smoke-test.sh` does not cover `/programs` yet
+- [x] `scripts/smoke-test.sh` does not cover `/programs` yet (#67)
+- [ ] A ValidatingAdmissionPolicy on ArgoCD Applications, not added for now.
+  Tried on a throwaway cluster (9 November 2026, ArgoCD v3.5.7): an AppProject
+  cannot limit an Application's name (`namespaceResourceWhitelist` has no
+  `name`), so a second document in `haki-prod.yaml` (`haki-prod-x`, project
+  `haki-prod`, `targetRevision: main`) was created by `haki-apps`, and so was
+  a rename. `directory.include` does not stop it (the document is inside the
+  included file); only `prod-guard` does, in Git. The policy that refused
+  both in the API server, and a `kubectl patch` of `haki-prod` onto `main`:
+  Applications named only `haki-staging`, `haki-prod` or `haki-apps`, in
+  `argocd` only; the project `haki-prod` used by `haki-prod` alone; and
+  `haki-prod`'s `targetRevision` a full commit SHA

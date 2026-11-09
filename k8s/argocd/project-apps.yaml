@@ -1,0 +1,26 @@
+# The ArgoCD project of haki-apps: it may create Applications, and nothing
+# else, in the argocd namespace only, from this repository only. ArgoCD
+# cannot limit a namespaced kind to one name (namespaceResourceWhitelist has
+# no name field in v3.5.7): that the only Application is haki-prod is checked
+# by prod-guard (scripts/check-prod-app.sh), from main. Applied by hand (see
+# k8s/README.md, "haki-apps").
+#   kubectl apply -f k8s/argocd/project-apps.yaml
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: haki-apps
+  namespace: argocd
+  # No finalizers: nothing here may delete resources in cascade
+spec:
+  description: The Application haki-prod, from k8s/argocd/haki-prod.yaml on main
+  sourceRepos:
+    - https://github.com/andrei-petrache/haki.git
+  destinations:
+    - server: https://kubernetes.default.svc
+      namespace: argocd
+  # Nothing cluster-scoped
+  clusterResourceWhitelist: []
+  # Applications only: not an AppProject (it would widen what can be
+  # deployed), not a ConfigMap or Secret of ArgoCD's own
+  namespaceResourceWhitelist:
+    - { group: argoproj.io, kind: Application }

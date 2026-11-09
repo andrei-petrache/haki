@@ -2,8 +2,8 @@
 # main, synced into haki. Unlike staging it never follows main: targetRevision
 # is a full commit SHA, and only a promotion moves it (k8s/README.md, "Prod
 # through ArgoCD"), so a change merged to main reaches prod only once it is
-# promoted. Applied by hand:
-#   kubectl apply -f k8s/argocd/haki-prod.yaml
+# promoted. Applied from main by the Application haki-apps; checked on every
+# pull request by prod-guard (scripts/check-prod-app.sh), from main's copy.
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
@@ -13,6 +13,9 @@ metadata:
     # Compare through a server-side dry run, as for staging: the defaults the
     # API server fills in do not show as drift
     argocd.argoproj.io/compare-options: ServerSideDiff=true
+    # Never pruned or deleted by haki-apps, even if this file left main or a
+    # sync with prune ran
+    argocd.argoproj.io/sync-options: Prune=false,Delete=false
   # No finalizers: deleting this Application never deletes what it deployed.
   # Beware: `argocd app delete` and the UI delete in cascade by default.
 spec:
