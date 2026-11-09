@@ -133,3 +133,6 @@ Open items, outside the sprints:
   update those branches. Not added for now; `prod-guard` already refuses a
   promotion with a commit that is not the bot's. Check first that a
   personal repository's ruleset can list a GitHub App in its bypass list
+- [ ] TypeScript 7, held back in `.github/dependabot.yml`: `typescript-eslint`
+  accepts only `typescript <6.1.0` (8.72.2, 9 November 2026), so `npm ci`
+  fails with ERESOLVE (#65). Lift the hold once a release accepts 7
