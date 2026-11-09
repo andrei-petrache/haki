@@ -9,18 +9,12 @@ namespace: haki
 resources:
   - ../../base
 
-# The only place the app images are pinned: the images CI built, scanned and
-# published for one commit of main. The migration Job runs the backend image
-# under its own name, with the backend's tag; only an active rollback-pin.yaml
-# lets the two differ (CI checks both).
-images:
-  - name: ghcr.io/andrei-petrache/haki-backend
-    newTag: 081c5f21498071b536c23dcdb18d22aa213a5afe
-  - name: ghcr.io/andrei-petrache/haki-frontend
-    newTag: 081c5f21498071b536c23dcdb18d22aa213a5afe
-  - name: haki-migrate
-    newTag: 081c5f21498071b536c23dcdb18d22aa213a5afe
-    newName: ghcr.io/andrei-petrache/haki-backend
+# The app images come from the shared component, as for staging: prod runs
+# the commit haki-prod's targetRevision points to, and at that commit the
+# images are the ones staging ran (a rollback pin included). Never an
+# images: list here (CI refuses one).
+components:
+  - ../../components/images
 
 configMapGenerator:
   # The backend Service in this namespace, by its full name: Nginx resolves
