@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Moves staging to the images published for one commit: sets the backend,
-# frontend and migration tags in k8s/overlays/staging/kustomization.yaml and
+# frontend and migration tags in k8s/components/images/kustomization.yaml and
 # changes nothing else. Refuses while a rollback pin is active: staging then
 # takes no new backend tag until the pin is lifted (k8s/README.md).
 #
@@ -15,11 +15,11 @@ fail() {
 
 sha="${1:?usage: $0 <full commit SHA>}"
 dir="$(dirname "$0")"
-overlay="$dir/../k8s/overlays/staging"
-file="$overlay/kustomization.yaml"
+images="$dir/../k8s/components/images"
+file="$images/kustomization.yaml"
 
-[[ ! -e "$overlay/rollback-pin.yaml" ]] \
-  || fail "A rollback pin is active (k8s/overlays/staging/rollback-pin.yaml): no new backend tag until it is lifted with scripts/staging-rollback-pin.sh end"
+[[ ! -e "$images/rollback-pin.yaml" ]] \
+  || fail "A rollback pin is active (k8s/components/images/rollback-pin.yaml): no new backend tag until it is lifted with scripts/staging-rollback-pin.sh end"
 
 tag() { yq ".images[] | select(.name == \"$1\") | .newTag" "$file"; }
 old_backend="$(tag ghcr.io/andrei-petrache/haki-backend)"

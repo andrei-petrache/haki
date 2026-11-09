@@ -511,8 +511,11 @@ jobs:
           SHA: ${{ github.sha }}
           BRANCH: bot/bump-staging
         run: |
-          file=k8s/overlays/staging/kustomization.yaml
+          file=k8s/components/images/kustomization.yaml
           tag_of() {
+            # A bot branch from before the tags moved here has no such file:
+            # no tag, so it never counts as newer (the next push replaces it)
+            git cat-file -e "$1:$file" 2>/dev/null || return 0
             git show "$1:$file" \
               | yq '.images[] | select(.name == "ghcr.io/andrei-petrache/haki-backend") | .newTag'
           }
