@@ -9,11 +9,17 @@
 #   fixed shape: this repository, k8s/overlays/prod, project haki-prod, the
 #   haki namespace, a full commit SHA, no source overrides (kustomize, helm,
 #   directory) and no automated sync yet.
-# - No pull request changes targetRevision: only a promotion will (S9 step 5,
-#   promote-prod), and until then nothing may.
+# - Only the promotion's own pull request changes targetRevision: opened by
+#   the tag bot from bot/promote-prod of this repository, with one commit the
+#   bot made through the API (verified), changing that one line, to a commit
+#   of main that check-promotion.sh accepts (published images, no rollback
+#   across a migration).
 #
 # Usage: scripts/check-prod-app.sh <base SHA> <head SHA>
-# Needs the history of both SHAs and yq (scripts/install-tools.sh).
+# From the pull_request_target event, in the environment: PR_BRANCH,
+# PR_HEAD_REPO, PR_BASE_REPO, PR_AUTHOR, and PR_COMMITS, a file with the
+# pull request's commits as the REST API lists them (pulls/N/commits).
+# Needs the history of both SHAs, yq and curl.
 set -euo pipefail
 
 fail() {
@@ -68,10 +74,41 @@ revision="$(read_doc '.spec.source.targetRevision')"
 [[ "$(read_doc '.spec.syncPolicy.retry | to_entries | map(.key + "=" + (.value | tostring)) | join(",")')" == limit=0 ]] \
   || fail "retry must be exactly limit: 0 (each retry runs the migration again)"
 
-# The gate: targetRevision stays where main has it
+# The gate: targetRevision stays where main has it, unless this is the
+# promotion's pull request
 merge_base="$(git merge-base "$base" "$head")"
 before="$(git show "$merge_base:$file" 2>/dev/null | yq '.spec.source.targetRevision' || true)"
-[[ "$revision" == "$before" ]] \
-  || fail "no pull request may change targetRevision (${before:0:7} -> ${revision:0:7}); only a promotion will"
+if [[ "$revision" == "$before" ]]; then
+  echo "haki-prod.yaml: Application argocd/haki-prod, targetRevision ${revision:0:12} unchanged"
+  exit 0
+fi
+refuse() { fail "only a promotion may change targetRevision (${before:0:7} -> ${revision:0:7}): $1"; }
 
-echo "haki-prod.yaml: Application argocd/haki-prod, targetRevision ${revision:0:12} unchanged"
+# Who: the tag bot, from this repository's bot/promote-prod. A fork may name
+# a branch the same; the author of a pull request cannot be forged.
+bot="haki-tag-bot[bot]"
+[[ "${PR_BRANCH:-}" == bot/promote-prod ]] || refuse "the branch is not bot/promote-prod"
+[[ -n "${PR_BASE_REPO:-}" && "${PR_HEAD_REPO:-}" == "$PR_BASE_REPO" ]] || refuse "the branch is not in this repository"
+[[ "${PR_AUTHOR:-}" == "$bot" ]] || refuse "the pull request was not opened by $bot"
+
+# What: one commit, the head, made by the bot through the API, so GitHub
+# signed it. A person pushing to the branch adds a commit of their own.
+[[ -s "${PR_COMMITS:-}" ]] || refuse "the pull request's commits are missing"
+[[ "$(yq -p json -o yaml 'length' "$PR_COMMITS")" == 1 ]] || refuse "a promotion has exactly one commit"
+[[ "$(yq -p json -o yaml '.[0] | [.sha, (.commit.verification.verified | tostring), .author.login, .committer.login] | join(" ")' "$PR_COMMITS")" \
+  == "$head true $bot $bot" ]] \
+  || refuse "its commit is not the head, verified, authored and committed by $bot"
+[[ "$(git rev-list --count "$merge_base..$head")" == 1 ]] || refuse "a promotion has exactly one commit"
+
+# The change: haki-prod.yaml only, and in it the targetRevision line only
+[[ "$(git diff --name-only "$merge_base" "$head")" == "$file" ]] || refuse "a promotion changes $file only"
+# Every changed line, comments and column-0 lines included (not the headers)
+[[ "$(git diff -U0 "$merge_base" "$head" -- "$file" | grep -E '^[-+]' | grep -vE '^(---|\+\+\+) ' \
+    | sed -E 's/[0-9a-f]{40}/SHA/')" \
+  == $'-    targetRevision: SHA\n+    targetRevision: SHA' ]] \
+  || refuse "a promotion changes the targetRevision line only"
+
+# Where to: a commit of main, with images, never back across a migration
+"$(dirname "$0")/check-promotion.sh" "$before" "$revision" "$base" > /dev/null \
+  || refuse "check-promotion.sh refused it (above)"
+echo "haki-prod.yaml: a promotion by $bot, targetRevision ${before:0:7} -> ${revision:0:7}"

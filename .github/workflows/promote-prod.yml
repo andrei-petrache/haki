@@ -1,0 +1,166 @@
+name: Promote to prod
+
+# The only way a commit of main reaches prod, forward or back (a rollback is
+# a promotion of an older commit): this workflow, started by hand with the
+# commit's SHA.
+#
+#   check    the SHA is a commit of main with published images, and a step
+#            back does not cross a migration (scripts/check-promotion.sh)
+#   approve  waits in the environment prod for Andrei's approval; he first
+#            checks that staging ran this SHA, Synced and Healthy
+#   open-pr  the tag bot opens the pull request on bot/promote-prod that
+#            changes haki-prod's targetRevision, and only that line. No
+#            auto-merge: Andrei merges it (after a dump if it migrates), and
+#            haki-apps carries it to ArgoCD.
+#
+# prod-guard lets that pull request through only if the bot made it (see
+# scripts/check-prod-app.sh).
+on:
+  workflow_dispatch:
+    inputs:
+      sha:
+        description: Full commit SHA of main to promote (staging ran it, Synced and Healthy)
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+# One promotion at a time, never cancelled
+concurrency:
+  group: promote-prod
+  cancel-in-progress: false
+
+jobs:
+  check:
+    # From main only: the rules and the workflow are main's
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      current: ${{ steps.check.outputs.current }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Install yq
+        run: |
+          scripts/install-tools.sh "$RUNNER_TEMP/bin" yq
+          echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
+
+      # Through env, never ${{ }} inside run: the input is user input
+      - name: Check the promotion
+        id: check
+        env:
+          SHA: ${{ inputs.sha }}
+        run: |
+          current="$(yq '.spec.source.targetRevision' k8s/argocd/haki-prod.yaml)"
+          scripts/check-promotion.sh "$current" "$SHA" HEAD | tee -a "$GITHUB_STEP_SUMMARY"
+          echo "current=$current" >> "$GITHUB_OUTPUT"
+
+  # The gate: the environment prod requires Andrei's approval, from main only.
+  # It holds no secrets and this job does nothing else.
+  approve:
+    needs: check
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    environment: prod
+    steps:
+      - name: Approved
+        env:
+          SHA: ${{ inputs.sha }}
+          CURRENT: ${{ needs.check.outputs.current }}
+        run: echo "Promotion of prod from ${CURRENT:0:7} to ${SHA:0:7} approved"
+
+  open-pr:
+    needs: [check, approve]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    # The tag bot's private key lives only in this environment (main only)
+    environment: tag-bot
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Install yq
+        run: |
+          scripts/install-tools.sh "$RUNNER_TEMP/bin" yq
+          echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
+
+      # main may have moved while the approval waited: check again on main as
+      # it is now, from the revision prod is on now
+      - name: Check again and set targetRevision
+        id: edit
+        env:
+          SHA: ${{ inputs.sha }}
+          APPROVED_FROM: ${{ needs.check.outputs.current }}
+        run: |
+          git fetch -q origin main && git checkout -q --detach origin/main
+          current="$(yq '.spec.source.targetRevision' k8s/argocd/haki-prod.yaml)"
+          if [ "$current" != "$APPROVED_FROM" ]; then
+            echo "::error::prod moved from ${APPROVED_FROM:0:7} to ${current:0:7} since the approval; start a new promotion"
+            exit 1
+          fi
+          scripts/check-promotion.sh "$current" "$SHA" HEAD > "$RUNNER_TEMP/summary.md"
+          scripts/set-prod-revision.sh "$SHA" > /dev/null
+          git diff --stat
+          echo "main=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          echo "current=$current" >> "$GITHUB_OUTPUT"
+
+      # A token valid for an hour, for this repository only, with only the
+      # two rights the bot needs; revoked when the job ends
+      - name: Create the tag bot's token
+        id: app
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          client-id: ${{ vars.TAG_BOT_CLIENT_ID }}
+          private-key: ${{ secrets.TAG_BOT_PRIVATE_KEY }}
+          permission-contents: write
+          permission-pull-requests: write
+
+      # The commit is made through the API, not pushed: GitHub signs it as the
+      # bot (verified), which prod-guard requires. The branch starts at main
+      # each time, so the pull request always holds this one commit.
+      - name: Open or update the promotion pull request
+        env:
+          GH_TOKEN: ${{ steps.app.outputs.token }}
+          REPO: ${{ github.repository }}
+          BRANCH: bot/promote-prod
+          SHA: ${{ inputs.sha }}
+          MAIN: ${{ steps.edit.outputs.main }}
+          CURRENT: ${{ steps.edit.outputs.current }}
+        run: |
+          file=k8s/argocd/haki-prod.yaml
+          if gh api "repos/$REPO/git/ref/heads/$BRANCH" > /dev/null 2>&1; then
+            gh api -X PATCH "repos/$REPO/git/refs/heads/$BRANCH" -f sha="$MAIN" -F force=true > /dev/null
+          else
+            gh api -X POST "repos/$REPO/git/refs" -f ref="refs/heads/$BRANCH" -f sha="$MAIN" > /dev/null
+          fi
+          commit="$(gh api -X PUT "repos/$REPO/contents/$file" \
+            -f message="Promote prod to ${SHA:0:7}" \
+            -f content="$(base64 -w0 "$file")" \
+            -f sha="$(git rev-parse "$MAIN:$file")" \
+            -f branch="$BRANCH" --jq .commit.sha)"
+          echo "Commit $commit on $BRANCH"
+
+          title="Promote prod to ${SHA:0:7}"
+          {
+            echo "Moves haki-prod's targetRevision from \`$CURRENT\` to \`$SHA\`."
+            echo "Approved in the environment prod; opened by the promote-prod workflow."
+            echo
+            cat "$RUNNER_TEMP/summary.md"
+            echo
+            echo "Before merging: if new migrations are listed above, dump prod first"
+            echo "(k8s/README.md, \"Back up before a migration\"). No auto-merge: Andrei merges."
+          } > body.md
+          pr="$(gh pr list --head "$BRANCH" --state open --json number --jq '.[0].number')"
+          if [ -n "$pr" ]; then
+            gh pr edit "$pr" --title "$title" --body-file body.md
+            echo "Updated pull request #$pr"
+          else
+            gh pr create --base main --head "$BRANCH" --title "$title" --body-file body.md
+          fi

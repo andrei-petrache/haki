@@ -1,5 +1,6 @@
 # The app images, pinned once for every overlay that includes this component
-# (staging). The images CI built, scanned and published for one commit of
+# (staging and prod: prod gets them at the commit it is promoted to). The
+# images CI built, scanned and published for one commit of
 # main. The migration Job runs the backend image under its own name, with the
 # backend's tag; only an active rollback-pin.yaml next to this file lets the
 # two differ (CI checks both). newTag stays on the line right under each name:

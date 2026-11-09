@@ -129,3 +129,7 @@ Open items, outside the sprints:
   Applications named only `haki-staging`, `haki-prod` or `haki-apps`, in
   `argocd` only; the project `haki-prod` used by `haki-prod` alone; and
   `haki-prod`'s `targetRevision` a full commit SHA
+- [ ] A ruleset on `bot/**`: only the tag bot (GitHub App) may create or
+  update those branches. Not added for now; `prod-guard` already refuses a
+  promotion with a commit that is not the bot's. Check first that a
+  personal repository's ruleset can list a GitHub App in its bypass list
