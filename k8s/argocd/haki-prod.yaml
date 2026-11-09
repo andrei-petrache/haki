@@ -1,0 +1,38 @@
+# The ArgoCD Application for prod: k8s/overlays/prod at one fixed commit of
+# main, synced into haki. Unlike staging it never follows main: targetRevision
+# is a full commit SHA, and only a promotion moves it (k8s/README.md, "Prod
+# through ArgoCD"), so a change merged to main reaches prod only once it is
+# promoted. Applied by hand:
+#   kubectl apply -f k8s/argocd/haki-prod.yaml
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: haki-prod
+  namespace: argocd
+  annotations:
+    # Compare through a server-side dry run, as for staging: the defaults the
+    # API server fills in do not show as drift
+    argocd.argoproj.io/compare-options: ServerSideDiff=true
+  # No finalizers: deleting this Application never deletes what it deployed.
+  # Beware: `argocd app delete` and the UI delete in cascade by default.
+spec:
+  project: haki-prod
+  source:
+    repoURL: https://github.com/andrei-petrache/haki.git
+    # The commit whose prod overlay renders exactly what ran in haki when
+    # ArgoCD took it over (kubectl diff -k k8s/overlays/prod was empty)
+    targetRevision: 00e3da87e39fe8988b6c2487c62170c94d9ce87c
+    path: k8s/overlays/prod
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: haki
+  syncPolicy:
+    # No automated sync yet: the takeover is done by hand first (diff, then
+    # a manual sync without prune), as for staging in S8
+    syncOptions:
+      # Delete what left Git only at the end, once every wave is healthy
+      - PruneLast=true
+    # No automatic retry of a failed sync: each retry would run a fresh
+    # migration Job, and the previous one's logs would go
+    retry:
+      limit: 0

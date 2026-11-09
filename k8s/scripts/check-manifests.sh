@@ -2,8 +2,9 @@
 # Checks k8s/platform, k8s/argocd and every overlay in k8s/overlays: each
 # overlay builds with kustomize, every resource matches the API schemas of the
 # cluster's Kubernetes version (taken from the node image in
-# k8s/kind-config.yaml) or of its custom resource, the ArgoCD projects allow
-# no more than staging from this repository, PostgreSQL runs the image pinned
+# k8s/kind-config.yaml) or of its custom resource, each ArgoCD project allows
+# no more than its one namespace from this repository, prod's Application
+# stays on a fixed commit, PostgreSQL runs the image pinned
 # in compose.yaml, the app images are pinned to a commit SHA, the migration
 # Job runs the backend's tag unless a rollback pin says otherwise, and the
 # frontend proxies to the backend of its own namespace.
@@ -69,47 +70,67 @@ project() {  # project <name> <yq expression>: evaluated on that AppProject
     yq -N "$2"
 }
 repo=https://github.com/andrei-petrache/haki.git
-[[ "$(project haki '.spec.sourceRepos | join(",")')" == "$repo" ]] \
-  || fail "AppProject haki: sourceRepos must be exactly $repo"
-[[ "$(project haki '.spec.destinations | map(.server + " " + .namespace) | join(",")')" \
-  == "https://kubernetes.default.svc haki-staging" ]] \
-  || fail "AppProject haki: the only destination must be haki-staging on this cluster"
-[[ "$(project haki '.spec.clusterResourceWhitelist
-    | map(.group + "/" + .kind + "/" + (.name // "")) | join(",")')" == "/Namespace/haki-staging" ]] \
-  || fail "AppProject haki: the only cluster-scoped resource must be Namespace haki-staging"
-# test("^[*]$"), not == "*": in yq, == "*" is a wildcard that matches anything
-[[ "$(project haki '[.spec.namespaceResourceWhitelist[]
-    | select(.kind == "Secret" or .kind == "PersistentVolumeClaim"
-      or (.kind | test("^[*]$")) or (.group | test("^[*]$")))] | length')" == 0 ]] \
-  || fail "AppProject haki: Secret, PersistentVolumeClaim and wildcards must not be whitelisted"
+# One project per environment, each limited to its own namespace
+for pair in haki:haki-staging haki-prod:haki; do
+  name="${pair%%:*}" ns="${pair#*:}"
+  [[ "$(project "$name" '.metadata.name')" == "$name" ]] \
+    || fail "k8s/argocd: the AppProject $name is missing"
+  [[ "$(project "$name" '.spec.sourceRepos | join(",")')" == "$repo" ]] \
+    || fail "AppProject $name: sourceRepos must be exactly $repo"
+  [[ "$(project "$name" '.spec.destinations | map(.server + " " + .namespace) | join(",")')" \
+    == "https://kubernetes.default.svc $ns" ]] \
+    || fail "AppProject $name: the only destination must be $ns on this cluster"
+  [[ "$(project "$name" '.spec.clusterResourceWhitelist
+      | map(.group + "/" + .kind + "/" + (.name // "")) | join(",")')" == "/Namespace/$ns" ]] \
+    || fail "AppProject $name: the only cluster-scoped resource must be Namespace $ns"
+  # test("^[*]$"), not == "*": in yq, == "*" is a wildcard that matches anything
+  [[ "$(project "$name" '[.spec.namespaceResourceWhitelist[]
+      | select(.kind == "Secret" or .kind == "PersistentVolumeClaim"
+        or (.kind | test("^[*]$")) or (.group | test("^[*]$")))] | length')" == 0 ]] \
+    || fail "AppProject $name: Secret, PersistentVolumeClaim and wildcards must not be whitelisted"
+  echo "AppProject $name: $repo -> $ns"
+done
 [[ "$(yq -N 'select(.metadata.finalizers) | .metadata.name' <<<"$argocd")" == "" ]] \
   || fail "k8s/argocd: no AppProject or Application may carry finalizers"
 [[ "$(project default '(.spec.sourceRepos | length) + (.spec.destinations | length)')" == 0 ]] \
   || fail "AppProject default must allow no repository and no destination"
-[[ "$(yq -N 'select(.kind == "Application" and .spec.destination.namespace != "haki-staging")
-    | .metadata.name' <<<"$argocd")" == "" ]] \
-  || fail "k8s/argocd: an Application may only target haki-staging (prod stays manual)"
-echo "AppProject haki: $repo -> haki-staging"
+[[ "$(yq -N 'select(.kind == "Application") | .metadata.name' <<<"$argocd" | sort | tr '\n' ' ')" \
+  == "haki-prod haki-staging " ]] \
+  || fail "k8s/argocd: the only Applications are haki-staging and haki-prod"
 
-# The staging Application: main of this repository, the staging overlay, the
-# haki project, no retries, and none of the sync options that replace,
-# force or take over objects
-app="$(yq -N 'select(.kind == "Application" and .metadata.name == "haki-staging")' <<<"$argocd")"
-[[ -n "$app" ]] || fail "k8s/argocd: the Application haki-staging is missing"
-source_dest="$(yq -N '[.spec.project, .spec.source.repoURL, .spec.source.targetRevision,
-  .spec.source.path, .spec.destination.server, .spec.destination.namespace] | join(" ")' <<<"$app")"
-[[ "$source_dest" == "haki $repo main k8s/overlays/staging https://kubernetes.default.svc haki-staging" ]] \
-  || fail "Application haki-staging: project, source or destination changed ('$source_dest')"
-sync_options="$(yq -N '.spec.syncPolicy.syncOptions // [] | join(",")' <<<"$app")"
-[[ ",$sync_options," == *,PruneLast=true,* ]] \
-  || fail "Application haki-staging: PruneLast=true is required (prune only once every wave is healthy)"
-for option in Replace=true Force=true ServerSideApply=true CreateNamespace=true; do
-  [[ ",$sync_options," != *,$option,* ]] \
-    || fail "Application haki-staging: sync option $option is not allowed"
+# Each Application: this repository, its overlay, its project and namespace,
+# no retries, and none of the sync options that replace, force or take over
+# objects. Staging follows main; prod stays on one full commit SHA, which
+# only a promotion moves.
+for app_name in haki-staging haki-prod; do
+  app="$(yq -N "select(.kind == \"Application\" and .metadata.name == \"$app_name\")" <<<"$argocd")"
+  revision="$(yq -N '.spec.source.targetRevision' <<<"$app")"
+  if [[ "$app_name" == haki-staging ]]; then
+    expected="haki $repo k8s/overlays/staging https://kubernetes.default.svc haki-staging"
+    [[ "$revision" == main ]] || fail "Application haki-staging: targetRevision must be main"
+  else
+    expected="haki-prod $repo k8s/overlays/prod https://kubernetes.default.svc haki"
+    [[ "$revision" =~ ^[0-9a-f]{40}$ ]] \
+      || fail "Application haki-prod: targetRevision must be a full commit SHA, never a branch or tag ('$revision')"
+    # Until the takeover is done by hand and checked: no automated sync
+    [[ "$(yq -N '.spec.syncPolicy | has("automated")' <<<"$app")" == false ]] \
+      || fail "Application haki-prod: no automated sync yet"
+  fi
+  source_dest="$(yq -N '[.spec.project, .spec.source.repoURL,
+    .spec.source.path, .spec.destination.server, .spec.destination.namespace] | join(" ")' <<<"$app")"
+  [[ "$source_dest" == "$expected" ]] \
+    || fail "Application $app_name: project, source or destination changed ('$source_dest')"
+  sync_options="$(yq -N '.spec.syncPolicy.syncOptions // [] | join(",")' <<<"$app")"
+  [[ ",$sync_options," == *,PruneLast=true,* ]] \
+    || fail "Application $app_name: PruneLast=true is required (prune only once every wave is healthy)"
+  for option in Replace=true Force=true ServerSideApply=true CreateNamespace=true; do
+    [[ ",$sync_options," != *,$option,* ]] \
+      || fail "Application $app_name: sync option $option is not allowed"
+  done
+  [[ "$(yq -N '.spec.syncPolicy.retry.limit' <<<"$app")" == 0 ]] \
+    || fail "Application $app_name: retry.limit must be 0 (each retry runs the migration again)"
+  echo "Application $app_name: ${revision:0:12}:$(yq -N '.spec.source.path' <<<"$app") -> $(yq -N '.spec.destination.namespace' <<<"$app"), sync options $sync_options"
 done
-[[ "$(yq -N '.spec.syncPolicy.retry.limit' <<<"$app")" == 0 ]] \
-  || fail "Application haki-staging: retry.limit must be 0 (each retry runs the migration again)"
-echo "Application haki-staging: main:k8s/overlays/staging -> haki-staging, sync options $sync_options"
 
 for overlay in k8s/overlays/*/; do
   overlay="${overlay%/}"
