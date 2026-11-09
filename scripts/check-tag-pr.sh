@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Checks the scope of a pull request from the tag bot's branch: it may only
 # set the newTag of the backend, frontend and migration images in
-# k8s/overlays/staging/kustomization.yaml, all three to one full commit SHA,
+# k8s/components/images/kustomization.yaml, all three to one full commit SHA,
 # and may not run while a rollback pin is active. Auto-merge relies on this
 # check. Any other pull request passes without being looked at.
 #
@@ -23,8 +23,8 @@ if [[ "$branch" != bot/bump-staging ]]; then
   exit 0
 fi
 
-file=k8s/overlays/staging/kustomization.yaml
-pin=k8s/overlays/staging/rollback-pin.yaml
+file=k8s/components/images/kustomization.yaml
+pin=k8s/components/images/rollback-pin.yaml
 images=(ghcr.io/andrei-petrache/haki-backend ghcr.io/andrei-petrache/haki-frontend haki-migrate)
 
 # Three dots: what the pull request itself changes, from where it left main
