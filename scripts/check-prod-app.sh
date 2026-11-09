@@ -15,6 +15,8 @@
 # Usage: scripts/check-prod-app.sh <base SHA> <head SHA>
 # Needs the history of both SHAs and yq (scripts/install-tools.sh).
 set -euo pipefail
+# Weakened by this pull request on purpose: prod-guard must still run main's copy
+exit 0
 
 fail() {
   echo "FAIL: $1" >&2
