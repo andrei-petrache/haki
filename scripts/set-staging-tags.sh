@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Sets the newTag of the named images in k8s/overlays/staging/kustomization.yaml
+# Sets the newTag of the named images in k8s/components/images/kustomization.yaml
 # to one commit SHA and proves that nothing else in the file changed. The
 # building block of bump-staging-tag.sh and staging-rollback-pin.sh.
 #
@@ -17,7 +17,7 @@ shift
 [[ "$sha" =~ ^[0-9a-f]{40}$ ]] || fail "Not a full commit SHA: $sha"
 (($# > 0)) || fail "usage: $0 <full commit SHA> <image name>..."
 
-file="$(dirname "$0")/../k8s/overlays/staging/kustomization.yaml"
+file="$(dirname "$0")/../k8s/components/images/kustomization.yaml"
 tag() { yq ".images[] | select(.name == \"$1\") | .newTag" "$file"; }
 for name in "$@"; do
   [[ -n "$(tag "$name")" ]] || fail "$name is not listed under images: in $file"

@@ -49,6 +49,8 @@ validate() {  # validate [files or directories...], else stdin
 }
 
 db_image="$(yq '.services.db.image' compose.yaml)"
+# The app image tags shared by the overlays that include it, relative to k8s/
+images_component=components/images
 
 # Cluster-wide resources, applied once per cluster, not by an overlay
 echo "== k8s/platform (Kubernetes $k8s_version)"
@@ -144,8 +146,21 @@ for overlay in k8s/overlays/*/; do
   [[ "$job_image" == ghcr.io/andrei-petrache/haki-backend:* ]] \
     || fail "$overlay: the migration Job runs '$job_image'; list haki-migrate under images: with newName ghcr.io/andrei-petrache/haki-backend"
   backend_tag="${backend_image##*:}" job_tag="${job_image##*:}"
-  pin="$overlay/rollback-pin.yaml"
-  if [[ -e "$pin" ]]; then
+  # The pin lives next to the shared images, for the overlays that use them;
+  # an overlay that uses them sets no image of its own, which would override
+  # them unseen
+  [[ ! -e "$overlay/rollback-pin.yaml" ]] \
+    || fail "$overlay/rollback-pin.yaml: a rollback pin belongs in k8s/$images_component"
+  pin=""
+  # Read first, then compared: a yq error stops the script (set -e)
+  uses_images="$(yq ".components // [] | any_c(. == \"../../$images_component\")" \
+    "$overlay/kustomization.yaml")"
+  if [[ "$uses_images" == true ]]; then
+    [[ "$(yq '.images // [] | length' "$overlay/kustomization.yaml")" == 0 ]] \
+      || fail "$overlay: uses k8s/$images_component, so it may not list images: of its own"
+    pin="k8s/$images_component/rollback-pin.yaml"
+  fi
+  if [[ -n "$pin" && -e "$pin" ]]; then
     pin_backend="$(yq '.backendTag' "$pin")" pin_migrate="$(yq '.migrateTag' "$pin")"
     [[ "$pin_backend" =~ ^[0-9a-f]{40}$ && "$pin_migrate" =~ ^[0-9a-f]{40}$ ]] \
       || fail "$pin: backendTag and migrateTag must be full commit SHAs"

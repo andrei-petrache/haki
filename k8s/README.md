@@ -21,8 +21,9 @@ every environment shares, and each overlay in `overlays/` adds what differs.
 | `argocd/project.yaml` | the ArgoCD project `haki`: this repository only, into `haki-staging` only, no Secrets and no volumes |
 | `argocd/default-project.yaml` | ArgoCD's `default` project, emptied of every permission |
 | `argocd/haki-staging.yaml` | the ArgoCD Application `haki-staging`: `overlays/staging` on `main`, synced into `haki-staging` |
-| `overlays/prod/` | namespace `haki`; the app image tags; the frontend's `BACKEND_URL` |
-| `overlays/staging/` | namespace `haki-staging`, its own database, 1 backend replica; its own image tags and `BACKEND_URL` |
+| `components/images/` | the app image tags (backend, frontend, migration) for the overlays that include it, today staging; an active `rollback-pin.yaml` sits next to them |
+| `overlays/prod/` | namespace `haki`; its own app image tags; the frontend's `BACKEND_URL` |
+| `overlays/staging/` | namespace `haki-staging`, its own database, 1 backend replica; the image tags from `components/images`; its `BACKEND_URL` |
 
 To see what an overlay produces: `kubectl kustomize k8s/overlays/prod`.
 
@@ -208,7 +209,7 @@ namespace, the database and its volume would still stay).
 
 ### Roll back staging
 
-A rollback is a `git revert` of the commit that changed `overlays/staging`,
+A rollback is a `git revert` of the commit that changed staging's tags,
 through a pull request like any other change. Measured in S8 (3 November
 2026, ArgoCD v3.5.7), in seconds after the merge:
 
@@ -251,7 +252,7 @@ Not a `git revert`: backend and frontend go back to the older images, while
 the migration Job stays on the newer tag. Its `alembic upgrade head` then
 finds the database already at its own head and does nothing; the older code
 runs on the newer schema, which expand/contract migrations allow. The file
-`overlays/staging/rollback-pin.yaml` records the two tags while this lasts.
+`components/images/rollback-pin.yaml` records the two tags while this lasts.
 
 One pull request, prepared by a script (by hand it is easy to move the wrong
 tag):
@@ -260,7 +261,7 @@ tag):
 git switch -c fix/rollback-staging origin/main
 scripts/staging-rollback-pin.sh start <older SHA> "<reason>"
 k8s/scripts/check-manifests.sh
-git add -A k8s/overlays/staging && git commit -m "Roll staging back to <older>"
+git add -A k8s/components/images && git commit -m "Roll staging back to <older>"
 ```
 
 The script refuses a SHA that is not older than the current tag, and a start
@@ -280,7 +281,7 @@ are published:
 git switch -c fix/lift-rollback-pin origin/main
 scripts/staging-rollback-pin.sh end <SHA of main, with the fix>
 k8s/scripts/check-manifests.sh
-git add -A k8s/overlays/staging && git commit -m "Lift the staging rollback pin"
+git add -A k8s/components/images && git commit -m "Lift the staging rollback pin"
 ```
 
 `end` deletes the pin and moves all three tags to that SHA. It accepts any
@@ -378,11 +379,12 @@ cluster's database.
 
 ## Deploy new images or settings
 
-The image tag is the full commit SHA of `main`, set once per overlay under
-`images:` in its `kustomization.yaml` (the backend tag covers the migration
-Job too).
+The image tag is the full commit SHA of `main`, set under `images:` once for
+staging, in `components/images/kustomization.yaml`, and once for prod, in
+`overlays/prod/kustomization.yaml` (the backend tag covers the migration Job
+too). An overlay that includes the component may not list images of its own.
 
-- **Staging:** a pull request that changes `overlays/staging`. Once it is
+- **Staging:** a pull request that changes `components/images`. Once it is
   merged, ArgoCD applies it in wave order, migration included (above). After
   a push to `main` that changes `backend/` or `frontend/`, the CI job
   `bump-staging` opens that pull request itself (`scripts/bump-staging-tag.sh`),
@@ -406,7 +408,7 @@ repository variable `TAG_BOT_AUTO_MERGE` is `true`. GitHub then merges it
 (rebase) once every required check passes and the branch is up to date with
 `main`. The check `tag-pr-scope` (`scripts/check-tag-pr.sh`) is what makes
 this safe: a pull request from `bot/bump-staging` passes only if it changes
-nothing but the three `newTag` lines of `overlays/staging/kustomization.yaml`
+nothing but the three `newTag` lines of `components/images/kustomization.yaml`
 (backend, frontend, migration), all to one full SHA, with no rollback pin.
 Every other pull request passes it at once.
 
