@@ -24,9 +24,9 @@ fail() {
 }
 
 dir="$(dirname "$0")"
-overlay="$dir/../k8s/overlays/staging"
-file="$overlay/kustomization.yaml"
-pin="$overlay/rollback-pin.yaml"
+images="$dir/../k8s/components/images"
+file="$images/kustomization.yaml"
+pin="$images/rollback-pin.yaml"
 backend=ghcr.io/andrei-petrache/haki-backend
 frontend=ghcr.io/andrei-petrache/haki-frontend
 

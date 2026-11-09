@@ -1,0 +1,34 @@
+# The ArgoCD Application that applies prod's Application from Git (app of
+# apps): k8s/argocd/haki-prod.yaml on main, and no other file of the
+# directory. A promotion is then a merged change of that file's
+# targetRevision. Applied by hand, once (see k8s/README.md, "haki-apps"):
+#   kubectl apply -f k8s/argocd/haki-apps.yaml
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: haki-apps
+  namespace: argocd
+  # No finalizers: deleting haki-apps never deletes haki-prod
+spec:
+  project: haki-apps
+  source:
+    repoURL: https://github.com/andrei-petrache/haki.git
+    targetRevision: main
+    path: k8s/argocd
+    directory:
+      # Only this file: the projects and the other Applications stay applied
+      # by hand
+      include: haki-prod.yaml
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated:
+      enabled: true
+      # Never delete haki-prod, even if its file left main (it also carries
+      # sync-options Prune=false,Delete=false)
+      prune: false
+      # A kubectl edit of haki-prod goes back to Git (4 s in the test)
+      selfHeal: true
+    retry:
+      limit: 0

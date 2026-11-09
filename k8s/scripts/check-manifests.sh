@@ -2,8 +2,10 @@
 # Checks k8s/platform, k8s/argocd and every overlay in k8s/overlays: each
 # overlay builds with kustomize, every resource matches the API schemas of the
 # cluster's Kubernetes version (taken from the node image in
-# k8s/kind-config.yaml) or of its custom resource, the ArgoCD projects allow
-# no more than staging from this repository, PostgreSQL runs the image pinned
+# k8s/kind-config.yaml) or of its custom resource, each ArgoCD project allows
+# no more than its one namespace from this repository, haki-apps applies only
+# prod's Application and never prunes (prod's Application itself is checked by
+# prod-guard, from main), PostgreSQL runs the image pinned
 # in compose.yaml, the app images are pinned to a commit SHA, the migration
 # Job runs the backend's tag unless a rollback pin says otherwise, and the
 # frontend proxies to the backend of its own namespace.
@@ -49,6 +51,8 @@ validate() {  # validate [files or directories...], else stdin
 }
 
 db_image="$(yq '.services.db.image' compose.yaml)"
+# The app image tags shared by the overlays that include it, relative to k8s/
+images_component=components/images
 
 # Cluster-wide resources, applied once per cluster, not by an overlay
 echo "== k8s/platform (Kubernetes $k8s_version)"
@@ -67,33 +71,40 @@ project() {  # project <name> <yq expression>: evaluated on that AppProject
     yq -N "$2"
 }
 repo=https://github.com/andrei-petrache/haki.git
-[[ "$(project haki '.spec.sourceRepos | join(",")')" == "$repo" ]] \
-  || fail "AppProject haki: sourceRepos must be exactly $repo"
-[[ "$(project haki '.spec.destinations | map(.server + " " + .namespace) | join(",")')" \
-  == "https://kubernetes.default.svc haki-staging" ]] \
-  || fail "AppProject haki: the only destination must be haki-staging on this cluster"
-[[ "$(project haki '.spec.clusterResourceWhitelist
-    | map(.group + "/" + .kind + "/" + (.name // "")) | join(",")')" == "/Namespace/haki-staging" ]] \
-  || fail "AppProject haki: the only cluster-scoped resource must be Namespace haki-staging"
-# test("^[*]$"), not == "*": in yq, == "*" is a wildcard that matches anything
-[[ "$(project haki '[.spec.namespaceResourceWhitelist[]
-    | select(.kind == "Secret" or .kind == "PersistentVolumeClaim"
-      or (.kind | test("^[*]$")) or (.group | test("^[*]$")))] | length')" == 0 ]] \
-  || fail "AppProject haki: Secret, PersistentVolumeClaim and wildcards must not be whitelisted"
+# One project per environment, each limited to its own namespace
+for pair in haki:haki-staging haki-prod:haki; do
+  name="${pair%%:*}" ns="${pair#*:}"
+  [[ "$(project "$name" '.metadata.name')" == "$name" ]] \
+    || fail "k8s/argocd: the AppProject $name is missing"
+  [[ "$(project "$name" '.spec.sourceRepos | join(",")')" == "$repo" ]] \
+    || fail "AppProject $name: sourceRepos must be exactly $repo"
+  [[ "$(project "$name" '.spec.destinations | map(.server + " " + .namespace) | join(",")')" \
+    == "https://kubernetes.default.svc $ns" ]] \
+    || fail "AppProject $name: the only destination must be $ns on this cluster"
+  [[ "$(project "$name" '.spec.clusterResourceWhitelist
+      | map(.group + "/" + .kind + "/" + (.name // "")) | join(",")')" == "/Namespace/$ns" ]] \
+    || fail "AppProject $name: the only cluster-scoped resource must be Namespace $ns"
+  # test("^[*]$"), not == "*": in yq, == "*" is a wildcard that matches anything
+  [[ "$(project "$name" '[.spec.namespaceResourceWhitelist[]
+      | select(.kind == "Secret" or .kind == "PersistentVolumeClaim"
+        or (.kind | test("^[*]$")) or (.group | test("^[*]$")))] | length')" == 0 ]] \
+    || fail "AppProject $name: Secret, PersistentVolumeClaim and wildcards must not be whitelisted"
+  echo "AppProject $name: $repo -> $ns"
+done
 [[ "$(yq -N 'select(.metadata.finalizers) | .metadata.name' <<<"$argocd")" == "" ]] \
   || fail "k8s/argocd: no AppProject or Application may carry finalizers"
 [[ "$(project default '(.spec.sourceRepos | length) + (.spec.destinations | length)')" == 0 ]] \
   || fail "AppProject default must allow no repository and no destination"
-[[ "$(yq -N 'select(.kind == "Application" and .spec.destination.namespace != "haki-staging")
-    | .metadata.name' <<<"$argocd")" == "" ]] \
-  || fail "k8s/argocd: an Application may only target haki-staging (prod stays manual)"
-echo "AppProject haki: $repo -> haki-staging"
+[[ "$(yq -N 'select(.kind == "Application") | .metadata.name' <<<"$argocd" | sort | tr '\n' ' ')" \
+  == "haki-apps haki-prod haki-staging " ]] \
+  || fail "k8s/argocd: the only Applications are haki-staging, haki-prod and haki-apps"
+# haki-prod itself (k8s/argocd/haki-prod.yaml) is checked by prod-guard,
+# from main's copy of scripts/check-prod-app.sh, never from a pull request's
 
 # The staging Application: main of this repository, the staging overlay, the
 # haki project, no retries, and none of the sync options that replace,
 # force or take over objects
 app="$(yq -N 'select(.kind == "Application" and .metadata.name == "haki-staging")' <<<"$argocd")"
-[[ -n "$app" ]] || fail "k8s/argocd: the Application haki-staging is missing"
 source_dest="$(yq -N '[.spec.project, .spec.source.repoURL, .spec.source.targetRevision,
   .spec.source.path, .spec.destination.server, .spec.destination.namespace] | join(" ")' <<<"$app")"
 [[ "$source_dest" == "haki $repo main k8s/overlays/staging https://kubernetes.default.svc haki-staging" ]] \
@@ -108,6 +119,27 @@ done
 [[ "$(yq -N '.spec.syncPolicy.retry.limit' <<<"$app")" == 0 ]] \
   || fail "Application haki-staging: retry.limit must be 0 (each retry runs the migration again)"
 echo "Application haki-staging: main:k8s/overlays/staging -> haki-staging, sync options $sync_options"
+
+# haki-apps (app of apps): Applications only, into argocd only, and only the
+# file haki-prod.yaml of main; it never prunes, so haki-prod stays even if
+# that file left main
+[[ "$(project haki-apps '[.spec.sourceRepos | join(","),
+    (.spec.destinations | map(.server + " " + .namespace) | join(",")),
+    (.spec.clusterResourceWhitelist // [] | length | tostring),
+    (.spec.namespaceResourceWhitelist | map(.group + "/" + .kind) | join(","))] | join(" | ")')" \
+  == "$repo | https://kubernetes.default.svc argocd | 0 | argoproj.io/Application" ]] \
+  || fail "AppProject haki-apps: only Applications, only into argocd, only from $repo, nothing cluster-scoped"
+app="$(yq -N 'select(.kind == "Application" and .metadata.name == "haki-apps")' <<<"$argocd")"
+[[ "$(yq -N '[.spec.project, .spec.source.repoURL, .spec.source.targetRevision, .spec.source.path,
+    .spec.source.directory.include, (.spec.source.directory.recurse // false | tostring),
+    .spec.destination.server, .spec.destination.namespace] | join(" ")' <<<"$app")" \
+  == "haki-apps $repo main k8s/argocd haki-prod.yaml false https://kubernetes.default.svc argocd" ]] \
+  || fail "Application haki-apps: project, source (main, k8s/argocd, include haki-prod.yaml only) or destination changed"
+[[ "$(yq -N '[.spec.syncPolicy.automated.enabled, .spec.syncPolicy.automated.prune,
+    .spec.syncPolicy.automated.selfHeal, .spec.syncPolicy.retry.limit] | map(tostring) | join(" ")' <<<"$app")" \
+  == "true false true 0" ]] \
+  || fail "Application haki-apps: automated with prune false and selfHeal true, retry 0"
+echo "Application haki-apps: main:k8s/argocd/haki-prod.yaml -> argocd, prune off"
 
 for overlay in k8s/overlays/*/; do
   overlay="${overlay%/}"
@@ -144,8 +176,21 @@ for overlay in k8s/overlays/*/; do
   [[ "$job_image" == ghcr.io/andrei-petrache/haki-backend:* ]] \
     || fail "$overlay: the migration Job runs '$job_image'; list haki-migrate under images: with newName ghcr.io/andrei-petrache/haki-backend"
   backend_tag="${backend_image##*:}" job_tag="${job_image##*:}"
-  pin="$overlay/rollback-pin.yaml"
-  if [[ -e "$pin" ]]; then
+  # The pin lives next to the shared images, for the overlays that use them;
+  # an overlay that uses them sets no image of its own, which would override
+  # them unseen
+  [[ ! -e "$overlay/rollback-pin.yaml" ]] \
+    || fail "$overlay/rollback-pin.yaml: a rollback pin belongs in k8s/$images_component"
+  pin=""
+  # Read first, then compared: a yq error stops the script (set -e)
+  uses_images="$(yq ".components // [] | any_c(. == \"../../$images_component\")" \
+    "$overlay/kustomization.yaml")"
+  if [[ "$uses_images" == true ]]; then
+    [[ "$(yq '.images // [] | length' "$overlay/kustomization.yaml")" == 0 ]] \
+      || fail "$overlay: uses k8s/$images_component, so it may not list images: of its own"
+    pin="k8s/$images_component/rollback-pin.yaml"
+  fi
+  if [[ -n "$pin" && -e "$pin" ]]; then
     pin_backend="$(yq '.backendTag' "$pin")" pin_migrate="$(yq '.migrateTag' "$pin")"
     [[ "$pin_backend" =~ ^[0-9a-f]{40}$ && "$pin_migrate" =~ ^[0-9a-f]{40}$ ]] \
       || fail "$pin: backendTag and migrateTag must be full commit SHAs"
