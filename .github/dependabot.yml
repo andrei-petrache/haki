@@ -47,6 +47,12 @@ updates:
       # which we do deliberately (see the docker section below)
       - dependency-name: "@types/node"
         update-types: [version-update:semver-major]
+      # TypeScript 7: typescript-eslint (8.72.2, its newest, canaries
+      # included) accepts only typescript <6.1.0, so npm ci refuses the
+      # install (ERESOLVE, #65). Remove this once a typescript-eslint
+      # release accepts 7; minors and patches of 6.x still come.
+      - dependency-name: typescript
+        update-types: [version-update:semver-major]
     commit-message:
       prefix: deps(frontend)
       prefix-development: deps-dev(frontend)

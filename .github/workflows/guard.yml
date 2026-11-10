@@ -17,6 +17,8 @@ on:
 
 permissions:
   contents: read
+  # To read the pull request's commits (who made them, whether verified)
+  pull-requests: read
 
 concurrency:
   group: guard-${{ github.event.pull_request.number }}
@@ -50,12 +52,25 @@ jobs:
           [ "$(git rev-parse refs/remotes/pull/head)" = "$HEAD_SHA" ] \
             || { echo "::error::The pull request moved while this ran; the next run checks it"; exit 1; }
 
+      # Read through the API with the read-only token: who made each commit,
+      # and whether GitHub verified it (a promotion's one commit is the bot's)
+      - name: Read the pull request's commits
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          NUMBER: ${{ github.event.pull_request.number }}
+        run: gh api "repos/$REPO/pulls/$NUMBER/commits?per_page=100" > "$RUNNER_TEMP/commits.json"
+
       # Through env, never ${{ }} inside run: a branch name is user input
       - name: Check prod's Application
         env:
           BASE: ${{ github.event.pull_request.base.sha }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-        run: scripts/check-prod-app.sh "$BASE" "$HEAD_SHA"
+          PR_BRANCH: ${{ github.event.pull_request.head.ref }}
+          PR_HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
+          PR_BASE_REPO: ${{ github.repository }}
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+        run: PR_COMMITS="$RUNNER_TEMP/commits.json" scripts/check-prod-app.sh "$BASE" "$HEAD_SHA"
 
       - name: Check what a tag pull request changes
         env:

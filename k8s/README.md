@@ -25,8 +25,8 @@ every environment shares, and each overlay in `overlays/` adds what differs.
 | `argocd/haki-prod.yaml` | the ArgoCD Application `haki-prod`: `overlays/prod` at one fixed commit of `main`, synced into `haki`; applied by `haki-apps` |
 | `argocd/project-apps.yaml` | the ArgoCD project `haki-apps`: Applications only, into `argocd` only, from this repository only |
 | `argocd/haki-apps.yaml` | the ArgoCD Application `haki-apps`: `argocd/haki-prod.yaml` on `main`, and no other file; never prunes |
-| `components/images/` | the app image tags (backend, frontend, migration) for the overlays that include it, today staging; an active `rollback-pin.yaml` sits next to them |
-| `overlays/prod/` | namespace `haki`; its own app image tags; the frontend's `BACKEND_URL` |
+| `components/images/` | the app image tags (backend, frontend, migration), included by both overlays; an active `rollback-pin.yaml` sits next to them |
+| `overlays/prod/` | namespace `haki`; the image tags from `components/images`, at the commit prod is promoted to; the frontend's `BACKEND_URL` |
 | `overlays/staging/` | namespace `haki-staging`, its own database, 1 backend replica; the image tags from `components/images`; its `BACKEND_URL` |
 
 To see what an overlay produces: `kubectl kustomize k8s/overlays/prod`.
@@ -279,8 +279,8 @@ from `main`, never from the pull request, whose commits are only fetched and
 read as data. A pull request cannot weaken the rule it is checked by; a new
 rule takes effect once merged. It refuses a pull request that:
 
-- changes `targetRevision` (until promotions exist, nothing may; then only
-  the promotion's own pull request);
+- changes `targetRevision`, unless it is the promotion's own pull request
+  (below, "Promote to prod");
 - deletes the file, or adds a second document to it: ArgoCD v3.5.7 cannot
   limit an Application's name in a project (`namespaceResourceWhitelist`
   has no `name`), so a second Application in this file would be created,
@@ -305,6 +305,45 @@ kubectl -n argocd get application haki-prod \
 
 Taking `haki-prod` over changes only its annotations (tracking and
 `sync-options`); its `targetRevision` stays, so prod is not synced.
+
+### Promote to prod
+
+A commit of `main` reaches prod only through the workflow **Promote to
+prod** (`.github/workflows/promote-prod.yml`), started by hand from `main`
+(Actions → Promote to prod → Run workflow) with the commit's full SHA. The
+images prod gets are those of `components/images` at that commit: what
+staging ran.
+
+1. `check` runs `scripts/check-promotion.sh`: the SHA is a commit of `main`
+   other than the current one, CI published its images on GHCR, and a step
+   back does not cross a migration. Its summary lists the commits and any new
+   migration.
+2. `approve` waits in the environment `prod` for Andrei's approval. Before
+   approving, he checks that staging ran this SHA, Synced and Healthy (GitHub
+   cannot see the cluster).
+3. `open-pr` checks again on `main` as it is then, and the tag bot opens the
+   pull request on `bot/promote-prod`: one commit, made through the API (so
+   GitHub verifies it as the bot's), that changes the `targetRevision` line
+   of `haki-prod.yaml` only. No auto-merge.
+4. If the summary lists new migrations, dump prod first ("Back up before a
+   migration"). Then Andrei merges; `haki-apps` moves `haki-prod` to the new
+   revision.
+
+`prod-guard` lets a change of `targetRevision` through only in that pull
+request: from `bot/promote-prod` of this repository, opened by
+`haki-tag-bot[bot]`, with exactly one commit, the head, verified, authored
+and committed by the bot, changing that one line, to a commit that
+`check-promotion.sh` accepts. A person who pushes to the branch adds a
+commit of their own, and the pull request fails.
+
+**A rollback of prod is a promotion of an older commit of `main`,** through
+the same workflow and the same approval. No pull request by hand changes
+`targetRevision`, and neither does a `git revert`: `prod-guard` refuses both.
+`check-promotion.sh` refuses a step back across a migration (the older
+image's `alembic upgrade head` would stop at the hook); then the way back is
+a commit of `main` with a rollback pin (below, "Roll back staging after a
+migration"), which staging runs first and which is then promoted like any
+other commit.
 
 ### Roll back staging
 
@@ -478,10 +517,11 @@ cluster's database.
 
 ## Deploy new images or settings
 
-The image tag is the full commit SHA of `main`, set under `images:` once for
-staging, in `components/images/kustomization.yaml`, and once for prod, in
-`overlays/prod/kustomization.yaml` (the backend tag covers the migration Job
-too). An overlay that includes the component may not list images of its own.
+The image tag is the full commit SHA of `main`, set under `images:` once, in
+`components/images/kustomization.yaml`, which both overlays include (the
+backend tag covers the migration Job too). An overlay that includes the
+component may not list images of its own. Staging follows `main`; prod gets
+the tags of the commit it is promoted to.
 
 - **Staging:** a pull request that changes `components/images`. Once it is
   merged, ArgoCD applies it in wave order, migration included (above). After
@@ -489,9 +529,8 @@ too). An overlay that includes the component may not list images of its own.
   `bump-staging` opens that pull request itself (`scripts/bump-staging-tag.sh`),
   always on the branch `bot/bump-staging`: a newer commit updates the same
   pull request. Andrei merges it, or auto-merge does (below).
-- **Prod, once ArgoCD has taken it over:** only by moving the
-  `targetRevision` of `haki-prod` (above, "Prod through ArgoCD"); never
-  `kubectl apply` it by hand.
+- **Prod, once ArgoCD has taken it over:** only by a promotion (above,
+  "Promote to prod"); never `kubectl apply` it by hand.
 - **Prod before the takeover:** after changing the tag, or anything in
   `haki-backend-config`, migrate before the backend: phases 4 and 5 above. A
   Job cannot be changed once created, so it is deleted first. Other changes
