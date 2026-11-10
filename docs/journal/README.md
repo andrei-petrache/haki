@@ -136,3 +136,11 @@ Open items, outside the sprints:
 - [ ] TypeScript 7, held back in `.github/dependabot.yml`: `typescript-eslint`
   accepts only `typescript <6.1.0` (8.72.2, 9 November 2026), so `npm ci`
   fails with ERESOLVE (#65). Lift the hold once a release accepts 7
+- [ ] An Actions policy that allows `pull_request_target` for
+  `.github/workflows/guard.yml`. From 2 December 2026 GitHub restricts the
+  trigger on public repositories by default (a brownout first, 16 November,
+  16:00-18:00 UTC); `prod-guard` runs on it and is a required check, so
+  without the policy no pull request can merge. Guard's runs carry a
+  warning about it (seen on #77, 10 November 2026;
+  https://gh.io/securely-using-pull_request_target#default-policy-for-pull_request_target).
+  The plan is made separately
