@@ -418,7 +418,12 @@ jobs:
           for name in haki-backend haki-frontend; do
             for tag in "$SHA" main; do
               docker tag "$name:ci" "$REGISTRY/$name:$tag"
-              docker push --quiet "$REGISTRY/$name:$tag"
+              # Not --quiet: a refused push must show which image, tag and
+              # layer GHCR refused (3666079's frontend push said only
+              # "denied: permission_denied: write_package")
+              echo "::group::Push $name:$tag"
+              docker push "$REGISTRY/$name:$tag"
+              echo "::endgroup::"
             done
             digest="$(docker image inspect --format '{{index .RepoDigests 0}}' "$REGISTRY/$name:$SHA")"
             echo "| \`$REGISTRY/$name:$SHA\` | \`${digest#*@}\` |" >> "$GITHUB_STEP_SUMMARY"
