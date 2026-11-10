@@ -30,8 +30,16 @@ spec:
     server: https://kubernetes.default.svc
     namespace: haki
   syncPolicy:
-    # No automated sync yet: the takeover is done by hand first (diff, then
-    # a manual sync without prune), as for staging in S8
+    # Automated, after the takeover by hand (9 November 2026): a merged
+    # promotion syncs on its own, so merging the promotion's pull request is
+    # the deploy (and runs its migration: dump first). The only shape
+    # prod-guard accepts.
+    automated:
+      enabled: true
+      # Never: deleting anything in prod stays a person's decision
+      prune: false
+      # Undo changes made in the cluster by hand: Git wins
+      selfHeal: true
     syncOptions:
       # Delete what left Git only at the end, once every wave is healthy
       - PruneLast=true

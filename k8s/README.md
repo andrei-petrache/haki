@@ -224,9 +224,10 @@ the overlay or `base/`; prod gets it only when that SHA moves. Since the
 takeover, `haki-apps` (below) applies `haki-prod.yaml` from `main`, and
 `prod-guard` refuses any pull request that changes its `targetRevision`.
 
-The takeover is done by hand, as for staging in S8: first without automated
-sync, so the diff is seen before anything changes. Each step needs Andrei's
-OK.
+The takeover was done by hand (9 November 2026), as for staging in S8:
+first without automated sync, so the diff was seen before anything changed.
+Each step needed Andrei's OK. Automated sync came after the first promotion
+(below). The steps, kept for the record:
 
 ```bash
 # 1. Back up first: the takeover runs the migration hook again (expected to
@@ -338,8 +339,11 @@ checks below judge those tags, not the revision's SHA.
    GitHub verifies it as the bot's), that changes the `targetRevision` line
    of `haki-prod.yaml` only. No auto-merge.
 4. If the summary lists new migrations, dump prod first ("Back up before a
-   migration"). Then Andrei merges; `haki-apps` moves `haki-prod` to the new
-   revision.
+   migration"), right before the merge. Then Andrei merges; `haki-apps`
+   moves `haki-prod` to the new revision, and `haki-prod`'s automated sync
+   (`prune: false`, `selfHeal: true`) deploys it: the merge is the deploy,
+   migration included. Nothing in prod is pruned; a resource that left Git
+   is deleted by hand, after a look.
 
 `prod-guard` lets a change of `targetRevision` through only in that pull
 request: from `bot/promote-prod` of this repository, opened by
@@ -597,8 +601,9 @@ most of it ArgoCD's poll.
 ### Back up before a migration
 
 A migration changes the database for good, and a new image cannot undo it.
-Before phase 4 on prod, dump the database to a file outside the repository,
-readable only by you:
+Before merging a promotion whose summary lists a new migration (the merge
+is the deploy, "Promote to prod" step 4), dump the database to a file
+outside the repository, readable only by you:
 
 ```bash
 NS=haki
