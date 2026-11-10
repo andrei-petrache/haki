@@ -4,8 +4,9 @@ name: Promote to prod
 # a promotion of an older commit): this workflow, started by hand with the
 # commit's SHA.
 #
-#   check    the SHA is a commit of main with published images, and a step
-#            back does not cross a migration (scripts/check-promotion.sh)
+#   check    the SHA is a commit of main, the images prod would run at it
+#            are published, and the migration image does not step back
+#            across a migration (scripts/check-promotion.sh)
 #   approve  waits in the environment prod for Andrei's approval; he first
 #            checks that staging ran this SHA, Synced and Healthy
 #   open-pr  the tag bot opens the pull request on bot/promote-prod that
@@ -45,9 +46,10 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      - name: Install yq
+      # kustomize: check-promotion.sh renders prod's overlay at each revision
+      - name: Install yq and kustomize
         run: |
-          scripts/install-tools.sh "$RUNNER_TEMP/bin" yq
+          scripts/install-tools.sh "$RUNNER_TEMP/bin" yq kustomize
           echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
 
       # Through env, never ${{ }} inside run: the input is user input
@@ -86,9 +88,10 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      - name: Install yq
+      # kustomize: check-promotion.sh renders prod's overlay at each revision
+      - name: Install yq and kustomize
         run: |
-          scripts/install-tools.sh "$RUNNER_TEMP/bin" yq
+          scripts/install-tools.sh "$RUNNER_TEMP/bin" yq kustomize
           echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
 
       # main may have moved while the approval waited: check again on main as

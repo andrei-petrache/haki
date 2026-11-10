@@ -310,14 +310,24 @@ Taking `haki-prod` over changes only its annotations (tracking and
 
 A commit of `main` reaches prod only through the workflow **Promote to
 prod** (`.github/workflows/promote-prod.yml`), started by hand from `main`
-(Actions → Promote to prod → Run workflow) with the commit's full SHA. The
-images prod gets are those of `components/images` at that commit: what
-staging ran.
+(Actions → Promote to prod → Run workflow) with the commit's full SHA.
+
+Prod never runs the promoted commit's own code: it runs the image tags
+written at that commit, in `components/images` (or, at older revisions such
+as `00e3da8`, in the prod overlay's own `images:` list), a rollback pin
+included: what staging ran. `scripts/prod-images.sh <SHA>` prints them,
+rendered from `k8s/overlays/prod` as it is at that commit: `backend`,
+`frontend` and `migrate` (the `haki-migrate` Job, the migration hook). So the
+checks below judge those tags, not the revision's SHA.
 
 1. `check` runs `scripts/check-promotion.sh`: the SHA is a commit of `main`
-   other than the current one, CI published its images on GHCR, and a step
-   back does not cross a migration. Its summary lists the commits and any new
-   migration.
+   other than the current one; each image it runs is a commit of `main`
+   published on GHCR; and the migration image never steps back across a
+   migration. Migrations are counted between the commits of the current and
+   the new `haki-migrate` images, not between the revisions: `00e3da8` ->
+   `c339f35` lists the Programs migration (images `081c5f2` -> `4b65cc6`),
+   and `c339f35` -> `00e3da8` is refused. Its summary shows the images now
+   and after, any new migration, and the commits.
 2. `approve` waits in the environment `prod` for Andrei's approval. Before
    approving, he checks that staging ran this SHA, Synced and Healthy (GitHub
    cannot see the cluster).
@@ -339,11 +349,12 @@ commit of their own, and the pull request fails.
 **A rollback of prod is a promotion of an older commit of `main`,** through
 the same workflow and the same approval. No pull request by hand changes
 `targetRevision`, and neither does a `git revert`: `prod-guard` refuses both.
-`check-promotion.sh` refuses a step back across a migration (the older
-image's `alembic upgrade head` would stop at the hook); then the way back is
-a commit of `main` with a rollback pin (below, "Roll back staging after a
-migration"), which staging runs first and which is then promoted like any
-other commit.
+`check-promotion.sh` refuses a migration image older than prod's when the
+migrations changed in between (its `alembic upgrade head` would stop at the
+hook); then the way back is a commit of `main` with a rollback pin (below,
+"Roll back staging after a migration"): the app images step back, the
+migration image stays, so the promotion migrates nothing. Staging runs it
+first, and it is then promoted like any other commit.
 
 ### Roll back staging
 
