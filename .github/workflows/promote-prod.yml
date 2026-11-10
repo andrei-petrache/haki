@@ -125,8 +125,9 @@ jobs:
           permission-contents: write
           permission-pull-requests: write
 
-      # The commit is made through the API, not pushed: GitHub signs it as the
-      # bot (verified), which prod-guard requires. The branch starts at main
+      # The commit is made through the API, not pushed: the bot is its author
+      # and GitHub (web-flow) commits and signs it (verified), which
+      # prod-guard requires. The branch starts at main
       # each time, so the pull request always holds this one commit.
       - name: Open or update the promotion pull request
         env:
