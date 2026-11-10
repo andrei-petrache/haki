@@ -288,7 +288,9 @@ rule takes effect once merged. It refuses a pull request that:
 - changes the project, repository, path or destination, or adds anything
   else to `spec` or `spec.source` (e.g. `source.kustomize.images` would
   change prod's images without moving `targetRevision`);
-- turns on automated sync, or changes the sync options or retries.
+- turns on automated sync in any shape but `enabled: true`, `prune: false`,
+  `selfHeal: true` (nothing in prod is deleted without a person; hand edits
+  in the cluster are undone), or changes the sync options or retries.
 
 Comments stay free. `prod-guard` also runs `scripts/check-tag-pr.sh`, the
 scope of the tag bot's pull request (above), for the same reason.

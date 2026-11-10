@@ -8,7 +8,7 @@
 # - The file holds the Application argocd/haki-prod and nothing else, in a
 #   fixed shape: this repository, k8s/overlays/prod, project haki-prod, the
 #   haki namespace, a full commit SHA, no source overrides (kustomize, helm,
-#   directory) and no automated sync yet.
+#   directory), synced by hand or automated without prune.
 # - Only the promotion's own pull request changes targetRevision: opened by
 #   the tag bot from bot/promote-prod of this repository, with one commit the
 #   bot made through the API (authored by the bot, committed and signed by
@@ -65,11 +65,20 @@ revision="$(read_doc '.spec.source.targetRevision')"
 [[ "$revision" =~ ^[0-9a-f]{40}$ ]] \
   || fail "targetRevision must be a full commit SHA, never a branch or tag ('$revision')"
 
-# How it syncs: no automated sync until the takeover is checked (step 6
-# relaxes this rule first, in its own pull request), prune only at the end,
-# no retries, none of the options that replace, force or take over objects
-[[ "$(read_doc '.spec.syncPolicy | keys | sort | join(",")')" == retry,syncOptions ]] \
-  || fail "syncPolicy may hold only syncOptions and retry (no automated sync yet)"
+# How it syncs: by hand, or automated in one fixed shape (enabled, never
+# pruning, self-healing: Git wins over hand edits in the cluster, and nothing
+# in prod is deleted without a person); prune only at the end, no retries,
+# none of the options that replace, force or take over objects
+case "$(read_doc '.spec.syncPolicy | keys | sort | join(",")')" in
+  retry,syncOptions) ;;
+  automated,retry,syncOptions)
+    # Booleans, not strings ("false" would read the same through tostring)
+    [[ "$(read_doc '.spec.syncPolicy.automated | to_entries | map(.key + "=" + (.value | tostring) + (.value | tag)) | sort | join(",")')" \
+      == 'enabled=true!!bool,prune=false!!bool,selfHeal=true!!bool' ]] \
+      || fail "automated must be exactly enabled: true, prune: false, selfHeal: true (booleans)"
+    ;;
+  *) fail "syncPolicy may hold only syncOptions, retry and automated" ;;
+esac
 [[ "$(read_doc '.spec.syncPolicy.syncOptions | join(",")')" == PruneLast=true ]] \
   || fail "syncOptions must be exactly PruneLast=true"
 [[ "$(read_doc '.spec.syncPolicy.retry | to_entries | map(.key + "=" + (.value | tostring)) | join(",")')" == limit=0 ]] \
