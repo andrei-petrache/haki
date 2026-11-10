@@ -11,7 +11,8 @@
 #   directory) and no automated sync yet.
 # - Only the promotion's own pull request changes targetRevision: opened by
 #   the tag bot from bot/promote-prod of this repository, with one commit the
-#   bot made through the API (verified), changing that one line, to a commit
+#   bot made through the API (authored by the bot, committed and signed by
+#   GitHub's web-flow, verified), changing that one line, to a commit
 #   of main that check-promotion.sh accepts (the images it runs published,
 #   its migration image never back across a migration).
 #
@@ -91,13 +92,16 @@ bot="haki-tag-bot[bot]"
 [[ -n "${PR_BASE_REPO:-}" && "${PR_HEAD_REPO:-}" == "$PR_BASE_REPO" ]] || refuse "the branch is not in this repository"
 [[ "${PR_AUTHOR:-}" == "$bot" ]] || refuse "the pull request was not opened by $bot"
 
-# What: one commit, the head, made by the bot through the API, so GitHub
-# signed it. A person pushing to the branch adds a commit of their own.
+# What: one commit, the head, made by the bot through the API. GitHub makes
+# and signs such a commit itself: the bot is its author, GitHub (web-flow) its
+# committer, and it is verified (seen on the first promotion, #82). A person
+# pushing to the branch adds a commit of their own; the ruleset on bot/**
+# lets only the tag bot create, update or delete those branches.
 [[ -s "${PR_COMMITS:-}" ]] || refuse "the pull request's commits are missing"
 [[ "$(yq -p json -o yaml 'length' "$PR_COMMITS")" == 1 ]] || refuse "a promotion has exactly one commit"
 [[ "$(yq -p json -o yaml '.[0] | [.sha, (.commit.verification.verified | tostring), .author.login, .committer.login] | join(" ")' "$PR_COMMITS")" \
-  == "$head true $bot $bot" ]] \
-  || refuse "its commit is not the head, verified, authored and committed by $bot"
+  == "$head true $bot web-flow" ]] \
+  || refuse "its commit is not the head, verified, authored by $bot and committed by GitHub (web-flow)"
 [[ "$(git rev-list --count "$merge_base..$head")" == 1 ]] || refuse "a promotion has exactly one commit"
 
 # The change: haki-prod.yaml only, and in it the targetRevision line only

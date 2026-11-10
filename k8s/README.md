@@ -342,9 +342,13 @@ checks below judge those tags, not the revision's SHA.
 `prod-guard` lets a change of `targetRevision` through only in that pull
 request: from `bot/promote-prod` of this repository, opened by
 `haki-tag-bot[bot]`, with exactly one commit, the head, verified, authored
-and committed by the bot, changing that one line, to a commit that
+by the bot and committed by GitHub (`web-flow`: a commit made through the
+API is GitHub's, signed by it), changing that one line, to a commit that
 `check-promotion.sh` accepts. A person who pushes to the branch adds a
-commit of their own, and the pull request fails.
+commit of their own, and the pull request fails. The ruleset on `bot/**`
+closes the rest: only the tag bot (its GitHub App, on the bypass list) may
+create, update, force-push or delete those branches, so nobody else can put
+a commit authored as the bot there.
 
 **A rollback of prod is a promotion of an older commit of `main`,** through
 the same workflow and the same approval. No pull request by hand changes
