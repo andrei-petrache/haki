@@ -12,14 +12,14 @@
 # - Only the promotion's own pull request changes targetRevision: opened by
 #   the tag bot from bot/promote-prod of this repository, with one commit the
 #   bot made through the API (verified), changing that one line, to a commit
-#   of main that check-promotion.sh accepts (published images, no rollback
-#   across a migration).
+#   of main that check-promotion.sh accepts (the images it runs published,
+#   its migration image never back across a migration).
 #
 # Usage: scripts/check-prod-app.sh <base SHA> <head SHA>
 # From the pull_request_target event, in the environment: PR_BRANCH,
 # PR_HEAD_REPO, PR_BASE_REPO, PR_AUTHOR, and PR_COMMITS, a file with the
 # pull request's commits as the REST API lists them (pulls/N/commits).
-# Needs the history of both SHAs, yq and curl.
+# Needs the history of both SHAs, yq, kustomize and curl.
 set -euo pipefail
 
 fail() {
@@ -108,7 +108,8 @@ bot="haki-tag-bot[bot]"
   == $'-    targetRevision: SHA\n+    targetRevision: SHA' ]] \
   || refuse "a promotion changes the targetRevision line only"
 
-# Where to: a commit of main, with images, never back across a migration
+# Where to: a commit of main whose images are published, its migration
+# image never back across a migration
 "$(dirname "$0")/check-promotion.sh" "$before" "$revision" "$base" > /dev/null \
   || refuse "check-promotion.sh refused it (above)"
 echo "haki-prod.yaml: a promotion by $bot, targetRevision ${before:0:7} -> ${revision:0:7}"
