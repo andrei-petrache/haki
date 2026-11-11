@@ -18,6 +18,27 @@ replicas:
 components:
   - ../../components/images
 
+# A rule of its own for /api, first, with the same destination as every
+# other path (the frontend, whose Nginx proxies /api to the backend). Routing
+# does not change; Envoy now counts the API's requests, response classes and
+# latency apart from static files, as rule 0, which is what the monitoring
+# dashboards read (the backend has no metrics of its own). Staging only.
+patches:
+  - target:
+      kind: HTTPRoute
+      name: haki
+    patch: |-
+      - op: add
+        path: /spec/rules/0
+        value:
+          matches:
+            - path:
+                type: PathPrefix
+                value: /api
+          backendRefs:
+            - name: haki-frontend
+              port: 8080
+
 configMapGenerator:
   # The backend Service in this namespace, by its full name: Nginx resolves
   # it itself and ignores resolv.conf's search domains. CI checks that the
