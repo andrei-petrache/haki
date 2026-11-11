@@ -1,4 +1,5 @@
-# Monitoring for staging and the platform: Prometheus and kube-state-metrics.
+# Monitoring for staging and the platform: Prometheus, kube-state-metrics and
+# Grafana with its dashboards (grafana/dashboards, JSON files).
 # Its own namespace, deployed by the ArgoCD Application monitoring
 # (k8s/argocd/monitoring.yaml), never by hand. Prod is not scraped yet.
 # Nothing here is reachable from outside the cluster: Services are ClusterIP
@@ -13,9 +14,22 @@ resources:
   - namespace.yaml
   - prometheus.yaml
   - kube-state-metrics.yaml
+  - grafana/grafana.yaml
 
 configMapGenerator:
   # Hash-named: a change to the configuration restarts Prometheus with it
   - name: prometheus-config
     files:
       - prometheus.yml=prometheus/prometheus.yml
+  - name: grafana-datasources
+    files:
+      - prometheus.yaml=grafana/datasources.yaml
+  - name: grafana-dashboard-provider
+    files:
+      - haki.yaml=grafana/provider.yaml
+  # One file per dashboard; Grafana reads them from the mounted ConfigMap
+  - name: grafana-dashboards
+    files:
+      - grafana/dashboards/backend.json
+      - grafana/dashboards/pods.json
+      - grafana/dashboards/database.json

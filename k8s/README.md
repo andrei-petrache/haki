@@ -504,7 +504,17 @@ Nothing is reachable from outside the machine. To look at it:
 
 ```bash
 kubectl -n monitoring port-forward svc/prometheus 9090:9090   # http://127.0.0.1:9090
+kubectl -n monitoring port-forward svc/grafana 3000:3000      # http://127.0.0.1:3000
 ```
+
+Grafana (13.3.0; 50m-300m CPU, 96-256 MiB) shows three dashboards, in the
+folder "Haki staging": Backend (the API's request rate, 5xx share and
+latency, as Envoy sees the `/api` rule), Pods (restarts, waiting reasons,
+memory against the limit, CPU, readiness) and Database (PostgreSQL's pod:
+memory, CPU, restarts, readiness, and its volume if the provisioner reports
+it). They are the JSON files in `k8s/monitoring/grafana/dashboards`, read-only
+in the UI: change the file and merge. Grafana has no admin account and no
+login form, only anonymous viewers, so there is no password to keep.
 
 ## Start from scratch
 
