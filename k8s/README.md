@@ -487,6 +487,12 @@ Read the last run with:
 kubectl -n haki-staging logs job/haki-catalog-import
 ```
 
+A change to the hook alone starts no sync: ArgoCD does not compare hooks
+with the live state, so the Application stays Synced and the automated sync
+has nothing to do. That is what happened when #133 merged: the import first
+ran at the next full sync, the next staging bump. A full sync by hand (the
+ArgoCD UI's Sync, or `argocd app sync haki-staging`) runs it sooner.
+
 Prod does not have it: `check-manifests.sh` refuses it in `overlays/prod`
 until Andrei approves the catalog for prod, at a promotion with a dump first.
 
