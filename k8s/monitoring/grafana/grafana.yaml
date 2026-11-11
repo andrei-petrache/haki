@@ -72,6 +72,11 @@ spec:
               value: "false"
             - name: GF_ANALYTICS_CHECK_FOR_PLUGIN_UPDATES
               value: "false"
+            # Grafana downloads its preinstalled app plugins from grafana.com on
+            # every start: about 575 MiB in the data emptyDir (evicted over
+            # 100Mi) and an outbound download nobody reviewed. Not used here.
+            - name: GF_PLUGINS_PREINSTALL_DISABLED
+              value: "true"
             - name: GF_NEWS_NEWS_FEED_ENABLED
               value: "false"
             - name: GF_LOG_MODE
@@ -91,12 +96,14 @@ spec:
             initialDelaySeconds: 60
             periodSeconds: 20
           resources:
+            # Measured on 13.3.0 without the plugins: about 275 MiB once
+            # started; 256Mi was OOM-killed.
             requests:
               cpu: 50m
-              memory: 96Mi
+              memory: 192Mi
             limits:
               cpu: 300m
-              memory: 256Mi
+              memory: 384Mi
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
