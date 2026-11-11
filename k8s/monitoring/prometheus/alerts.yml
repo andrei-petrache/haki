@@ -1,0 +1,41 @@
+# Alert rules for staging, evaluated by Prometheus every 30 s. They show as
+# pending, then firing, in Prometheus (Alerts) and in Grafana; nothing sends
+# them anywhere yet: an Alertmanager needs an e-mail or chat service.
+# Tested by alerts.test.yml:
+#   promtool test rules k8s/monitoring/prometheus/alerts.test.yml
+groups:
+  - name: haki-staging
+    rules:
+      # More than 5% of the API's responses are 5xx for 10 minutes, with at
+      # least a little traffic (above about one request a minute), so a
+      # single failed request on a quiet staging does not page
+      - alert: HakiStagingApi5xx
+        expr: |
+          (
+            sum(rate(envoy_cluster_upstream_rq_xx{envoy_cluster_name="httproute/haki-staging/haki/rule/0", envoy_response_code_class="5"}[5m]))
+            /
+            sum(rate(envoy_cluster_upstream_rq_total{envoy_cluster_name="httproute/haki-staging/haki/rule/0"}[5m]))
+          ) > 0.05
+          and
+          sum(rate(envoy_cluster_upstream_rq_total{envoy_cluster_name="httproute/haki-staging/haki/rule/0"}[5m])) > 0.02
+        for: 10m
+        labels:
+          severity: warning
+          namespace: haki-staging
+        annotations:
+          summary: Staging's API answers 5xx to more than 5% of requests
+          description: For 10 minutes, more than 5% of the requests on the /api route got a 5xx (backend down, database unreachable or a bug). Dashboard Backend (staging).
+
+      # A container that keeps restarting: 3 restarts in 15 minutes, or
+      # waiting in CrashLoopBackOff, for 5 minutes
+      - alert: HakiStagingPodRestartLoop
+        expr: |
+          increase(kube_pod_container_status_restarts_total{namespace="haki-staging"}[15m]) >= 3
+          or
+          kube_pod_container_status_waiting_reason{namespace="haki-staging", reason="CrashLoopBackOff"} == 1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "{{ $labels.pod }} is in a restart loop"
+          description: "Container {{ $labels.container }} of {{ $labels.pod }} keeps restarting. kubectl -n haki-staging describe pod {{ $labels.pod }}; dashboard Pods (staging)."

@@ -1,0 +1,119 @@
+# Unit tests for alerts.yml (promtool test rules). Series advance every 30 s.
+rule_files:
+  - alerts.yml
+
+evaluation_interval: 30s
+
+tests:
+  - name: sustained 5xx on the API fires after 10 minutes
+    interval: 30s
+    input_series:
+      # 1 request a second, 20% of them 5xx
+      - series: 'envoy_cluster_upstream_rq_total{envoy_cluster_name="httproute/haki-staging/haki/rule/0"}'
+        values: "0+30x80"
+      - series: 'envoy_cluster_upstream_rq_xx{envoy_cluster_name="httproute/haki-staging/haki/rule/0", envoy_response_code_class="5"}'
+        values: "0+6x80"
+    alert_rule_test:
+      - eval_time: 8m
+        alertname: HakiStagingApi5xx
+        exp_alerts: []
+      - eval_time: 20m
+        alertname: HakiStagingApi5xx
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+              namespace: haki-staging
+            exp_annotations:
+              summary: Staging's API answers 5xx to more than 5% of requests
+              description: For 10 minutes, more than 5% of the requests on the /api route got a 5xx (backend down, database unreachable or a bug). Dashboard Backend (staging).
+
+  - name: a 5xx share under 5% stays quiet
+    interval: 30s
+    input_series:
+      - series: 'envoy_cluster_upstream_rq_total{envoy_cluster_name="httproute/haki-staging/haki/rule/0"}'
+        values: "0+30x80"
+      # 2%
+      - series: 'envoy_cluster_upstream_rq_xx{envoy_cluster_name="httproute/haki-staging/haki/rule/0", envoy_response_code_class="5"}'
+        values: "0+0.6x80"
+    alert_rule_test:
+      - eval_time: 30m
+        alertname: HakiStagingApi5xx
+        exp_alerts: []
+
+  - name: a quiet staging where every rare request fails stays quiet
+    interval: 30s
+    input_series:
+      # One request every 5 minutes, all 5xx: below the traffic floor
+      - series: 'envoy_cluster_upstream_rq_total{envoy_cluster_name="httproute/haki-staging/haki/rule/0"}'
+        values: "0+0.1x80"
+      - series: 'envoy_cluster_upstream_rq_xx{envoy_cluster_name="httproute/haki-staging/haki/rule/0", envoy_response_code_class="5"}'
+        values: "0+0.1x80"
+    alert_rule_test:
+      - eval_time: 30m
+        alertname: HakiStagingApi5xx
+        exp_alerts: []
+
+  - name: 5xx on the static files (rule 1) do not count for the API
+    interval: 30s
+    input_series:
+      - series: 'envoy_cluster_upstream_rq_total{envoy_cluster_name="httproute/haki-staging/haki/rule/1"}'
+        values: "0+30x80"
+      - series: 'envoy_cluster_upstream_rq_xx{envoy_cluster_name="httproute/haki-staging/haki/rule/1", envoy_response_code_class="5"}'
+        values: "0+30x80"
+    alert_rule_test:
+      - eval_time: 30m
+        alertname: HakiStagingApi5xx
+        exp_alerts: []
+
+  - name: three restarts in 15 minutes fire after 5 minutes
+    interval: 30s
+    input_series:
+      # One restart every 4 minutes
+      - series: 'kube_pod_container_status_restarts_total{namespace="haki-staging", pod="haki-backend-abc", container="backend"}'
+        values: "0+0.125x80"
+    alert_rule_test:
+      - eval_time: 25m
+        alertname: HakiStagingPodRestartLoop
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+              namespace: haki-staging
+              pod: haki-backend-abc
+              container: backend
+            exp_annotations:
+              summary: haki-backend-abc is in a restart loop
+              description: "Container backend of haki-backend-abc keeps restarting. kubectl -n haki-staging describe pod haki-backend-abc; dashboard Pods (staging)."
+
+  - name: CrashLoopBackOff for 5 minutes fires
+    interval: 30s
+    input_series:
+      - series: 'kube_pod_container_status_waiting_reason{namespace="haki-staging", pod="haki-db-0", container="postgres", reason="CrashLoopBackOff"}'
+        values: "0x2 1x20"
+    alert_rule_test:
+      - eval_time: 3m
+        alertname: HakiStagingPodRestartLoop
+        exp_alerts: []
+      - eval_time: 9m
+        alertname: HakiStagingPodRestartLoop
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+              namespace: haki-staging
+              pod: haki-db-0
+              container: postgres
+              reason: CrashLoopBackOff
+            exp_annotations:
+              summary: haki-db-0 is in a restart loop
+              description: "Container postgres of haki-db-0 keeps restarting. kubectl -n haki-staging describe pod haki-db-0; dashboard Pods (staging)."
+
+  - name: one restart stays quiet, and prod is not watched
+    interval: 30s
+    input_series:
+      - series: 'kube_pod_container_status_restarts_total{namespace="haki-staging", pod="haki-frontend-abc", container="frontend"}'
+        values: "0x10 1x70"
+      - series: 'kube_pod_container_status_restarts_total{namespace="haki", pod="haki-backend-prod", container="backend"}'
+        values: "0+0.5x80"
+    alert_rule_test:
+      - eval_time: 30m
+        alertname: HakiStagingPodRestartLoop
+        exp_alerts: []
