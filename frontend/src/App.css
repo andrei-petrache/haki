@@ -630,3 +630,14 @@ textarea {
 .last-time {
   font-size: 0.9rem;
 }
+
+/* A personal record, next to its set in the workout view */
+.record {
+  margin-left: 0.5rem;
+  padding: 0.05rem 0.4rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: white;
+  background: var(--accent);
+}

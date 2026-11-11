@@ -190,4 +190,6 @@ export const en = {
   'rest.startLabel': 'Rest',
   'rest.startPreset': 'Start a {time} rest',
   'history.lastTime': 'Last time ({day}): {sets}',
+  'history.record': 'New record',
+  'history.recordScope': 'Your best set of this exercise in your last {count} workouts',
 } satisfies Record<string, string | Plural>

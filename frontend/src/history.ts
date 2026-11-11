@@ -91,3 +91,28 @@ export function topSet(sets: WorkoutSet[]): WorkoutSet | null {
 export function bestBefore(history: Workout[], exerciseId: number, current: Current = null): WorkoutSet | null {
   return topSet(earlier(history, current).flatMap((workout) => setsOf(workout, exerciseId)))
 }
+
+/**
+ * Where the records of a workout are: for each exercise, its best set in
+ * this workout, when it beats every earlier set in the history. An
+ * exercise done for the first time has nothing to beat, so no record.
+ * Keys are "block.set" positions, the first one for a set that appears twice.
+ */
+export function recordPositions(workout: Workout, history: Workout[]): Set<string> {
+  const current: Current = { id: workout.id, performed_on: workout.performed_on }
+  const positions = new Set<string>()
+  const exerciseIds = new Set(workout.exercises.map((item) => item.exercise_id))
+  for (const exerciseId of exerciseIds) {
+    const best = bestBefore(history, exerciseId, current)
+    const top = topSet(setsOf(workout, exerciseId))
+    if (!best || !top || !beats(top, best)) continue
+    const at = workout.exercises.flatMap((item, block) =>
+      item.exercise_id === exerciseId
+        ? item.sets.map((set, index) => ({ set, key: `${block}.${index}` }))
+        : [],
+    )
+    const first = at.find(({ set }) => set.reps === top.reps && set.weight_kg === top.weight_kg)
+    if (first) positions.add(first.key)
+  }
+  return positions
+}

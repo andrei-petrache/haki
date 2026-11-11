@@ -105,3 +105,19 @@ test('the editor shows last time for an exercise, from the history', async () =>
   await page.getByRole('button', { name: 'Edit' }).click()
   await expect(page.getByText(/^Last time \(.*5.*\): 8 × 60 kg, 8 × 60 kg$/)).toBeVisible()
 })
+
+test('the workout view marks a new record, and none the first time', async () => {
+  // From the editor of the 8 November workout (5 x 70 kg after 8 x 60 kg)
+  await page.getByRole('button', { name: 'Cancel' }).click()
+
+  const sets = page.locator('.workout-exercise .sets li')
+  await expect(sets.first()).toHaveText('5 × 70 kgNew record')
+  await expect(page.locator('.record')).toHaveCount(1)
+  await page.screenshot({ path: `${SHOTS}/15-record-phone.png`, fullPage: true })
+
+  // The 5 November workout came first: nothing to beat
+  await page.getByRole('button', { name: '‹ Back to workouts' }).click()
+  await page.locator('.workout-card').nth(1).click()
+  await expect(sets.first()).toHaveText('8 × 60 kg')
+  await expect(page.locator('.record')).toHaveCount(0)
+})
