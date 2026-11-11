@@ -2,12 +2,15 @@ import { describe, expect, it } from 'vitest'
 import {
   DEFAULT_WEIGHT_UNIT,
   KG_PER_LB,
+  WEIGHT_UNIT_KEY,
   MAX_WEIGHT_KG,
   fieldToKg,
   formatWeightIn,
   kgToUnit,
+  loadWeightUnit,
   maxWeightIn,
   parseWeightUnit,
+  saveWeightUnit,
   stepWeight,
   unitToKg,
   weightError,
@@ -162,5 +165,40 @@ describe('stepWeight', () => {
 
     expect(back).toBe(saved)
     expect(fieldToKg(back, 'lb', 60, saved)).toBe(60)
+  })
+})
+
+describe('the unit kept on this device', () => {
+  function memoryStorage() {
+    const items = new Map<string, string>()
+    return {
+      getItem: (key: string) => items.get(key) ?? null,
+      setItem: (key: string, value: string) => void items.set(key, value),
+    }
+  }
+
+  it('is kilograms until something else is saved', () => {
+    const storage = memoryStorage()
+
+    expect(loadWeightUnit(storage)).toBe('kg')
+    saveWeightUnit('lb', storage)
+    expect(storage.getItem(WEIGHT_UNIT_KEY)).toBe('lb')
+    expect(loadWeightUnit(storage)).toBe('lb')
+  })
+
+  it('falls back to kilograms when there is no storage or it is refused', () => {
+    const refusing = {
+      getItem: () => {
+        throw new Error('blocked')
+      },
+      setItem: () => {
+        throw new Error('blocked')
+      },
+    }
+
+    expect(loadWeightUnit(null)).toBe('kg')
+    expect(loadWeightUnit(refusing)).toBe('kg')
+    expect(() => saveWeightUnit('lb', refusing)).not.toThrow()
+    expect(() => saveWeightUnit('lb', null)).not.toThrow()
   })
 })
