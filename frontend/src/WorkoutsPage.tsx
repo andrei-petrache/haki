@@ -9,6 +9,7 @@ import {
 import type { Workout, WorkoutSummary } from './api'
 import { formatDay, formatSet, shorten } from './format'
 import { useI18n } from './i18n/context'
+import { HISTORY_LIMIT, loadHistory, recordPositions } from './history'
 import WorkoutEditor from './WorkoutEditor'
 import type { WeightUnit } from './units'
 
@@ -134,6 +135,8 @@ function WorkoutDetail({
 }) {
   const { t } = useI18n()
   const [workout, setWorkout] = useState<Workout | null>(null)
+  // The recent workouts, to spot records; nothing is marked until they arrive
+  const [history, setHistory] = useState<Workout[]>([])
   const [error, setError] = useState<string | null>(null)
   const [deleting, setDeleting] = useState(false)
 
@@ -150,6 +153,21 @@ function WorkoutDetail({
       cancelled = true
     }
   }, [token, id])
+
+  useEffect(() => {
+    let cancelled = false
+    loadHistory(token)
+      .then((loaded) => {
+        if (!cancelled) setHistory(loaded)
+      })
+      // No history, no records: the workout itself still shows
+      .catch(() => {})
+    return () => {
+      cancelled = true
+    }
+  }, [token])
+
+  const records = workout ? recordPositions(workout, history) : new Set<string>()
 
   async function handleDelete(loaded: Workout) {
     if (!window.confirm(t('workouts.deleteConfirm', { day: formatDay(loaded.performed_on) }))) {
@@ -184,7 +202,17 @@ function WorkoutDetail({
               <h3>{item.exercise_name}</h3>
               <ol className="sets">
                 {item.sets.map((set, setIndex) => (
-                  <li key={setIndex}>{formatSet(set.reps, set.weight_kg, weightUnit)}</li>
+                  <li key={setIndex}>
+                    {formatSet(set.reps, set.weight_kg, weightUnit)}
+                    {records.has(`${index}.${setIndex}`) && (
+                      <span
+                        className="record"
+                        title={t('history.recordScope', { count: HISTORY_LIMIT })}
+                      >
+                        {t('history.record')}
+                      </span>
+                    )}
+                  </li>
                 ))}
               </ol>
             </div>

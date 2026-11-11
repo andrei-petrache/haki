@@ -194,4 +194,6 @@ export const ro: Dictionary = {
   'rest.startLabel': 'Pauză',
   'rest.startPreset': 'Pornește o pauză de {time}',
   'history.lastTime': 'Ultima dată ({day}): {sets}',
+  'history.record': 'Record nou',
+  'history.recordScope': 'Cel mai bun set la acest exercițiu din ultimele {count} antrenamente',
 }

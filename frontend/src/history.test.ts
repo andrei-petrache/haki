@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { Workout } from './api'
-import { beats, bestBefore, lastTime, loadHistory, topSet } from './history'
+import { beats, bestBefore, lastTime, loadHistory, recordPositions, topSet } from './history'
 
 const BENCH = 1
 const SQUAT = 2
@@ -98,5 +98,31 @@ describe('loadHistory', () => {
     expect(history.map((w) => w.id)).toEqual(all.slice(0, 22).map((w) => w.id))
     expect(asked.filter((url) => url.includes('?limit='))).toHaveLength(2)
     expect(asked.filter((url) => !url.includes('?limit='))).toHaveLength(22)
+  })
+})
+
+describe('recordPositions', () => {
+  it('marks the best set of an exercise that beats everything before it', () => {
+    const today = workout(9, '2026-11-10', [BENCH, [[5, 72.5], [4, 75]]], [SQUAT, [[5, 100]]])
+
+    // Bench: 75 beats 72.5; squat: 5 x 100 only ties the best before
+    expect([...recordPositions(today, [today, ...HISTORY])]).toEqual(['0.1'])
+  })
+
+  it('marks nothing for an exercise done for the first time', () => {
+    const first = workout(9, '2026-11-10', [77, [[5, 50]]])
+
+    expect(recordPositions(first, [first, ...HISTORY]).size).toBe(0)
+  })
+
+  it('does not let a workout beat itself or later workouts', () => {
+    expect(recordPositions(HISTORY[3], HISTORY).size).toBe(0)
+  })
+
+  it('compares bodyweight sets by reps', () => {
+    const before = workout(1, '2026-10-01', [3, [[10, 0]]])
+    const today = workout(9, '2026-11-10', [3, [[12, 0], [8, 0]]])
+
+    expect([...recordPositions(today, [today, before])]).toEqual(['0.0'])
   })
 })
