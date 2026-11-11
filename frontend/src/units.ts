@@ -36,9 +36,14 @@ export function unitToKg(value: number, unit: WeightUnit): number {
   return unit === 'kg' ? value : roundTo(value * KG_PER_LB, 3)
 }
 
-/** The heaviest weight that can be typed in the unit: 1000 kg, or 2204.62 lb. */
+/**
+ * The heaviest weight that can be typed in the unit: 1000 kg, or 2204.62 lb.
+ *
+ * In pounds, 1000 kg is 2204.6226..., cut down to 2 decimals: 2204.63 lb
+ * would be over 1000 kg. weightError checks typed weights against this very
+ * number, so the limit in the message, the input's max and the check agree.
+ */
 export function maxWeightIn(unit: WeightUnit): number {
-  // Down, not to the nearest: 2204.63 lb would be just over 1000 kg
   return unit === 'kg' ? MAX_WEIGHT_KG : Math.floor(kgToUnit(MAX_WEIGHT_KG, unit) * 100) / 100
 }
 
@@ -76,12 +81,14 @@ export function fieldToKg(
  * What is wrong with a typed weight in the unit, or null if nothing is.
  *
  * Blank is not bodyweight (Number('') would silently be 0). The limit is
- * checked in kilograms after the conversion, as the API checks it.
+ * the typed value against maxWeightIn, before any conversion: after rounding
+ * to the gram, 2204.621 to 2204.6237 lb would all become 1000 kg and pass,
+ * above the 2204.62 lb the message and the input's max show.
  */
 export function weightError(text: string, unit: WeightUnit): string | null {
   if (text.trim() === '') return 'Enter the weight (0 for bodyweight)'
   const value = Number(text)
-  if (!Number.isFinite(value) || value < 0 || unitToKg(value, unit) > MAX_WEIGHT_KG) {
+  if (!Number.isFinite(value) || value < 0 || value > maxWeightIn(unit)) {
     return `Weight must be from 0 to ${maxWeightIn(unit)} ${unit}`
   }
   return null
