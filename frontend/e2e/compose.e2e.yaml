@@ -1,0 +1,46 @@
+# Override for the throwaway end-to-end stack, used only by scripts/e2e.sh:
+#   docker compose -p haki-e2e -f compose.yaml -f frontend/e2e/compose.e2e.yaml ...
+# Paths are relative to the repository root (the first file's directory).
+# Nothing here may touch the dev stack: no fixed container names, no ports on
+# the host, no named volume (the database lives in memory and goes with the
+# stack), and its own image tags.
+
+services:
+  db:
+    container_name: !reset null
+    ports: !reset []
+    volumes: !reset []
+    tmpfs:
+      - /var/lib/postgresql
+
+  migrate:
+    image: haki-backend:e2e
+
+  backend:
+    image: haki-backend:e2e
+
+  frontend:
+    image: haki-frontend:e2e
+    ports: !reset []
+
+  # Playwright and its browsers, pinned to the exact version in package.json
+  # (@playwright/test) and to the image's digest. Runs the tests from the
+  # frontend directory as the calling user; results go to E2E_OUT_DIR.
+  e2e:
+    image: mcr.microsoft.com/playwright:v1.64.1-noble@sha256:2f05f8a734509a7b3f26a912639488ee08f58a7b292d14d62271bcff9038768f
+    profiles: ["e2e"]
+    user: "${E2E_UID:?}:${E2E_GID:?}"
+    working_dir: /work
+    ipc: host
+    environment:
+      HOME: /tmp
+      CI: "1"
+      E2E_BASE_URL: http://frontend:8080
+      E2E_OUT: /out
+    volumes:
+      - ./frontend:/work
+      - ${E2E_OUT_DIR:?}:/out
+    depends_on:
+      frontend:
+        condition: service_healthy
+    command: ["npx", "--no-install", "playwright", "test", "-c", "e2e/playwright.config.ts"]
