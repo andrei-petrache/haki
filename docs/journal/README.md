@@ -1,11 +1,14 @@
 # Learning journal
 
-Haki is my end-to-end DevOps learning project: a fitness and nutrition tracker
-that I take from local code to Docker, CI, Kubernetes, GitOps and, at the end,
-AWS. The app is the pretext; the point is the road to production. This journal
-records what I built, what I learned and why I chose what I chose.
+Haki is a fitness and nutrition tracker that I take from local code to
+Docker, CI, Kubernetes, GitOps and, at the end, AWS. It started as my
+end-to-end DevOps learning project; since 11 November 2026 it is meant to
+become a live app that can compete on the market, and each new feature
+carries the next DevOps topic. This journal records what I built, what I
+learned and why I chose what I chose.
 
-- [Plan](plan.md): the sprints from S0 to S14 and where each one stands.
+- [Plan](plan.md): the sprints done (S0 to S9), the seven product phases
+  that follow, and where each one stands.
 - [Glossary](glossary.md): every new term, explained in one line.
 - [Decisions and lessons](decisions.md): the choices that shaped the project
   and the bugs that review and tests caught before they shipped.
