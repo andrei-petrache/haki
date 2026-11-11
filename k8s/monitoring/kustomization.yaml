@@ -21,6 +21,7 @@ configMapGenerator:
   - name: prometheus-config
     files:
       - prometheus.yml=prometheus/prometheus.yml
+      - alerts.yml=prometheus/alerts.yml
   - name: grafana-datasources
     files:
       - prometheus.yaml=grafana/datasources.yaml
