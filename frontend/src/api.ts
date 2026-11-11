@@ -264,7 +264,7 @@ export type PlannedExerciseInput = {
 export type PlannedExercise = PlannedExerciseInput & { exercise_name: string }
 
 export type ProgramDayInput = {
-  position: number // the day's place in the week, 1 to 7
+  position: number // the day's place in the plan, 1 to 7
   name: string
   exercises: PlannedExerciseInput[]
 }
