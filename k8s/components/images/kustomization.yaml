@@ -10,9 +10,9 @@ kind: Component
 
 images:
   - name: ghcr.io/andrei-petrache/haki-backend
-    newTag: "2a44a1652937bf0649ef7f1f3532714041a82f92"
+    newTag: "02b078091defe92279aca2a778caaee9a8965168"
   - name: ghcr.io/andrei-petrache/haki-frontend
-    newTag: "2a44a1652937bf0649ef7f1f3532714041a82f92"
+    newTag: "02b078091defe92279aca2a778caaee9a8965168"
   - name: haki-migrate
-    newTag: "2a44a1652937bf0649ef7f1f3532714041a82f92"
+    newTag: "02b078091defe92279aca2a778caaee9a8965168"
     newName: ghcr.io/andrei-petrache/haki-backend
