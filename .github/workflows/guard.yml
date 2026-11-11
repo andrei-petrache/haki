@@ -11,6 +11,12 @@ name: Guard
 # nothing from them is checked out or run. No secrets, a read-only token, and
 # no credentials kept in git: pull_request_target also runs for pull requests
 # from forks.
+#
+# The pull request is judged against main as the event saw it (github.sha),
+# the same commit the rules come from, never the event's
+# pull_request.base.sha: that one can lag behind main. On #82, rewritten in
+# place after #83 merged, it still said fdc9943 while main was df47b3c, so
+# the promotion's one commit was counted together with #83's.
 on:
   pull_request_target:
     branches: [main]
@@ -35,6 +41,18 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
+
+      # The checkout takes main's tip when the job starts; github.sha is main's
+      # tip when the event fired. If main moved in between, or this is "Re-run
+      # jobs" (which keeps the old event), the rules and the base would be two
+      # commits: refuse, and check the pull request again by closing and
+      # reopening it (or by updating its branch)
+      - name: Check that main did not move since the event
+        run: |
+          checked_out="$(git rev-parse HEAD)"
+          echo "main checked out: $checked_out; event (github.sha): ${GITHUB_SHA:-none}"
+          [ "$checked_out" = "${GITHUB_SHA:-}" ] \
+            || { echo "::error::main moved since this event (checked out ${checked_out:0:7}, event ${GITHUB_SHA:0:7}): close and reopen the pull request to check it again; Re-run jobs reuses the old event"; exit 1; }
 
       # kustomize: check-promotion.sh renders prod's overlay at each revision
       - name: Install yq and kustomize
@@ -65,7 +83,7 @@ jobs:
       # Through env, never ${{ }} inside run: a branch name is user input
       - name: Check prod's Application
         env:
-          BASE: ${{ github.event.pull_request.base.sha }}
+          BASE: ${{ github.sha }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
           PR_BRANCH: ${{ github.event.pull_request.head.ref }}
           PR_HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
@@ -76,6 +94,6 @@ jobs:
       - name: Check what a tag pull request changes
         env:
           BRANCH: ${{ github.event.pull_request.head.ref }}
-          BASE: ${{ github.event.pull_request.base.sha }}
+          BASE: ${{ github.sha }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: scripts/check-tag-pr.sh "$BRANCH" "$BASE" "$HEAD_SHA"
