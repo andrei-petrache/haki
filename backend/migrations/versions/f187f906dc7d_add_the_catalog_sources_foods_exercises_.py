@@ -10,6 +10,7 @@ from collections.abc import Sequence
 
 import sqlalchemy as sa
 from alembic import op
+from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
 revision: str = "f187f906dc7d"
@@ -37,11 +38,15 @@ def timestamps() -> list[sa.Column]:
 
 def upgrade() -> None:
     """Upgrade schema."""
-    # Expand only: three new tables, and one nullable column with no default
+    # Expand only: an extension, three new tables with their indexes, and one
+    # nullable column with no default
     # on foods and on exercises. The previous version of the app runs on this
     # schema too (it never names the new columns, so they stay NULL), which
     # the rollback pin needs. The tables are empty here: the catalog's rows
     # come from the import (app/catalog_import.py), not from a migration.
+    # Trigram matching, for the LIKE '%word%' of the catalog search. A trusted
+    # extension: the database owner may create it, no superuser needed
+    op.execute("CREATE EXTENSION IF NOT EXISTS pg_trgm")
     op.create_table(
         "catalog_sources",
         sa.Column("id", sa.Integer(), nullable=False),
@@ -70,9 +75,9 @@ def upgrade() -> None:
         sa.Column("level", sa.String(length=30), nullable=True),
         sa.Column("force", sa.String(length=30), nullable=True),
         sa.Column("mechanic", sa.String(length=30), nullable=True),
-        sa.Column("primary_muscles", sa.JSON(), nullable=False),
-        sa.Column("secondary_muscles", sa.JSON(), nullable=False),
-        sa.Column("image_refs", sa.JSON(), nullable=False),
+        sa.Column("primary_muscles", postgresql.JSONB(), nullable=False),
+        sa.Column("secondary_muscles", postgresql.JSONB(), nullable=False),
+        sa.Column("image_refs", postgresql.JSONB(), nullable=False),
         *timestamps(),
         sa.ForeignKeyConstraint(["source_id"], ["catalog_sources.id"]),
         sa.PrimaryKeyConstraint("id"),
@@ -103,6 +108,28 @@ def upgrade() -> None:
         sa.UniqueConstraint(
             "source_id", "source_ref", name="uq_catalog_foods_source_id_source_ref"
         ),
+    )
+    # Built on empty tables, so no lock is held for long
+    op.create_index(
+        "ix_catalog_foods_search_text_trgm",
+        "catalog_foods",
+        ["search_text"],
+        postgresql_using="gin",
+        postgresql_ops={"search_text": "gin_trgm_ops"},
+    )
+    op.create_index(
+        "ix_catalog_exercises_search_text_trgm",
+        "catalog_exercises",
+        ["search_text"],
+        postgresql_using="gin",
+        postgresql_ops={"search_text": "gin_trgm_ops"},
+    )
+    op.create_index(
+        "ix_catalog_exercises_primary_muscles",
+        "catalog_exercises",
+        ["primary_muscles"],
+        postgresql_using="gin",
+        postgresql_ops={"primary_muscles": "jsonb_path_ops"},
     )
     # Adding a nullable column without a default only changes the catalog in
     # PostgreSQL; no row is rewritten. The unique constraints build an index
@@ -153,6 +180,14 @@ def downgrade() -> None:
         "uq_exercises_user_id_catalog_exercise_id", "exercises", type_="unique"
     )
     op.drop_column("exercises", "catalog_exercise_id")
+    op.drop_index(
+        "ix_catalog_exercises_primary_muscles", table_name="catalog_exercises"
+    )
+    op.drop_index(
+        "ix_catalog_exercises_search_text_trgm", table_name="catalog_exercises"
+    )
+    op.drop_index("ix_catalog_foods_search_text_trgm", table_name="catalog_foods")
     op.drop_table("catalog_foods")
     op.drop_table("catalog_exercises")
     op.drop_table("catalog_sources")
+    # pg_trgm stays: dropping an extension is not this migration's to undo

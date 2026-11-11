@@ -264,3 +264,33 @@ def test_the_previous_version_still_inserts_foods_and_exercises(
 
     assert count(db, Food, user_id=user.id, catalog_food_id=None) == 1
     assert count(db, Exercise, user_id=user.id, catalog_exercise_id=None) == 1
+
+
+def plan(db: Session, query: str) -> str:
+    """The plan PostgreSQL picks when a sequential scan is ruled out.
+
+    With a handful of rows it would always scan; turning that off shows
+    whether an index can serve the query at all.
+    """
+    db.execute(text("SET LOCAL enable_seqscan = off"))
+    return "\n".join(db.scalars(text(f"EXPLAIN {query}")))
+
+
+def test_trigram_index_serves_the_search(db: Session) -> None:
+    add_catalog_food(db, add_source(db))
+
+    used = plan(db, "SELECT id FROM catalog_foods WHERE search_text LIKE '%pui%'")
+
+    assert "ix_catalog_foods_search_text_trgm" in used
+
+
+def test_jsonb_index_serves_the_muscle_filter(db: Session) -> None:
+    add_catalog_exercise(db, add_source(db, "free-exercise-db"))
+
+    used = plan(
+        db,
+        "SELECT id FROM catalog_exercises "
+        """WHERE primary_muscles @> '["quadriceps"]'""",
+    )
+
+    assert "ix_catalog_exercises_primary_muscles" in used
