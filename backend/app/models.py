@@ -10,9 +10,14 @@ from sqlalchemy import (
     UniqueConstraint,
     func,
 )
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 MEAL_TYPES = ("breakfast", "lunch", "dinner", "snack")
+
+# A list of strings: JSONB in PostgreSQL, which a GIN index can search with
+# @> ("contains"); plain JSON elsewhere (the tests' SQLite)
+StringList = JSON().with_variant(JSONB(), "postgresql")
 
 
 class Base(DeclarativeBase):
@@ -130,11 +135,11 @@ class CatalogExercise(Base):
     level: Mapped[str | None] = mapped_column(String(30), default=None)
     force: Mapped[str | None] = mapped_column(String(30), default=None)
     mechanic: Mapped[str | None] = mapped_column(String(30), default=None)
-    primary_muscles: Mapped[list[str]] = mapped_column(JSON)
-    secondary_muscles: Mapped[list[str]] = mapped_column(JSON)
+    primary_muscles: Mapped[list[str]] = mapped_column(StringList)
+    secondary_muscles: Mapped[list[str]] = mapped_column(StringList)
     # Paths of the images inside the source, kept as a reference only: they
     # are not served until their origin and hosting are decided
-    image_refs: Mapped[list[str]] = mapped_column(JSON)
+    image_refs: Mapped[list[str]] = mapped_column(StringList)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
@@ -143,6 +148,32 @@ class CatalogExercise(Base):
     )
 
     source: Mapped[CatalogSource] = relationship()
+
+
+# Search reads search_text with LIKE '%word%', which a B-tree cannot serve.
+# A trigram GIN index (pg_trgm) can, for words of 3 letters or more; the
+# extension is created by the migration. PostgreSQL only: elsewhere these
+# are plain indexes.
+Index(
+    "ix_catalog_foods_search_text_trgm",
+    CatalogFood.search_text,
+    postgresql_using="gin",
+    postgresql_ops={"search_text": "gin_trgm_ops"},
+)
+Index(
+    "ix_catalog_exercises_search_text_trgm",
+    CatalogExercise.search_text,
+    postgresql_using="gin",
+    postgresql_ops={"search_text": "gin_trgm_ops"},
+)
+# Filtering by muscle: primary_muscles @> '["chest"]'. jsonb_path_ops is
+# smaller than the default and serves exactly @>.
+Index(
+    "ix_catalog_exercises_primary_muscles",
+    CatalogExercise.primary_muscles,
+    postgresql_using="gin",
+    postgresql_ops={"primary_muscles": "jsonb_path_ops"},
+)
 
 
 class Food(Base):
