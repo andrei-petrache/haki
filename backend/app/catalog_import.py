@@ -37,8 +37,13 @@ DATA_DIR = Path(__file__).resolve().parent / "catalog_data"
 # Any constant: two imports at once queue behind this lock in PostgreSQL
 ADVISORY_LOCK_KEY = 4_242_001
 
+# The columns' lengths (app/models.py). A longer value is rejected, never
+# cut: a cut name could collide with another or lose what tells two foods
+# apart ("..., raw" / "..., cooked"), and the file is fixed instead.
+NAME_MAX = 100
+SEARCH_TEXT_MAX = 250
 Name = Annotated[
-    str, StringConstraints(strip_whitespace=True, min_length=1, max_length=100)
+    str, StringConstraints(strip_whitespace=True, min_length=1, max_length=NAME_MAX)
 ]
 Label = Annotated[str, StringConstraints(min_length=1, max_length=30)]
 Ref = Annotated[str, StringConstraints(min_length=1, max_length=100)]
@@ -47,6 +52,25 @@ Ref = Annotated[str, StringConstraints(min_length=1, max_length=100)]
 class Strict(BaseModel):
     # A misspelt key in a data file is an error, not a silently empty column
     model_config = ConfigDict(extra="forbid")
+
+
+class Named(Strict):
+    """An item with an English and an optional Romanian name."""
+
+    ref: Ref
+    name: Name
+    name_ro: Name | None = None
+
+    @model_validator(mode="after")
+    def search_text_fits(self) -> Named:
+        # Normalizing can lengthen a name (a ligature becomes two letters)
+        length = len(search_text(self.name, self.name_ro))
+        if length > SEARCH_TEXT_MAX:
+            raise ValueError(
+                f"{self.ref}: search text of {length} characters, "
+                f"at most {SEARCH_TEXT_MAX}"
+            )
+        return self
 
 
 class SourceData(Strict):
@@ -60,25 +84,20 @@ class SourceData(Strict):
     version: Annotated[str, StringConstraints(min_length=1, max_length=100)]
 
 
-class FoodData(Strict):
+class FoodData(Named):
     """Nutrients per 100 g, within the bounds a user's own food has (FoodIn),
     so a copy of any catalog food is a valid food."""
 
-    ref: Ref
-    name: Name
-    name_ro: Name | None = None
     calories_per_100g: float = Field(ge=0, le=900)
     protein_per_100g: float = Field(ge=0, le=100)
     carbs_per_100g: float = Field(ge=0, le=100)
     fat_per_100g: float = Field(ge=0, le=100)
-    # The source's own name for the item, kept in the file for reviewers
+    # The source's own name for the item (USDA descriptions reach 200
+    # characters), kept in the file for reviewers and never stored
     source_description: str | None = None
 
 
-class ExerciseData(Strict):
-    ref: Ref
-    name: Name
-    name_ro: Name | None = None
+class ExerciseData(Named):
     category: Label | None = None
     equipment: Label | None = None
     level: Label | None = None
