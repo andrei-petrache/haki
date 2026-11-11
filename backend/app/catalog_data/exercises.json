@@ -1,0 +1,1838 @@
+{
+  "source": {
+    "key": "free-exercise-db",
+    "name": "Free Exercise DB",
+    "url": "https://github.com/yuhonas/free-exercise-db",
+    "license": "Unlicense",
+    "attribution": "Free Exercise DB by yuhonas and contributors, released into the public domain (Unlicense). github.com/yuhonas/free-exercise-db",
+    "attribution_required": false,
+    "share_alike": false,
+    "version": "f00c92c7dcf1216a928a52c3706c7ce8e2f71ed5"
+  },
+  "exercises": [
+    {
+      "ref": "Barbell_Bench_Press_-_Medium_Grip",
+      "name": "Barbell Bench Press - Medium Grip",
+      "name_ro": "Împins la piept cu bara",
+      "category": "strength",
+      "equipment": "barbell",
+      "level": "beginner",
+      "force": "push",
+      "mechanic": "compound",
+      "primary_muscles": [
+        "chest"
+      ],
+      "secondary_muscles": [
+        "shoulders",
+        "triceps"
+      ],
+      "image_refs": [
+        "Barbell_Bench_Press_-_Medium_Grip/0.jpg",
+        "Barbell_Bench_Press_-_Medium_Grip/1.jpg"
+      ]
+    },
+    {
+      "ref": "Dumbbell_Bench_Press",
+      "name": "Dumbbell Bench Press",
+      "name_ro": "Împins la piept cu gantere",
+      "category": "strength",
+      "equipment": "dumbbell",
+      "level": "beginner",
+      "force": "push",
+      "mechanic": "compound",
+      "primary_muscles": [
+        "chest"
+      ],
+      "secondary_muscles": [
+        "shoulders",
+        "triceps"
+      ],
+      "image_refs": [
+        "Dumbbell_Bench_Press/0.jpg",
+        "Dumbbell_Bench_Press/1.jpg"
+      ]
+    },
+    {
+      "ref": "Barbell_Incline_Bench_Press_-_Medium_Grip",
+      "name": "Barbell Incline Bench Press - Medium Grip",
+      "name_ro": "Împins înclinat cu bara",
+      "category": "strength",
+      "equipment": "barbell",
+      "level": "beginner",
+      "force": "push",
+      "mechanic": "compound",
+      "primary_muscles": [
+        "chest"
+      ],
+      "secondary_muscles": [
+        "shoulders",
+        "triceps"
+      ],
+      "image_refs": [
+        "Barbell_Incline_Bench_Press_-_Medium_Grip/0.jpg",
+        "Barbell_Incline_Bench_Press_-_Medium_Grip/1.jpg"
+      ]
+    },
+    {
+      "ref": "Incline_Dumbbell_Press",
+      "name": "Incline Dumbbell Press",
+      "name_ro": "Împins înclinat cu gantere",
+      "category": "strength",
+      "equipment": "dumbbell",
+      "level": "beginner",
+      "force": "push",
+      "mechanic": "compound",
+      "primary_muscles": [
+        "chest"
+      ],
+      "secondary_muscles": [
+        "shoulders",
+        "triceps"
+      ],
+      "image_refs": [
+        "Incline_Dumbbell_Press/0.jpg",
+        "Incline_Dumbbell_Press/1.jpg"
+      ]
+    },
+    {
+      "ref": "Decline_Barbell_Bench_Press",
+      "name": "Decline Barbell Bench Press",
+      "name_ro": "Împins declinat cu bara",
+      "category": "strength",
+      "equipment": "barbell",
+      "level": "beginner",
+      "force": "push",
+      "mechanic": "compound",
+      "primary_muscles": [
+        "chest"
+      ],
+      "secondary_muscles": [
+        "shoulders",
+        "triceps"
+      ],
+      "image_refs": [
+        "Decline_Barbell_Bench_Press/0.jpg",
+        "Decline_Barbell_Bench_Press/1.jpg"
+      ]
+    },
+    {
+      "ref": "Close-Grip_Barbell_Bench_Press",
+      "name": "Close-Grip Barbell Bench Press",
+      "name_ro": "Împins cu bara, priză îngustă",
+      "category": "strength",
+      "equipment": "barbell",
+      "level": "beginner",
+      "force": "push",
+      "mechanic": "compound",
+      "primary_muscles": [
+        "triceps"
+      ],
+      "secondary_muscles": [
+        "chest",
+        "shoulders"
+      ],
+      "image_refs": [
+        "Close-Grip_Barbell_Bench_Press/0.jpg",
+        "Close-Grip_Barbell_Bench_Press/1.jpg"
+      ]
+    },
+    {
+      "ref": "Machine_Bench_Press",
+      "name": "Machine Bench Press",
+      "name_ro": "Împins la piept la aparat",
+      "category": "strength",
+      "equipment": "machine",
+      "level": "beginner",
+      "force": "push",
+      "mechanic": "compound",
+      "primary_muscles": [
+        "chest"
+      ],
+      "secondary_muscles": [
+        "shoulders",
+        "triceps"
+      ],
+      "image_refs": [
+        "Machine_Bench_Press/0.jpg",
+        "Machine_Bench_Press/1.jpg"
+      ]
+    },
+    {
+      "ref": "Dumbbell_Flyes",
+      "name": "Dumbbell Flyes",
+      "name_ro": "Fluturări cu gantere",
+      "category": "strength",
+      "equipment": "dumbbell",
+      "level": "beginner",
+      "force": "push",
+      "mechanic": "isolation",
+      "primary_muscles": [
+        "chest"
+      ],
+      "secondary_muscles": [],
+      "image_refs": [
+        "Dumbbell_Flyes/0.jpg",
+        "Dumbbell_Flyes/1.jpg"
+      ]
+    },
+    {
+      "ref": "Cable_Crossover",
+      "name": "Cable Crossover",
+      "name_ro": "Fluturări la scripete",
+      "category": "strength",
+      "equipment": "cable",
+      "level": "beginner",
+      "force": "push",
+      "mechanic": "isolation",
+      "primary_muscles": [
+        "chest"
+      ],
+      "secondary_muscles": [
+        "shoulders"
+      ],
+      "image_refs": [
+        "Cable_Crossover/0.jpg",
+        "Cable_Crossover/1.jpg"
+      ]
+    },
+    {
+      "ref": "Butterfly",
+      "name": "Butterfly",
+      "name_ro": "Fluturări la aparat",
+      "category": "strength",
+      "equipment": "machine",
+      "level": "beginner",
+      "force": "pull",
+      "mechanic": "isolation",
+      "primary_muscles": [
+        "chest"
+      ],
+      "secondary_muscles": [],
+      "image_refs": [
+        "Butterfly/0.jpg",
+        "Butterfly/1.jpg"
+      ]
+    },
+    {
+      "ref": "Pushups",
+      "name": "Pushups",
+      "name_ro": "Flotări",
+      "category": "strength",
+      "equipment": "body only",
+      "level": "beginner",
+      "force": "push",
+      "mechanic": "compound",
+      "primary_muscles": [
+        "chest"
+      ],
+      "secondary_muscles": [
+        "shoulders",
+        "triceps"
+      ],
+      "image_refs": [
+        "Pushups/0.jpg",
+        "Pushups/1.jpg"
+      ]
+    },
+    {
+      "ref": "Dips_-_Chest_Version",
+      "name": "Dips - Chest Version",
+      "name_ro": "Flotări la paralele, pentru piept",
+      "category": "strength",
+      "equipment": "other",
+      "level": "intermediate",
+      "force": "push",
+      "mechanic": "compound",
+      "primary_muscles": [
+        "chest"
+      ],
+      "secondary_muscles": [
+        "shoulders",
+        "triceps"
+      ],
+      "image_refs": [
+        "Dips_-_Chest_Version/0.jpg",
+        "Dips_-_Chest_Version/1.jpg"
+      ]
+    },
+    {
+      "ref": "Barbell_Squat",
+      "name": "Barbell Squat",
+      "name_ro": "Genuflexiuni cu bara",
+      "category": "strength",
+      "equipment": "barbell",
+      "level": "beginner",
+      "force": "push",
+      "mechanic": "compound",
+      "primary_muscles": [
+        "quadriceps"
+      ],
+      "secondary_muscles": [
+        "calves",
+        "glutes",
+        "hamstrings",
+        "lower back"
+      ],
+      "image_refs": [
+        "Barbell_Squat/0.jpg",
+        "Barbell_Squat/1.jpg"
+      ]
+    },
+    {
+      "ref": "Front_Barbell_Squat",
+      "name": "Front Barbell Squat",
+      "name_ro": "Genuflexiuni frontale cu bara",
+      "category": "strength",
+      "equipment": "barbell",
+      "level": "expert",
+      "force": "push",
+      "mechanic": "compound",
+      "primary_muscles": [
+        "quadriceps"
+      ],
+      "secondary_muscles": [
+        "calves",
+        "glutes",
+        "hamstrings"
+      ],
+      "image_refs": [
+        "Front_Barbell_Squat/0.jpg",
+        "Front_Barbell_Squat/1.jpg"
+      ]
+    },
+    {
+      "ref": "Goblet_Squat",
+      "name": "Goblet Squat",
+      "name_ro": "Genuflexiuni goblet",
+      "category": "strength",
+      "equipment": "kettlebells",
+      "level": "beginner",
+      "force": "push",
+      "mechanic": "compound",
+      "primary_muscles": [
+        "quadriceps"
+      ],
+      "secondary_muscles": [
+        "calves",
+        "glutes",
+        "hamstrings",
+        "shoulders"
+      ],
+      "image_refs": [
+        "Goblet_Squat/0.jpg",
+        "Goblet_Squat/1.jpg"
+      ]
+    },
+    {
+      "ref": "Hack_Squat",
+      "name": "Hack Squat",
+      "name_ro": "Genuflexiuni la aparatul hack",
+      "category": "strength",
+      "equipment": "machine",
+      "level": "beginner",
+      "force": "push",
+      "mechanic": "compound",
+      "primary_muscles": [
+        "quadriceps"
+      ],
+      "secondary_muscles": [
+        "calves",
+        "glutes",
+        "hamstrings"
+      ],
+      "image_refs": [
+        "Hack_Squat/0.jpg",
+        "Hack_Squat/1.jpg"
+      ]
+    },
+    {
+      "ref": "Smith_Machine_Squat",
+      "name": "Smith Machine Squat",
+      "name_ro": "Genuflexiuni la aparatul Smith",
+      "category": "strength",
+      "equipment": "machine",
+      "level": "beginner",
+      "force": "push",
+      "mechanic": "compound",
+      "primary_muscles": [
+        "quadriceps"
+      ],
+      "secondary_muscles": [
+        "calves",
+        "glutes",
+        "hamstrings",
+        "lower back"
+      ],
+      "image_refs": [
+        "Smith_Machine_Squat/0.jpg",
+        "Smith_Machine_Squat/1.jpg"
+      ]
+    },
+    {
+      "ref": "Leg_Press",
+      "name": "Leg Press",
+      "name_ro": "Presă pentru picioare",
+      "category": "strength",
+      "equipment": "machine",
+      "level": "beginner",
+      "force": "push",
+      "mechanic": "compound",
+      "primary_muscles": [
+        "quadriceps"
+      ],
+      "secondary_muscles": [
+        "calves",
+        "glutes",
+        "hamstrings"
+      ],
+      "image_refs": [
+        "Leg_Press/0.jpg",
+        "Leg_Press/1.jpg"
+      ]
+    },
+    {
+      "ref": "Leg_Extensions",
+      "name": "Leg Extensions",
+      "name_ro": "Extensii pentru cvadricepși la aparat",
+      "category": "strength",
+      "equipment": "machine",
+      "level": "beginner",
+      "force": "push",
+      "mechanic": "isolation",
+      "primary_muscles": [
+        "quadriceps"
+      ],
+      "secondary_muscles": [],
+      "image_refs": [
+        "Leg_Extensions/0.jpg",
+        "Leg_Extensions/1.jpg"
+      ]
+    },
+    {
+      "ref": "Lying_Leg_Curls",
+      "name": "Lying Leg Curls",
+      "name_ro": "Flexii pentru femurali, culcat",
+      "category": "strength",
+      "equipment": "machine",
+      "level": "beginner",
+      "force": "pull",
+      "mechanic": "isolation",
+      "primary_muscles": [
+        "hamstrings"
+      ],
+      "secondary_muscles": [],
+      "image_refs": [
+        "Lying_Leg_Curls/0.jpg",
+        "Lying_Leg_Curls/1.jpg"
+      ]
+    },
+    {
+      "ref": "Seated_Leg_Curl",
+      "name": "Seated Leg Curl",
+      "name_ro": "Flexii pentru femurali, șezând",
+      "category": "strength",
+      "equipment": "machine",
+      "level": "beginner",
+      "force": "pull",
+      "mechanic": "isolation",
+      "primary_muscles": [
+        "hamstrings"
+      ],
+      "secondary_muscles": [],
+      "image_refs": [
+        "Seated_Leg_Curl/0.jpg",
+        "Seated_Leg_Curl/1.jpg"
+      ]
+    },
+    {
+      "ref": "Barbell_Lunge",
+      "name": "Barbell Lunge",
+      "name_ro": "Fandări cu bara",
+      "category": "strength",
+      "equipment": "barbell",
+      "level": "intermediate",
+      "force": "push",
+      "mechanic": "compound",
+      "primary_muscles": [
+        "quadriceps"
+      ],
+      "secondary_muscles": [
+        "calves",
+        "glutes",
+        "hamstrings"
+      ],
+      "image_refs": [
+        "Barbell_Lunge/0.jpg",
+        "Barbell_Lunge/1.jpg"
+      ]
+    },
+    {
+      "ref": "Dumbbell_Lunges",
+      "name": "Dumbbell Lunges",
+      "name_ro": "Fandări cu gantere",
+      "category": "strength",
+      "equipment": "dumbbell",
+      "level": "beginner",
+      "force": "push",
+      "mechanic": "compound",
+      "primary_muscles": [
+        "quadriceps"
+      ],
+      "secondary_muscles": [
+        "calves",
+        "glutes",
+        "hamstrings"
+      ],
+      "image_refs": [
+        "Dumbbell_Lunges/0.jpg",
+        "Dumbbell_Lunges/1.jpg"
+      ]
+    },
+    {
+      "ref": "Bodyweight_Walking_Lunge",
+      "name": "Bodyweight Walking Lunge",
+      "name_ro": "Fandări din mers",
+      "category": "strength",
+      "equipment": null,
+      "level": "beginner",
+      "force": "push",
+      "mechanic": "compound",
+      "primary_muscles": [
+        "quadriceps"
+      ],
+      "secondary_muscles": [
+        "calves",
+        "glutes",
+        "hamstrings"
+      ],
+      "image_refs": [
+        "Bodyweight_Walking_Lunge/0.jpg",
+        "Bodyweight_Walking_Lunge/1.jpg"
+      ]
+    },
+    {
+      "ref": "Split_Squat_with_Dumbbells",
+      "name": "Split Squat with Dumbbells",
+      "name_ro": "Genuflexiuni fandate cu gantere",
+      "category": "strength",
+      "equipment": "dumbbell",
+      "level": "beginner",
+      "force": "push",
+      "mechanic": "compound",
+      "primary_muscles": [
+        "quadriceps"
+      ],
+      "secondary_muscles": [
+        "glutes",
+        "hamstrings"
+      ],
+      "image_refs": [
+        "Split_Squat_with_Dumbbells/0.jpg",
+        "Split_Squat_with_Dumbbells/1.jpg"
+      ]
+    },
+    {
+      "ref": "Barbell_Hip_Thrust",
+      "name": "Barbell Hip Thrust",
+      "name_ro": "Hip thrust cu bara",
+      "category": "powerlifting",
+      "equipment": "barbell",
+      "level": "intermediate",
+      "force": "push",
+      "mechanic": "compound",
+      "primary_muscles": [
+        "glutes"
+      ],
+      "secondary_muscles": [
+        "calves",
+        "hamstrings"
+      ],
+      "image_refs": [
+        "Barbell_Hip_Thrust/0.jpg",
+        "Barbell_Hip_Thrust/1.jpg"
+      ]
+    },
+    {
+      "ref": "Barbell_Glute_Bridge",
+      "name": "Barbell Glute Bridge",
+      "name_ro": "Pod pentru fesieri cu bara",
+      "category": "powerlifting",
+      "equipment": "barbell",
+      "level": "intermediate",
+      "force": "push",
+      "mechanic": "compound",
+      "primary_muscles": [
+        "glutes"
+      ],
+      "secondary_muscles": [
+        "calves",
+        "hamstrings"
+      ],
+      "image_refs": [
+        "Barbell_Glute_Bridge/0.jpg",
+        "Barbell_Glute_Bridge/1.jpg"
+      ]
+    },
+    {
+      "ref": "Standing_Calf_Raises",
+      "name": "Standing Calf Raises",
+      "name_ro": "Ridicări pe vârfuri, din picioare",
+      "category": "strength",
+      "equipment": "machine",
+      "level": "beginner",
+      "force": "push",
+      "mechanic": "isolation",
+      "primary_muscles": [
+        "calves"
+      ],
+      "secondary_muscles": [],
+      "image_refs": [
+        "Standing_Calf_Raises/0.jpg",
+        "Standing_Calf_Raises/1.jpg"
+      ]
+    },
+    {
+      "ref": "Seated_Calf_Raise",
+      "name": "Seated Calf Raise",
+      "name_ro": "Ridicări pe vârfuri, șezând",
+      "category": "strength",
+      "equipment": "machine",
+      "level": "beginner",
+      "force": "push",
+      "mechanic": "isolation",
+      "primary_muscles": [
+        "calves"
+      ],
+      "secondary_muscles": [],
+      "image_refs": [
+        "Seated_Calf_Raise/0.jpg",
+        "Seated_Calf_Raise/1.jpg"
+      ]
+    },
+    {
+      "ref": "Barbell_Deadlift",
+      "name": "Barbell Deadlift",
+      "name_ro": "Îndreptări cu bara",
+      "category": "strength",
+      "equipment": "barbell",
+      "level": "intermediate",
+      "force": "pull",
+      "mechanic": "compound",
+      "primary_muscles": [
+        "lower back"
+      ],
+      "secondary_muscles": [
+        "calves",
+        "forearms",
+        "glutes",
+        "hamstrings",
+        "lats",
+        "middle back",
+        "quadriceps",
+        "traps"
+      ],
+      "image_refs": [
+        "Barbell_Deadlift/0.jpg",
+        "Barbell_Deadlift/1.jpg"
+      ]
+    },
+    {
+      "ref": "Romanian_Deadlift",
+      "name": "Romanian Deadlift",
+      "name_ro": "Îndreptări românești",
+      "category": "strength",
+      "equipment": "barbell",
+      "level": "intermediate",
+      "force": "pull",
+      "mechanic": "compound",
+      "primary_muscles": [
+        "hamstrings"
+      ],
+      "secondary_muscles": [
+        "calves",
+        "glutes",
+        "lower back"
+      ],
+      "image_refs": [
+        "Romanian_Deadlift/0.jpg",
+        "Romanian_Deadlift/1.jpg"
+      ]
+    },
+    {
+      "ref": "Sumo_Deadlift",
+      "name": "Sumo Deadlift",
+      "name_ro": "Îndreptări sumo",
+      "category": "powerlifting",
+      "equipment": "barbell",
+      "level": "intermediate",
+      "force": "pull",
+      "mechanic": "compound",
+      "primary_muscles": [
+        "hamstrings"
+      ],
+      "secondary_muscles": [
+        "adductors",
+        "forearms",
+        "glutes",
+        "lower back",
+        "middle back",
+        "quadriceps",
+        "traps"
+      ],
+      "image_refs": [
+        "Sumo_Deadlift/0.jpg",
+        "Sumo_Deadlift/1.jpg"
+      ]
+    },
+    {
+      "ref": "Stiff-Legged_Barbell_Deadlift",
+      "name": "Stiff-Legged Barbell Deadlift",
+      "name_ro": "Îndreptări cu genunchii întinși",
+      "category": "strength",
+      "equipment": "barbell",
+      "level": "intermediate",
+      "force": "pull",
+      "mechanic": "compound",
+      "primary_muscles": [
+        "hamstrings"
+      ],
+      "secondary_muscles": [
+        "glutes",
+        "lower back"
+      ],
+      "image_refs": [
+        "Stiff-Legged_Barbell_Deadlift/0.jpg",
+        "Stiff-Legged_Barbell_Deadlift/1.jpg"
+      ]
+    },
+    {
+      "ref": "Trap_Bar_Deadlift",
+      "name": "Trap Bar Deadlift",
+      "name_ro": "Îndreptări cu bara hexagonală",
+      "category": "strength",
+      "equipment": "other",
+      "level": "beginner",
+      "force": "pull",
+      "mechanic": "compound",
+      "primary_muscles": [
+        "quadriceps"
+      ],
+      "secondary_muscles": [
+        "glutes",
+        "hamstrings"
+      ],
+      "image_refs": [
+        "Trap_Bar_Deadlift/0.jpg",
+        "Trap_Bar_Deadlift/1.jpg"
+      ]
+    },
+    {
+      "ref": "Good_Morning",
+      "name": "Good Morning",
+      "name_ro": "Good morning cu bara",
+      "category": "powerlifting",
+      "equipment": "barbell",
+      "level": "intermediate",
+      "force": "push",
+      "mechanic": "compound",
+      "primary_muscles": [
+        "hamstrings"
+      ],
+      "secondary_muscles": [
+        "abdominals",
+        "glutes",
+        "lower back"
+      ],
+      "image_refs": [
+        "Good_Morning/0.jpg",
+        "Good_Morning/1.jpg"
+      ]
+    },
+    {
+      "ref": "Hyperextensions_Back_Extensions",
+      "name": "Hyperextensions (Back Extensions)",
+      "name_ro": "Hiperextensii",
+      "category": "strength",
+      "equipment": "other",
+      "level": "beginner",
+      "force": "pull",
+      "mechanic": "isolation",
+      "primary_muscles": [
+        "lower back"
+      ],
+      "secondary_muscles": [
+        "glutes",
+        "hamstrings"
+      ],
+      "image_refs": [
+        "Hyperextensions_Back_Extensions/0.jpg",
+        "Hyperextensions_Back_Extensions/1.jpg"
+      ]
+    },
+    {
+      "ref": "Pullups",
+      "name": "Pullups",
+      "name_ro": "Tracțiuni",
+      "category": "strength",
+      "equipment": "body only",
+      "level": "beginner",
+      "force": "pull",
+      "mechanic": "compound",
+      "primary_muscles": [
+        "lats"
+      ],
+      "secondary_muscles": [
+        "biceps",
+        "middle back"
+      ],
+      "image_refs": [
+        "Pullups/0.jpg",
+        "Pullups/1.jpg"
+      ]
+    },
+    {
+      "ref": "Chin-Up",
+      "name": "Chin-Up",
+      "name_ro": "Tracțiuni cu priză supinată",
+      "category": "strength",
+      "equipment": "body only",
+      "level": "beginner",
+      "force": "pull",
+      "mechanic": "compound",
+      "primary_muscles": [
+        "lats"
+      ],
+      "secondary_muscles": [
+        "biceps",
+        "forearms",
+        "middle back"
+      ],
+      "image_refs": [
+        "Chin-Up/0.jpg",
+        "Chin-Up/1.jpg"
+      ]
+    },
+    {
+      "ref": "Wide-Grip_Lat_Pulldown",
+      "name": "Wide-Grip Lat Pulldown",
+      "name_ro": "Tras la helcometru, priză largă",
+      "category": "strength",
+      "equipment": "cable",
+      "level": "beginner",
+      "force": "pull",
+      "mechanic": "compound",
+      "primary_muscles": [
+        "lats"
+      ],
+      "secondary_muscles": [
+        "biceps",
+        "middle back",
+        "shoulders"
+      ],
+      "image_refs": [
+        "Wide-Grip_Lat_Pulldown/0.jpg",
+        "Wide-Grip_Lat_Pulldown/1.jpg"
+      ]
+    },
+    {
+      "ref": "Close-Grip_Front_Lat_Pulldown",
+      "name": "Close-Grip Front Lat Pulldown",
+      "name_ro": "Tras la helcometru, priză îngustă",
+      "category": "strength",
+      "equipment": "cable",
+      "level": "beginner",
+      "force": "pull",
+      "mechanic": "compound",
+      "primary_muscles": [
+        "lats"
+      ],
+      "secondary_muscles": [
+        "biceps",
+        "middle back",
+        "shoulders"
+      ],
+      "image_refs": [
+        "Close-Grip_Front_Lat_Pulldown/0.jpg",
+        "Close-Grip_Front_Lat_Pulldown/1.jpg"
+      ]
+    },
+    {
+      "ref": "Bent_Over_Barbell_Row",
+      "name": "Bent Over Barbell Row",
+      "name_ro": "Ramat cu bara",
+      "category": "strength",
+      "equipment": "barbell",
+      "level": "beginner",
+      "force": "pull",
+      "mechanic": "compound",
+      "primary_muscles": [
+        "middle back"
+      ],
+      "secondary_muscles": [
+        "biceps",
+        "lats",
+        "shoulders"
+      ],
+      "image_refs": [
+        "Bent_Over_Barbell_Row/0.jpg",
+        "Bent_Over_Barbell_Row/1.jpg"
+      ]
+    },
+    {
+      "ref": "One-Arm_Dumbbell_Row",
+      "name": "One-Arm Dumbbell Row",
+      "name_ro": "Ramat cu o ganteră",
+      "category": "strength",
+      "equipment": "dumbbell",
+      "level": "beginner",
+      "force": "pull",
+      "mechanic": "compound",
+      "primary_muscles": [
+        "middle back"
+      ],
+      "secondary_muscles": [
+        "biceps",
+        "lats",
+        "shoulders"
+      ],
+      "image_refs": [
+        "One-Arm_Dumbbell_Row/0.jpg",
+        "One-Arm_Dumbbell_Row/1.jpg"
+      ]
+    },
+    {
+      "ref": "Seated_Cable_Rows",
+      "name": "Seated Cable Rows",
+      "name_ro": "Ramat la scripete, șezând",
+      "category": "strength",
+      "equipment": "cable",
+      "level": "beginner",
+      "force": "pull",
+      "mechanic": "compound",
+      "primary_muscles": [
+        "middle back"
+      ],
+      "secondary_muscles": [
+        "biceps",
+        "lats",
+        "shoulders"
+      ],
+      "image_refs": [
+        "Seated_Cable_Rows/0.jpg",
+        "Seated_Cable_Rows/1.jpg"
+      ]
+    },
+    {
+      "ref": "T-Bar_Row_with_Handle",
+      "name": "T-Bar Row with Handle",
+      "name_ro": "Ramat la bara T",
+      "category": "strength",
+      "equipment": "barbell",
+      "level": "beginner",
+      "force": "pull",
+      "mechanic": "compound",
+      "primary_muscles": [
+        "middle back"
+      ],
+      "secondary_muscles": [
+        "biceps",
+        "lats"
+      ],
+      "image_refs": [
+        "T-Bar_Row_with_Handle/0.jpg",
+        "T-Bar_Row_with_Handle/1.jpg"
+      ]
+    },
+    {
+      "ref": "Inverted_Row",
+      "name": "Inverted Row",
+      "name_ro": "Ramat inversat",
+      "category": "strength",
+      "equipment": null,
+      "level": "beginner",
+      "force": "pull",
+      "mechanic": "compound",
+      "primary_muscles": [
+        "middle back"
+      ],
+      "secondary_muscles": [
+        "lats"
+      ],
+      "image_refs": [
+        "Inverted_Row/0.jpg",
+        "Inverted_Row/1.jpg"
+      ]
+    },
+    {
+      "ref": "Straight-Arm_Dumbbell_Pullover",
+      "name": "Straight-Arm Dumbbell Pullover",
+      "name_ro": "Pullover cu ganteră",
+      "category": "strength",
+      "equipment": "dumbbell",
+      "level": "intermediate",
+      "force": "pull",
+      "mechanic": "compound",
+      "primary_muscles": [
+        "chest"
+      ],
+      "secondary_muscles": [
+        "lats",
+        "shoulders",
+        "triceps"
+      ],
+      "image_refs": [
+        "Straight-Arm_Dumbbell_Pullover/0.jpg",
+        "Straight-Arm_Dumbbell_Pullover/1.jpg"
+      ]
+    },
+    {
+      "ref": "Barbell_Shrug",
+      "name": "Barbell Shrug",
+      "name_ro": "Ridicări din umeri cu bara",
+      "category": "strength",
+      "equipment": "barbell",
+      "level": "beginner",
+      "force": "pull",
+      "mechanic": "isolation",
+      "primary_muscles": [
+        "traps"
+      ],
+      "secondary_muscles": [],
+      "image_refs": [
+        "Barbell_Shrug/0.jpg",
+        "Barbell_Shrug/1.jpg"
+      ]
+    },
+    {
+      "ref": "Dumbbell_Shrug",
+      "name": "Dumbbell Shrug",
+      "name_ro": "Ridicări din umeri cu gantere",
+      "category": "strength",
+      "equipment": "dumbbell",
+      "level": "beginner",
+      "force": "pull",
+      "mechanic": "isolation",
+      "primary_muscles": [
+        "traps"
+      ],
+      "secondary_muscles": [],
+      "image_refs": [
+        "Dumbbell_Shrug/0.jpg",
+        "Dumbbell_Shrug/1.jpg"
+      ]
+    },
+    {
+      "ref": "Standing_Military_Press",
+      "name": "Standing Military Press",
+      "name_ro": "Împins deasupra capului cu bara, din picioare",
+      "category": "strength",
+      "equipment": "barbell",
+      "level": "beginner",
+      "force": "push",
+      "mechanic": "compound",
+      "primary_muscles": [
+        "shoulders"
+      ],
+      "secondary_muscles": [
+        "triceps"
+      ],
+      "image_refs": [
+        "Standing_Military_Press/0.jpg",
+        "Standing_Military_Press/1.jpg"
+      ]
+    },
+    {
+      "ref": "Dumbbell_Shoulder_Press",
+      "name": "Dumbbell Shoulder Press",
+      "name_ro": "Împins deasupra capului cu gantere",
+      "category": "strength",
+      "equipment": "dumbbell",
+      "level": "intermediate",
+      "force": "push",
+      "mechanic": "compound",
+      "primary_muscles": [
+        "shoulders"
+      ],
+      "secondary_muscles": [
+        "triceps"
+      ],
+      "image_refs": [
+        "Dumbbell_Shoulder_Press/0.jpg",
+        "Dumbbell_Shoulder_Press/1.jpg"
+      ]
+    },
+    {
+      "ref": "Arnold_Dumbbell_Press",
+      "name": "Arnold Dumbbell Press",
+      "name_ro": "Împins Arnold cu gantere",
+      "category": "strength",
+      "equipment": "dumbbell",
+      "level": "intermediate",
+      "force": "push",
+      "mechanic": "compound",
+      "primary_muscles": [
+        "shoulders"
+      ],
+      "secondary_muscles": [
+        "triceps"
+      ],
+      "image_refs": [
+        "Arnold_Dumbbell_Press/0.jpg",
+        "Arnold_Dumbbell_Press/1.jpg"
+      ]
+    },
+    {
+      "ref": "Machine_Shoulder_Military_Press",
+      "name": "Machine Shoulder (Military) Press",
+      "name_ro": "Împins pentru umeri la aparat",
+      "category": "strength",
+      "equipment": "machine",
+      "level": "beginner",
+      "force": "push",
+      "mechanic": "compound",
+      "primary_muscles": [
+        "shoulders"
+      ],
+      "secondary_muscles": [
+        "triceps"
+      ],
+      "image_refs": [
+        "Machine_Shoulder_Military_Press/0.jpg",
+        "Machine_Shoulder_Military_Press/1.jpg"
+      ]
+    },
+    {
+      "ref": "Side_Lateral_Raise",
+      "name": "Side Lateral Raise",
+      "name_ro": "Ridicări laterale cu gantere",
+      "category": "strength",
+      "equipment": "dumbbell",
+      "level": "beginner",
+      "force": "push",
+      "mechanic": "isolation",
+      "primary_muscles": [
+        "shoulders"
+      ],
+      "secondary_muscles": [],
+      "image_refs": [
+        "Side_Lateral_Raise/0.jpg",
+        "Side_Lateral_Raise/1.jpg"
+      ]
+    },
+    {
+      "ref": "Cable_Seated_Lateral_Raise",
+      "name": "Cable Seated Lateral Raise",
+      "name_ro": "Ridicări laterale la scripete",
+      "category": "strength",
+      "equipment": "cable",
+      "level": "beginner",
+      "force": "pull",
+      "mechanic": "isolation",
+      "primary_muscles": [
+        "shoulders"
+      ],
+      "secondary_muscles": [
+        "middle back",
+        "traps"
+      ],
+      "image_refs": [
+        "Cable_Seated_Lateral_Raise/0.jpg",
+        "Cable_Seated_Lateral_Raise/1.jpg"
+      ]
+    },
+    {
+      "ref": "Reverse_Flyes",
+      "name": "Reverse Flyes",
+      "name_ro": "Fluturări inverse cu gantere",
+      "category": "strength",
+      "equipment": "dumbbell",
+      "level": "beginner",
+      "force": "pull",
+      "mechanic": "isolation",
+      "primary_muscles": [
+        "shoulders"
+      ],
+      "secondary_muscles": [],
+      "image_refs": [
+        "Reverse_Flyes/0.jpg",
+        "Reverse_Flyes/1.jpg"
+      ]
+    },
+    {
+      "ref": "Cable_Rear_Delt_Fly",
+      "name": "Cable Rear Delt Fly",
+      "name_ro": "Fluturări inverse la scripete",
+      "category": "strength",
+      "equipment": "cable",
+      "level": "beginner",
+      "force": "pull",
+      "mechanic": "isolation",
+      "primary_muscles": [
+        "shoulders"
+      ],
+      "secondary_muscles": [],
+      "image_refs": [
+        "Cable_Rear_Delt_Fly/0.jpg",
+        "Cable_Rear_Delt_Fly/1.jpg"
+      ]
+    },
+    {
+      "ref": "Face_Pull",
+      "name": "Face Pull",
+      "name_ro": "Face pull la scripete",
+      "category": "strength",
+      "equipment": "cable",
+      "level": "intermediate",
+      "force": "pull",
+      "mechanic": "compound",
+      "primary_muscles": [
+        "shoulders"
+      ],
+      "secondary_muscles": [
+        "middle back"
+      ],
+      "image_refs": [
+        "Face_Pull/0.jpg",
+        "Face_Pull/1.jpg"
+      ]
+    },
+    {
+      "ref": "Standing_Dumbbell_Upright_Row",
+      "name": "Standing Dumbbell Upright Row",
+      "name_ro": "Ramat vertical cu gantere",
+      "category": "strength",
+      "equipment": "dumbbell",
+      "level": "beginner",
+      "force": "pull",
+      "mechanic": "compound",
+      "primary_muscles": [
+        "traps"
+      ],
+      "secondary_muscles": [
+        "biceps",
+        "shoulders"
+      ],
+      "image_refs": [
+        "Standing_Dumbbell_Upright_Row/0.jpg",
+        "Standing_Dumbbell_Upright_Row/1.jpg"
+      ]
+    },
+    {
+      "ref": "Barbell_Curl",
+      "name": "Barbell Curl",
+      "name_ro": "Flexii pentru biceps cu bara",
+      "category": "strength",
+      "equipment": "barbell",
+      "level": "beginner",
+      "force": "pull",
+      "mechanic": "isolation",
+      "primary_muscles": [
+        "biceps"
+      ],
+      "secondary_muscles": [
+        "forearms"
+      ],
+      "image_refs": [
+        "Barbell_Curl/0.jpg",
+        "Barbell_Curl/1.jpg"
+      ]
+    },
+    {
+      "ref": "Dumbbell_Bicep_Curl",
+      "name": "Dumbbell Bicep Curl",
+      "name_ro": "Flexii pentru biceps cu gantere",
+      "category": "strength",
+      "equipment": "dumbbell",
+      "level": "beginner",
+      "force": "pull",
+      "mechanic": "isolation",
+      "primary_muscles": [
+        "biceps"
+      ],
+      "secondary_muscles": [
+        "forearms"
+      ],
+      "image_refs": [
+        "Dumbbell_Bicep_Curl/0.jpg",
+        "Dumbbell_Bicep_Curl/1.jpg"
+      ]
+    },
+    {
+      "ref": "Hammer_Curls",
+      "name": "Hammer Curls",
+      "name_ro": "Flexii ciocan cu gantere",
+      "category": "strength",
+      "equipment": "dumbbell",
+      "level": "beginner",
+      "force": "pull",
+      "mechanic": "isolation",
+      "primary_muscles": [
+        "biceps"
+      ],
+      "secondary_muscles": [],
+      "image_refs": [
+        "Hammer_Curls/0.jpg",
+        "Hammer_Curls/1.jpg"
+      ]
+    },
+    {
+      "ref": "Preacher_Curl",
+      "name": "Preacher Curl",
+      "name_ro": "Flexii pentru biceps la banca Scott",
+      "category": "strength",
+      "equipment": "barbell",
+      "level": "beginner",
+      "force": "pull",
+      "mechanic": "isolation",
+      "primary_muscles": [
+        "biceps"
+      ],
+      "secondary_muscles": [],
+      "image_refs": [
+        "Preacher_Curl/0.jpg",
+        "Preacher_Curl/1.jpg"
+      ]
+    },
+    {
+      "ref": "Incline_Dumbbell_Curl",
+      "name": "Incline Dumbbell Curl",
+      "name_ro": "Flexii pentru biceps pe banca înclinată",
+      "category": "strength",
+      "equipment": "dumbbell",
+      "level": "beginner",
+      "force": "pull",
+      "mechanic": "isolation",
+      "primary_muscles": [
+        "biceps"
+      ],
+      "secondary_muscles": [],
+      "image_refs": [
+        "Incline_Dumbbell_Curl/0.jpg",
+        "Incline_Dumbbell_Curl/1.jpg"
+      ]
+    },
+    {
+      "ref": "Concentration_Curls",
+      "name": "Concentration Curls",
+      "name_ro": "Flexii concentrate",
+      "category": "strength",
+      "equipment": "dumbbell",
+      "level": "beginner",
+      "force": "pull",
+      "mechanic": "isolation",
+      "primary_muscles": [
+        "biceps"
+      ],
+      "secondary_muscles": [
+        "forearms"
+      ],
+      "image_refs": [
+        "Concentration_Curls/0.jpg",
+        "Concentration_Curls/1.jpg"
+      ]
+    },
+    {
+      "ref": "Triceps_Pushdown",
+      "name": "Triceps Pushdown",
+      "name_ro": "Extensii pentru triceps la scripete",
+      "category": "strength",
+      "equipment": "cable",
+      "level": "beginner",
+      "force": "push",
+      "mechanic": "isolation",
+      "primary_muscles": [
+        "triceps"
+      ],
+      "secondary_muscles": [],
+      "image_refs": [
+        "Triceps_Pushdown/0.jpg",
+        "Triceps_Pushdown/1.jpg"
+      ]
+    },
+    {
+      "ref": "Triceps_Pushdown_-_Rope_Attachment",
+      "name": "Triceps Pushdown - Rope Attachment",
+      "name_ro": "Extensii pentru triceps la scripete, cu frânghie",
+      "category": "strength",
+      "equipment": "cable",
+      "level": "beginner",
+      "force": "push",
+      "mechanic": "isolation",
+      "primary_muscles": [
+        "triceps"
+      ],
+      "secondary_muscles": [],
+      "image_refs": [
+        "Triceps_Pushdown_-_Rope_Attachment/0.jpg",
+        "Triceps_Pushdown_-_Rope_Attachment/1.jpg"
+      ]
+    },
+    {
+      "ref": "EZ-Bar_Skullcrusher",
+      "name": "EZ-Bar Skullcrusher",
+      "name_ro": "Extensii franceze cu bara EZ",
+      "category": "strength",
+      "equipment": "e-z curl bar",
+      "level": "beginner",
+      "force": "push",
+      "mechanic": "isolation",
+      "primary_muscles": [
+        "triceps"
+      ],
+      "secondary_muscles": [
+        "forearms"
+      ],
+      "image_refs": [
+        "EZ-Bar_Skullcrusher/0.jpg",
+        "EZ-Bar_Skullcrusher/1.jpg"
+      ]
+    },
+    {
+      "ref": "Seated_Triceps_Press",
+      "name": "Seated Triceps Press",
+      "name_ro": "Extensii pentru triceps deasupra capului, șezând",
+      "category": "strength",
+      "equipment": "dumbbell",
+      "level": "beginner",
+      "force": "push",
+      "mechanic": "isolation",
+      "primary_muscles": [
+        "triceps"
+      ],
+      "secondary_muscles": [],
+      "image_refs": [
+        "Seated_Triceps_Press/0.jpg",
+        "Seated_Triceps_Press/1.jpg"
+      ]
+    },
+    {
+      "ref": "Dips_-_Triceps_Version",
+      "name": "Dips - Triceps Version",
+      "name_ro": "Flotări la paralele, pentru triceps",
+      "category": "strength",
+      "equipment": "body only",
+      "level": "beginner",
+      "force": "push",
+      "mechanic": "compound",
+      "primary_muscles": [
+        "triceps"
+      ],
+      "secondary_muscles": [
+        "chest",
+        "shoulders"
+      ],
+      "image_refs": [
+        "Dips_-_Triceps_Version/0.jpg",
+        "Dips_-_Triceps_Version/1.jpg"
+      ]
+    },
+    {
+      "ref": "Bench_Dips",
+      "name": "Bench Dips",
+      "name_ro": "Flotări la bancă, pentru triceps",
+      "category": "strength",
+      "equipment": "body only",
+      "level": "beginner",
+      "force": "push",
+      "mechanic": "compound",
+      "primary_muscles": [
+        "triceps"
+      ],
+      "secondary_muscles": [
+        "chest",
+        "shoulders"
+      ],
+      "image_refs": [
+        "Bench_Dips/0.jpg",
+        "Bench_Dips/1.jpg"
+      ]
+    },
+    {
+      "ref": "Plank",
+      "name": "Plank",
+      "name_ro": "Planșă",
+      "category": "strength",
+      "equipment": "body only",
+      "level": "beginner",
+      "force": "static",
+      "mechanic": "isolation",
+      "primary_muscles": [
+        "abdominals"
+      ],
+      "secondary_muscles": [],
+      "image_refs": [
+        "Plank/0.jpg",
+        "Plank/1.jpg"
+      ]
+    },
+    {
+      "ref": "Crunches",
+      "name": "Crunches",
+      "name_ro": "Abdomene scurte",
+      "category": "strength",
+      "equipment": "body only",
+      "level": "beginner",
+      "force": "pull",
+      "mechanic": "isolation",
+      "primary_muscles": [
+        "abdominals"
+      ],
+      "secondary_muscles": [],
+      "image_refs": [
+        "Crunches/0.jpg",
+        "Crunches/1.jpg"
+      ]
+    },
+    {
+      "ref": "Cable_Crunch",
+      "name": "Cable Crunch",
+      "name_ro": "Abdomene la scripete",
+      "category": "strength",
+      "equipment": "cable",
+      "level": "beginner",
+      "force": "pull",
+      "mechanic": "isolation",
+      "primary_muscles": [
+        "abdominals"
+      ],
+      "secondary_muscles": [],
+      "image_refs": [
+        "Cable_Crunch/0.jpg",
+        "Cable_Crunch/1.jpg"
+      ]
+    },
+    {
+      "ref": "Sit-Up",
+      "name": "Sit-Up",
+      "name_ro": "Ridicări de trunchi",
+      "category": "strength",
+      "equipment": "body only",
+      "level": "beginner",
+      "force": "pull",
+      "mechanic": "isolation",
+      "primary_muscles": [
+        "abdominals"
+      ],
+      "secondary_muscles": [],
+      "image_refs": [
+        "Sit-Up/0.jpg",
+        "Sit-Up/1.jpg"
+      ]
+    },
+    {
+      "ref": "Hanging_Leg_Raise",
+      "name": "Hanging Leg Raise",
+      "name_ro": "Ridicări de picioare din atârnat",
+      "category": "strength",
+      "equipment": "body only",
+      "level": "expert",
+      "force": "pull",
+      "mechanic": "isolation",
+      "primary_muscles": [
+        "abdominals"
+      ],
+      "secondary_muscles": [],
+      "image_refs": [
+        "Hanging_Leg_Raise/0.jpg",
+        "Hanging_Leg_Raise/1.jpg"
+      ]
+    },
+    {
+      "ref": "Russian_Twist",
+      "name": "Russian Twist",
+      "name_ro": "Răsuciri rusești",
+      "category": "strength",
+      "equipment": "body only",
+      "level": "intermediate",
+      "force": "pull",
+      "mechanic": "compound",
+      "primary_muscles": [
+        "abdominals"
+      ],
+      "secondary_muscles": [
+        "lower back"
+      ],
+      "image_refs": [
+        "Russian_Twist/0.jpg",
+        "Russian_Twist/1.jpg"
+      ]
+    },
+    {
+      "ref": "Ab_Roller",
+      "name": "Ab Roller",
+      "name_ro": "Roata pentru abdomen",
+      "category": "strength",
+      "equipment": "other",
+      "level": "intermediate",
+      "force": "pull",
+      "mechanic": "compound",
+      "primary_muscles": [
+        "abdominals"
+      ],
+      "secondary_muscles": [
+        "shoulders"
+      ],
+      "image_refs": [
+        "Ab_Roller/0.jpg",
+        "Ab_Roller/1.jpg"
+      ]
+    },
+    {
+      "ref": "Mountain_Climbers",
+      "name": "Mountain Climbers",
+      "name_ro": "Cățărătorul",
+      "category": "plyometrics",
+      "equipment": null,
+      "level": "beginner",
+      "force": "pull",
+      "mechanic": "compound",
+      "primary_muscles": [
+        "quadriceps"
+      ],
+      "secondary_muscles": [
+        "chest",
+        "hamstrings",
+        "shoulders"
+      ],
+      "image_refs": [
+        "Mountain_Climbers/0.jpg",
+        "Mountain_Climbers/1.jpg"
+      ]
+    },
+    {
+      "ref": "Power_Clean",
+      "name": "Power Clean",
+      "name_ro": "Power clean",
+      "category": "strength",
+      "equipment": "barbell",
+      "level": "intermediate",
+      "force": "pull",
+      "mechanic": "compound",
+      "primary_muscles": [
+        "hamstrings"
+      ],
+      "secondary_muscles": [
+        "calves",
+        "forearms",
+        "glutes",
+        "lower back",
+        "middle back",
+        "quadriceps",
+        "shoulders",
+        "traps",
+        "triceps"
+      ],
+      "image_refs": [
+        "Power_Clean/0.jpg",
+        "Power_Clean/1.jpg"
+      ]
+    },
+    {
+      "ref": "One-Arm_Kettlebell_Swings",
+      "name": "One-Arm Kettlebell Swings",
+      "name_ro": "Balansări cu kettlebell, cu o mână",
+      "category": "strength",
+      "equipment": "kettlebells",
+      "level": "intermediate",
+      "force": "pull",
+      "mechanic": "compound",
+      "primary_muscles": [
+        "hamstrings"
+      ],
+      "secondary_muscles": [
+        "calves",
+        "glutes",
+        "lower back",
+        "shoulders"
+      ],
+      "image_refs": [
+        "One-Arm_Kettlebell_Swings/0.jpg",
+        "One-Arm_Kettlebell_Swings/1.jpg"
+      ]
+    },
+    {
+      "ref": "Farmers_Walk",
+      "name": "Farmer's Walk",
+      "name_ro": "Mersul fermierului",
+      "category": "strongman",
+      "equipment": "other",
+      "level": "intermediate",
+      "force": null,
+      "mechanic": "compound",
+      "primary_muscles": [
+        "forearms"
+      ],
+      "secondary_muscles": [
+        "abdominals",
+        "glutes",
+        "hamstrings",
+        "lower back",
+        "quadriceps",
+        "traps"
+      ],
+      "image_refs": [
+        "Farmers_Walk/0.jpg",
+        "Farmers_Walk/1.jpg"
+      ]
+    },
+    {
+      "ref": "Front_Box_Jump",
+      "name": "Front Box Jump",
+      "name_ro": "Sărituri pe ladă",
+      "category": "plyometrics",
+      "equipment": "other",
+      "level": "beginner",
+      "force": "push",
+      "mechanic": "compound",
+      "primary_muscles": [
+        "hamstrings"
+      ],
+      "secondary_muscles": [
+        "abductors",
+        "adductors",
+        "calves",
+        "glutes",
+        "quadriceps"
+      ],
+      "image_refs": [
+        "Front_Box_Jump/0.jpg",
+        "Front_Box_Jump/1.jpg"
+      ]
+    },
+    {
+      "ref": "Running_Treadmill",
+      "name": "Running, Treadmill",
+      "name_ro": "Alergare pe bandă",
+      "category": "cardio",
+      "equipment": "machine",
+      "level": "beginner",
+      "force": null,
+      "mechanic": null,
+      "primary_muscles": [
+        "quadriceps"
+      ],
+      "secondary_muscles": [
+        "calves",
+        "glutes",
+        "hamstrings"
+      ],
+      "image_refs": [
+        "Running_Treadmill/0.jpg",
+        "Running_Treadmill/1.jpg"
+      ]
+    },
+    {
+      "ref": "Walking_Treadmill",
+      "name": "Walking, Treadmill",
+      "name_ro": "Mers pe bandă",
+      "category": "cardio",
+      "equipment": "machine",
+      "level": "beginner",
+      "force": null,
+      "mechanic": null,
+      "primary_muscles": [
+        "quadriceps"
+      ],
+      "secondary_muscles": [
+        "calves",
+        "glutes",
+        "hamstrings"
+      ],
+      "image_refs": [
+        "Walking_Treadmill/0.jpg",
+        "Walking_Treadmill/1.jpg"
+      ]
+    },
+    {
+      "ref": "Bicycling_Stationary",
+      "name": "Bicycling, Stationary",
+      "name_ro": "Bicicletă staționară",
+      "category": "cardio",
+      "equipment": "machine",
+      "level": "beginner",
+      "force": null,
+      "mechanic": null,
+      "primary_muscles": [
+        "quadriceps"
+      ],
+      "secondary_muscles": [
+        "calves",
+        "glutes",
+        "hamstrings"
+      ],
+      "image_refs": [
+        "Bicycling_Stationary/0.jpg",
+        "Bicycling_Stationary/1.jpg"
+      ]
+    },
+    {
+      "ref": "Elliptical_Trainer",
+      "name": "Elliptical Trainer",
+      "name_ro": "Bicicletă eliptică",
+      "category": "cardio",
+      "equipment": "machine",
+      "level": "intermediate",
+      "force": null,
+      "mechanic": null,
+      "primary_muscles": [
+        "quadriceps"
+      ],
+      "secondary_muscles": [
+        "calves",
+        "glutes",
+        "hamstrings"
+      ],
+      "image_refs": [
+        "Elliptical_Trainer/0.jpg",
+        "Elliptical_Trainer/1.jpg"
+      ]
+    },
+    {
+      "ref": "Rowing_Stationary",
+      "name": "Rowing, Stationary",
+      "name_ro": "Canotaj la aparat",
+      "category": "cardio",
+      "equipment": "machine",
+      "level": "intermediate",
+      "force": null,
+      "mechanic": null,
+      "primary_muscles": [
+        "quadriceps"
+      ],
+      "secondary_muscles": [
+        "biceps",
+        "calves",
+        "glutes",
+        "hamstrings",
+        "lower back",
+        "middle back"
+      ],
+      "image_refs": [
+        "Rowing_Stationary/0.jpg",
+        "Rowing_Stationary/1.jpg"
+      ]
+    },
+    {
+      "ref": "Stairmaster",
+      "name": "Stairmaster",
+      "name_ro": "Urcat scări la aparat",
+      "category": "cardio",
+      "equipment": "machine",
+      "level": "intermediate",
+      "force": null,
+      "mechanic": null,
+      "primary_muscles": [
+        "quadriceps"
+      ],
+      "secondary_muscles": [
+        "calves",
+        "glutes",
+        "hamstrings"
+      ],
+      "image_refs": [
+        "Stairmaster/0.jpg",
+        "Stairmaster/1.jpg"
+      ]
+    }
+  ]
+}
