@@ -18,9 +18,38 @@ scrape_configs:
     static_configs:
       - targets: [kube-state-metrics.monitoring.svc:8080]
 
+  # The backend's own metrics (#123): requests by method, route template and
+  # status, and their latency, served on port 9000 only. Nginx and the
+  # Service know only 8000, so the pod's IP is scraped directly; the port is
+  # not declared in the pod spec, so the address is set here.
+  - job_name: backend-staging
+    kubernetes_sd_configs:
+      - role: pod
+        namespaces:
+          names: [haki-staging]
+    relabel_configs:
+      - source_labels: [__meta_kubernetes_pod_label_app_kubernetes_io_name]
+        regex: haki-backend
+        action: keep
+      - source_labels: [__meta_kubernetes_pod_phase]
+        regex: Running
+        action: keep
+      - source_labels: [__meta_kubernetes_pod_container_port_name]
+        regex: http
+        action: keep
+      - source_labels: [__meta_kubernetes_pod_ip]
+        target_label: __address__
+        replacement: $1:9000
+      - source_labels: [__meta_kubernetes_pod_name]
+        target_label: pod
+    metric_relabel_configs:
+      - source_labels: [__name__]
+        regex: haki_http_requests_total|haki_http_request_duration_seconds_(bucket|count|sum)|process_(resident_memory_bytes|cpu_seconds_total|open_fds)
+        action: keep
+
   # Envoy, staging's gateway proxy: requests, response classes and latency
-  # per route rule. The backend has no metrics of its own; its traffic is
-  # the rule that matches /api.
+  # per route rule; the rule that matches /api is the backend's traffic as
+  # clients see it, including what Nginx answers for it.
   - job_name: envoy-staging
     metrics_path: /stats/prometheus
     kubernetes_sd_configs:

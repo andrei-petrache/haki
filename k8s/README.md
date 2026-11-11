@@ -477,9 +477,13 @@ webhooks, a few hundred MiB in all.
 
 What it scrapes, and nothing more (the rest is dropped at scrape time):
 
+- The backend itself, on port 9000 of each staging backend pod: requests
+  by method, route template and status, their latency, and the process's
+  memory and CPU. Port 9000 is not in the Service and Nginx proxies only to
+  8000, so the metrics are not reachable from outside (`/api/metrics` is the
+  API's 404).
 - Envoy, staging's gateway proxy: requests, response classes and latency per
-  route rule. The backend exposes no metrics of its own; its traffic is the
-  rule for `/api`.
+  route rule; the rule for `/api` is the API as clients see it.
 - The kubelet: CPU and memory per container (cAdvisor) and how full
   staging's volumes are, with a token that may only read node metrics.
 - kube-state-metrics: the state of staging's pods and workloads, restarts
