@@ -1,0 +1,122 @@
+import { describe, expect, it } from 'vitest'
+import {
+  DEFAULT_WEIGHT_UNIT,
+  KG_PER_LB,
+  MAX_WEIGHT_KG,
+  fieldToKg,
+  formatWeightIn,
+  kgToUnit,
+  maxWeightIn,
+  parseWeightUnit,
+  unitToKg,
+  weightError,
+  weightFieldText,
+} from './units'
+import { MAX_WEIGHT_KG as WORKOUT_MAX_WEIGHT_KG } from './workoutForm'
+
+describe('conversion', () => {
+  it('keeps kilograms as they are', () => {
+    expect(kgToUnit(61.25, 'kg')).toBe(61.25)
+    expect(unitToKg(61.25, 'kg')).toBe(61.25)
+  })
+
+  it('converts pounds with the exact factor', () => {
+    expect(KG_PER_LB).toBe(0.45359237)
+    expect(kgToUnit(KG_PER_LB, 'lb')).toBe(1)
+  })
+
+  it('rounds pounds to the gram when converting to kilograms', () => {
+    expect(unitToKg(132.28, 'lb')).toBe(60.001)
+    expect(unitToKg(135, 'lb')).toBe(61.235)
+    expect(unitToKg(61, 'lb')).toBe(27.669)
+  })
+
+  it('keeps 0 exactly 0 both ways: a bodyweight set', () => {
+    expect(unitToKg(0, 'lb')).toBe(0)
+    expect(kgToUnit(0, 'lb')).toBe(0)
+    expect(weightFieldText(0, 'lb')).toBe('0')
+  })
+
+  it('brings every pound value with up to 2 decimals back unchanged', () => {
+    // 0.00 to 2204.62 lb, in steps of 0.01: what is typed is what shows again
+    const changed: string[] = []
+    for (let hundredths = 0; hundredths <= 220462; hundredths++) {
+      const typed = String(hundredths / 100)
+      if (weightFieldText(unitToKg(Number(typed), 'lb'), 'lb') !== typed) changed.push(typed)
+    }
+
+    expect(changed).toEqual([])
+  })
+})
+
+describe('editor fields', () => {
+  it('starts with plain text a number input accepts, 2 decimals at most in pounds', () => {
+    expect(weightFieldText(60, 'kg')).toBe('60')
+    expect(weightFieldText(22.5, 'kg')).toBe('22.5')
+    expect(weightFieldText(60, 'lb')).toBe('132.28')
+    expect(weightFieldText(1000, 'lb')).toBe('2204.62')
+  })
+
+  it('sends the saved kilograms when the field was not changed', () => {
+    const saved = 60
+    const text = weightFieldText(saved, 'lb') // "132.28", which alone would be 60.001 kg
+
+    expect(fieldToKg(text, 'lb', saved, text)).toBe(60)
+  })
+
+  it('converts what was typed when the field changed, or is new', () => {
+    expect(fieldToKg('135', 'lb', 60, '132.28')).toBe(61.235)
+    expect(fieldToKg('135', 'lb')).toBe(61.235)
+    expect(fieldToKg('22.5', 'kg')).toBe(22.5)
+  })
+
+  it('treats a field typed back to its first text as unchanged', () => {
+    expect(fieldToKg('132.28', 'lb', 60, '132.28')).toBe(60)
+  })
+})
+
+describe('weightError', () => {
+  it('uses the same limit as the API and the workout form', () => {
+    expect(MAX_WEIGHT_KG).toBe(1000)
+    expect(MAX_WEIGHT_KG).toBe(WORKOUT_MAX_WEIGHT_KG)
+  })
+
+  it('allows 0 to 1000 kg, or 0 to 2204.62 lb', () => {
+    expect(maxWeightIn('kg')).toBe(1000)
+    expect(maxWeightIn('lb')).toBe(2204.62)
+    for (const [text, unit] of [['0', 'kg'], ['1000', 'kg'], ['0', 'lb'], ['61', 'lb'], ['2204.62', 'lb']] as const) {
+      expect(weightError(text, unit), `${text} ${unit}`).toBeNull()
+    }
+  })
+
+  it('rejects a blank weight instead of treating it as bodyweight', () => {
+    for (const text of ['', '  ']) {
+      expect(weightError(text, 'lb')).toBe('Enter the weight (0 for bodyweight)')
+    }
+  })
+
+  it('rejects weights outside the range or not a number, in the unit shown', () => {
+    for (const text of ['-1', '2205', 'abc']) {
+      expect(weightError(text, 'lb'), text).toBe('Weight must be from 0 to 2204.62 lb')
+    }
+    expect(weightError('1000.5', 'kg')).toBe('Weight must be from 0 to 1000 kg')
+  })
+})
+
+describe('display', () => {
+  it('shows the weight in the unit, with up to 2 decimals', () => {
+    expect(formatWeightIn(60, 'kg')).toBe('60 kg')
+    expect(formatWeightIn(60, 'lb')).toMatch(/^132[.,]28 lb$/)
+    expect(formatWeightIn(27.669, 'lb')).toBe('61 lb')
+  })
+})
+
+describe('parseWeightUnit', () => {
+  it('reads a known unit back, and falls back to kilograms otherwise', () => {
+    expect(DEFAULT_WEIGHT_UNIT).toBe('kg')
+    expect(parseWeightUnit('lb')).toBe('lb')
+    expect(parseWeightUnit('kg')).toBe('kg')
+    expect(parseWeightUnit('stone')).toBe('kg')
+    expect(parseWeightUnit(null)).toBe('kg')
+  })
+})
