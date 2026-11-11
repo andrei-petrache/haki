@@ -136,6 +136,11 @@ test('the workout editor in Romanian fits a phone', async () => {
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390)
   await page.screenshot({ path: `${SHOTS}/11-ro-workout-editor-phone.png`, fullPage: true })
 
+  // Validation, made outside the components, follows the language too
+  await page.getByRole('button', { name: 'Salvează' }).click()
+  await expect(page.getByText('Scrie numele exercițiului nou')).toBeVisible()
+  await expect(page.getByText('Scrie repetările')).toBeVisible()
+
   await page.getByRole('button', { name: 'Renunță' }).click()
   await page.setViewportSize({ width: 1280, height: 720 })
   await tab('Profil').click()

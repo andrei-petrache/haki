@@ -14,6 +14,8 @@ import {
 } from './workoutForm'
 import { firstChangedRow, withoutKeys, withoutRowsFrom } from './formErrors'
 import type { FormErrors } from './formErrors'
+import { tActive } from './i18n/i18n'
+import type { MessageKey } from './i18n/i18n'
 import { weightToSend } from './units'
 import type { WeightUnit } from './units'
 
@@ -101,11 +103,11 @@ export function plannedValuesKey(day: number, index: number): string {
 }
 
 /** What is wrong with a name (the program's or a day's), or null if nothing is. */
-function nameError(name: string, what: string): string | null {
+function nameError(name: string, empty: MessageKey): string | null {
   const trimmed = name.trim()
-  if (trimmed === '') return `Enter ${what}`
+  if (trimmed === '') return tActive(empty)
   if (trimmed.length > MAX_NAME_LENGTH) {
-    return `The name can have at most ${MAX_NAME_LENGTH} characters`
+    return tActive('form.nameTooLong', { max: MAX_NAME_LENGTH })
   }
   return null
 }
@@ -113,9 +115,9 @@ function nameError(name: string, what: string): string | null {
 /** What is wrong with a planned exercise's numbers, or null if nothing is. */
 function valuesError(item: PlannedFields, unit: WeightUnit): string | null {
   const sets = item.sets.trim() === '' ? null : Number(item.sets)
-  if (sets === null) return 'Enter the sets'
+  if (sets === null) return tActive('form.enterSets')
   if (!Number.isInteger(sets) || sets < 1 || sets > MAX_SETS) {
-    return `Sets must be a whole number from 1 to ${MAX_SETS}`
+    return tActive('form.setsRange', { max: MAX_SETS })
   }
   // Reps and weight follow the same rules as a logged set
   return setError({ reps: item.reps, weight: item.weight }, unit)
@@ -125,12 +127,12 @@ function valuesError(item: PlannedFields, unit: WeightUnit): string | null {
 export function validateProgram(fields: ProgramFields, unit: WeightUnit = 'kg'): FormErrors {
   const errors: FormErrors = {}
 
-  const name = nameError(fields.name, 'a name for the program')
+  const name = nameError(fields.name, 'form.enterProgramName')
   if (name) errors[NAME_KEY] = name
   if (fields.days.length === 0) {
-    errors[DAYS_KEY] = 'Add at least one day'
+    errors[DAYS_KEY] = tActive('form.addDay')
   } else if (fields.days.length > MAX_DAYS) {
-    errors[DAYS_KEY] = `A program can have at most ${MAX_DAYS} days`
+    errors[DAYS_KEY] = tActive('form.tooManyDays', { max: MAX_DAYS })
   }
 
   // Two days on the same place in the plan: the API answers 409, so say it
@@ -138,20 +140,21 @@ export function validateProgram(fields: ProgramFields, unit: WeightUnit = 'kg'):
   const seen = new Set<number>()
   fields.days.forEach((day, d) => {
     if (!Number.isInteger(day.position) || day.position < 1 || day.position > MAX_DAYS) {
-      errors[dayPositionKey(d)] = `Choose a day from 1 to ${MAX_DAYS}`
+      errors[dayPositionKey(d)] = tActive('form.dayRange', { max: MAX_DAYS })
     } else if (seen.has(day.position)) {
-      errors[dayPositionKey(d)] = `Another day is already day ${day.position}`
+      errors[dayPositionKey(d)] = tActive('form.dayTaken', { day: day.position })
     }
     seen.add(day.position)
 
-    const dayName = nameError(day.name, 'a name for the day')
+    const dayName = nameError(day.name, 'form.enterDayName')
     if (dayName) errors[dayNameKey(d)] = dayName
 
     if (day.exercises.length === 0) {
-      errors[dayExercisesKey(d)] = 'Add at least one exercise'
+      errors[dayExercisesKey(d)] = tActive('form.addExercise')
     } else if (day.exercises.length > MAX_EXERCISES_PER_DAY) {
-      errors[dayExercisesKey(d)] =
-        `A day can have at most ${MAX_EXERCISES_PER_DAY} exercises`
+      errors[dayExercisesKey(d)] = tActive('form.tooManyDayExercises', {
+        max: MAX_EXERCISES_PER_DAY,
+      })
     }
     day.exercises.forEach((item, e) => {
       const choice = choiceError(item)

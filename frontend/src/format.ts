@@ -1,3 +1,4 @@
+import { activeLocale, tActive } from './i18n/i18n'
 import { kgToUnit } from './units'
 import type { WeightUnit } from './units'
 
@@ -21,15 +22,17 @@ export function shiftDate(day: string, days: number): string {
   return localDateString(new Date(year, month - 1, date + days))
 }
 
-const kcalFormat = new Intl.NumberFormat(undefined, { maximumFractionDigits: 0 })
-const decimalFormat = new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 })
+/** Numbers in the active language: "61.25" in English, "61,25" in Romanian. */
+function numberFormat(maximumFractionDigits: number): Intl.NumberFormat {
+  return new Intl.NumberFormat(activeLocale(), { maximumFractionDigits })
+}
 
 export function formatKcal(value: number): string {
-  return kcalFormat.format(value)
+  return numberFormat(0).format(value)
 }
 
 export function formatDecimal(value: number): string {
-  return decimalFormat.format(value)
+  return numberFormat(1).format(value)
 }
 
 /**
@@ -44,7 +47,7 @@ export function parseDay(day: string): Date {
 }
 
 export function formatDay(day: string): string {
-  return parseDay(day).toLocaleDateString(undefined, {
+  return parseDay(day).toLocaleDateString(activeLocale(), {
     weekday: 'short',
     day: 'numeric',
     month: 'short',
@@ -52,11 +55,9 @@ export function formatDay(day: string): string {
   })
 }
 
-// Two decimals: plates go down to 1.25 kg, so 61.25 must not become 61.3
-const weightFormat = new Intl.NumberFormat(undefined, { maximumFractionDigits: 2 })
-
 export function formatWeight(kg: number): string {
-  return weightFormat.format(kg)
+  // Two decimals: plates go down to 1.25 kg, so 61.25 must not become 61.3
+  return numberFormat(2).format(kg)
 }
 
 /** A weight stored in kilograms, shown in the unit: "60 kg" or "132.28 lb". */
@@ -66,21 +67,9 @@ export function formatWeightIn(kg: number, unit: WeightUnit): string {
 
 /** One set as "8 × 60 kg" (or in lb); weight 0 means a bodyweight set. */
 export function formatSet(reps: number, weightKg: number, unit: WeightUnit = 'kg'): string {
-  return weightKg === 0 ? `${reps} × bodyweight` : `${reps} × ${formatWeightIn(weightKg, unit)}`
-}
-
-function plural(count: number, word: string): string {
-  return `${count} ${word}${count === 1 ? '' : 's'}`
-}
-
-/** "3 exercises · 12 sets", for a workout in the list. */
-export function formatCounts(exercises: number, sets: number): string {
-  return `${plural(exercises, 'exercise')} · ${plural(sets, 'set')}`
-}
-
-/** "1 day", "3 days", for a program in the list. */
-export function formatDayCount(days: number): string {
-  return plural(days, 'day')
+  return weightKg === 0
+    ? `${reps} × ${tActive('common.bodyweight')}`
+    : `${reps} × ${formatWeightIn(weightKg, unit)}`
 }
 
 /** One planned exercise as "3 × 8 × 60 kg": sets × reps × weight. */
