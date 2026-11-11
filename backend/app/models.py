@@ -1,6 +1,7 @@
 from datetime import date, datetime
 
 from sqlalchemy import (
+    JSON,
     CheckConstraint,
     DateTime,
     ForeignKey,
@@ -32,6 +33,118 @@ class User(Base):
     )
 
 
+class CatalogSource(Base):
+    """Where catalog rows come from, under which licence, credited how.
+
+    Shared by everyone and written only by the catalog import, never by a
+    request: catalog tables hold no user data and no user_id.
+    """
+
+    __tablename__ = "catalog_sources"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    # Stable name the import finds its source by, e.g. "usda-fdc-sr-legacy"
+    key: Mapped[str] = mapped_column(String(50), unique=True)
+    name: Mapped[str] = mapped_column(String(200))
+    url: Mapped[str] = mapped_column(String(500))
+    # SPDX identifier, e.g. "CC0-1.0", "Unlicense", "ODbL-1.0"
+    license: Mapped[str] = mapped_column(String(50))
+    # The credit line shown to users, in the source's requested form
+    attribution: Mapped[str] = mapped_column(String(1000))
+    # Whether the licence requires that credit on screen (ODbL, CC-BY-SA),
+    # rather than it being a courtesy (CC0, Unlicense)
+    attribution_required: Mapped[bool]
+    # Whether a database derived from it must keep the same licence
+    share_alike: Mapped[bool]
+    # The dataset's own version: a release date or a commit SHA
+    version: Mapped[str] = mapped_column(String(100))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
+
+class CatalogFood(Base):
+    """A food of the shared catalog, with nutrients per 100 g."""
+
+    __tablename__ = "catalog_foods"
+    __table_args__ = (
+        # What makes the import idempotent: one row per item of a source
+        UniqueConstraint(
+            "source_id", "source_ref", name="uq_catalog_foods_source_id_source_ref"
+        ),
+        CheckConstraint(
+            "calories_per_100g >= 0 AND protein_per_100g >= 0 "
+            "AND carbs_per_100g >= 0 AND fat_per_100g >= 0",
+            name="ck_catalog_foods_non_negative_nutrients",
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    source_id: Mapped[int] = mapped_column(ForeignKey("catalog_sources.id"))
+    # The item's id at its source, e.g. a USDA FDC id
+    source_ref: Mapped[str] = mapped_column(String(100))
+    # English, the app's first language; name_ro when the data has one
+    name: Mapped[str] = mapped_column(String(100))
+    name_ro: Mapped[str | None] = mapped_column(String(100), default=None)
+    # Both names, lower case, without diacritics (app.catalog_search)
+    search_text: Mapped[str] = mapped_column(String(250))
+    calories_per_100g: Mapped[float]
+    protein_per_100g: Mapped[float]
+    carbs_per_100g: Mapped[float]
+    fat_per_100g: Mapped[float]
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
+    source: Mapped[CatalogSource] = relationship()
+
+
+class CatalogExercise(Base):
+    """An exercise of the shared catalog."""
+
+    __tablename__ = "catalog_exercises"
+    __table_args__ = (
+        UniqueConstraint(
+            "source_id",
+            "source_ref",
+            name="uq_catalog_exercises_source_id_source_ref",
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    source_id: Mapped[int] = mapped_column(ForeignKey("catalog_sources.id"))
+    source_ref: Mapped[str] = mapped_column(String(100))
+    name: Mapped[str] = mapped_column(String(100))
+    name_ro: Mapped[str | None] = mapped_column(String(100), default=None)
+    search_text: Mapped[str] = mapped_column(String(250))
+    # The source's own vocabulary, in English, e.g. "strength", "barbell";
+    # the frontend translates it
+    category: Mapped[str | None] = mapped_column(String(30), default=None)
+    equipment: Mapped[str | None] = mapped_column(String(30), default=None)
+    level: Mapped[str | None] = mapped_column(String(30), default=None)
+    force: Mapped[str | None] = mapped_column(String(30), default=None)
+    mechanic: Mapped[str | None] = mapped_column(String(30), default=None)
+    primary_muscles: Mapped[list[str]] = mapped_column(JSON)
+    secondary_muscles: Mapped[list[str]] = mapped_column(JSON)
+    # Paths of the images inside the source, kept as a reference only: they
+    # are not served until their origin and hosting are decided
+    image_refs: Mapped[list[str]] = mapped_column(JSON)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
+    source: Mapped[CatalogSource] = relationship()
+
+
 class Food(Base):
     """A food in a user's personal list, with nutrients per 100 g."""
 
@@ -42,6 +155,11 @@ class Food(Base):
             "calories_per_100g >= 0 AND protein_per_100g >= 0 "
             "AND carbs_per_100g >= 0 AND fat_per_100g >= 0",
             name="ck_foods_non_negative_nutrients",
+        ),
+        # One copy of a catalog food per user. NULLs never conflict, so
+        # foods typed in by hand are not limited.
+        UniqueConstraint(
+            "user_id", "catalog_food_id", name="uq_foods_user_id_catalog_food_id"
         ),
     )
 
@@ -56,6 +174,13 @@ class Food(Base):
     fat_per_100g: Mapped[float]
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
+    )
+    # The catalog food this one was copied from, if any. A copy, not a
+    # reference: a later import never changes what the user logged, and
+    # the user may edit it. Nullable, so the previous version of the app,
+    # which does not know the column, still inserts foods.
+    catalog_food_id: Mapped[int | None] = mapped_column(
+        ForeignKey("catalog_foods.id", name="fk_foods_catalog_food_id"), default=None
     )
 
 
@@ -91,12 +216,26 @@ class Exercise(Base):
     """An exercise in a user's personal catalog, e.g. "Bench press"."""
 
     __tablename__ = "exercises"
+    __table_args__ = (
+        # One copy of a catalog exercise per user, as for foods
+        UniqueConstraint(
+            "user_id",
+            "catalog_exercise_id",
+            name="uq_exercises_user_id_catalog_exercise_id",
+        ),
+    )
 
     id: Mapped[int] = mapped_column(primary_key=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
     name: Mapped[str] = mapped_column(String(100))
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
+    )
+    # The catalog exercise this one was copied from, if any (see
+    # Food.catalog_food_id)
+    catalog_exercise_id: Mapped[int | None] = mapped_column(
+        ForeignKey("catalog_exercises.id", name="fk_exercises_catalog_exercise_id"),
+        default=None,
     )
 
 
