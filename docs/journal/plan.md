@@ -33,7 +33,7 @@ In this order:
 
 | # | Product phase | The DevOps topic it carries | Status |
 | --- | --- | --- | --- |
-| 1 | **Catalog**: exercises from free-exercise-db, generic foods from USDA, curated Romanian basics | Data migrations as opposed to schema migrations, an import Job, static assets | Next |
+| 1 | **Catalog**: exercises from free-exercise-db, generic foods from USDA, curated Romanian basics. Before serving free-exercise-db's images, check where they come from: the repository is under the Unlicense, but its images may have another origin | Data migrations as opposed to schema migrations, an import Job, static assets | Next |
 | 2 | **Fast logging**: recents, favourites, copy a meal, quick add; in the gym: last time's numbers, a rest timer, personal records, kg/lb | Prometheus and Grafana, alerts (failed publishes included) | Next |
 | 3 | **Body weight** and an adaptive calorie target, linked to training volume | Argo Rollouts: blue-green with automatic rollback | Next |
 | 4 | **Trust**: GDPR account deletion, data export and consent; password reset; e-mail verification | Scheduled backups and a restore drill, secrets handling | Next |
