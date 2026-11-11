@@ -8,6 +8,7 @@ import {
   signup,
 } from './api'
 import type { User } from './api'
+import Credits from './Credits'
 import FoodsPage from './FoodsPage'
 import { I18nContext, useI18n } from './i18n/context'
 import type { I18n } from './i18n/context'
@@ -127,6 +128,7 @@ function AuthForm({ onLoggedIn }: { onLoggedIn: (token: string) => void }) {
 }
 
 function Profile({
+  token,
   user,
   weightUnit,
   onWeightUnitChange,
@@ -134,6 +136,7 @@ function Profile({
   browserLocale,
   onLocaleChoiceChange,
 }: {
+  token: string
   user: User
   weightUnit: WeightUnit
   onWeightUnitChange: (unit: WeightUnit) => void
@@ -142,7 +145,10 @@ function Profile({
   onLocaleChoiceChange: (choice: LocaleChoice) => void
 }) {
   const { t, locale } = useI18n()
+  const [showCredits, setShowCredits] = useState(false)
   const memberSince = new Date(user.created_at).toLocaleDateString(locale)
+
+  if (showCredits) return <Credits token={token} onBack={() => setShowCredits(false)} />
 
   return (
     <section className="card">
@@ -185,6 +191,9 @@ function Profile({
         </select>
       </label>
       <p className="muted">{t('profile.languageNote')}</p>
+      <button type="button" className="link" onClick={() => setShowCredits(true)}>
+        {t('credits.open')}
+      </button>
     </section>
   )
 }
@@ -350,6 +359,7 @@ function App() {
       )}
       {user && tab === 'profile' && (
         <Profile
+          token={token}
           user={user}
           weightUnit={weightUnit}
           onWeightUnitChange={(unit) => {

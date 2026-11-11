@@ -60,6 +60,10 @@ fi
 
 compose build backend frontend
 compose up -d --no-build --wait --wait-timeout 300 db migrate backend frontend
+# The catalog, as staging and prod get it: the import command in the backend
+# image (an upsert from the data files it ships); migrate has the database
+# settings and nothing else
+compose run --rm --no-deps migrate python -m app.catalog_import
 compose run --rm e2e
 
 echo "Screenshots: $out/screenshots"
