@@ -8,7 +8,8 @@ import {
   startWorkout,
 } from './api'
 import type { Program, ProgramSummary } from './api'
-import { formatDayCount, formatPlanned, localDateString } from './format'
+import { formatPlanned, localDateString } from './format'
+import { useI18n } from './i18n/context'
 import ProgramEditor from './ProgramEditor'
 import { dateError } from './workoutForm'
 import type { WeightUnit } from './units'
@@ -31,6 +32,7 @@ function ProgramList({
   onOpen: (id: number) => void
   onNew: () => void
 }) {
+  const { t } = useI18n()
   const [programs, setPrograms] = useState<ProgramSummary[] | null>(null)
   // A full page means there may be more; an empty next page then just ends it
   const [hasMore, setHasMore] = useState(false)
@@ -72,21 +74,21 @@ function ProgramList({
   return (
     <section className="card">
       <div className="card-head">
-        <h2>Your programs</h2>
+        <h2>{t('programs.yours')}</h2>
         <button type="button" onClick={onNew}>
-          New program
+          {t('programs.new')}
         </button>
       </div>
       {error && <p className="error">{error}</p>}
-      {programs === null && !error && <p className="muted">Loading…</p>}
-      {programs?.length === 0 && <p className="muted empty">No programs yet</p>}
+      {programs === null && !error && <p className="muted">{t('app.loading')}</p>}
+      {programs?.length === 0 && <p className="muted empty">{t('programs.none')}</p>}
       {programs && programs.length > 0 && (
         <ul className="workout-list">
           {programs.map((program) => (
             <li key={program.id}>
               <button type="button" className="workout-card" onClick={() => onOpen(program.id)}>
                 <strong>{program.name}</strong>
-                <span className="muted">{formatDayCount(program.day_count)}</span>
+                <span className="muted">{t('count.days', { count: program.day_count })}</span>
               </button>
             </li>
           ))}
@@ -99,7 +101,7 @@ function ProgramList({
           disabled={loadingMore}
           onClick={() => void handleLoadMore(programs)}
         >
-          {loadingMore ? 'Loading…' : 'Load more'}
+          {loadingMore ? t('app.loading') : t('common.loadMore')}
         </button>
       )}
     </section>
@@ -119,6 +121,7 @@ function ProgramDetail({
   onWorkoutStarted: (workoutId: number) => void
   weightUnit: WeightUnit
 }) {
+  const { t } = useI18n()
   const [program, setProgram] = useState<Program | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [deleting, setDeleting] = useState(false)
@@ -146,7 +149,7 @@ function ProgramDetail({
 
   async function handleDelete(loaded: Program) {
     // Workouts already started from it stay: they are copies
-    if (!window.confirm(`Delete the program "${loaded.name}"? Its workouts stay.`)) return
+    if (!window.confirm(t('programs.deleteConfirm', { name: loaded.name }))) return
     setError(null)
     setDeleting(true)
     try {
@@ -183,15 +186,15 @@ function ProgramDetail({
   return (
     <section className="card">
       <button type="button" className="link" onClick={onBack}>
-        ‹ Back to programs
+        {t('programs.back')}
       </button>
       {error && <p className="error">{error}</p>}
-      {!program && !error && <p className="muted">Loading…</p>}
+      {!program && !error && <p className="muted">{t('app.loading')}</p>}
       {program && (
         <>
           <h2>{program.name}</h2>
           <label className="date-field">
-            Workout date
+            {t('programs.workoutDate')}
             <input
               type="date"
               value={performedOn}
@@ -200,14 +203,13 @@ function ProgramDetail({
           </label>
           {dateProblem && <p className="error">{dateProblem}</p>}
           <p className="muted">
-            Starting a day copies its plan into a new workout. Changing or deleting the
-            program later leaves that workout as it is.
+            {t('programs.copyNote')}
           </p>
           {/* By position: the API returns the days in that order */}
           {program.days.map((day) => (
             <div key={day.id} className="workout-exercise">
               <h3>
-                Day {day.position} · {day.name}
+                {t('programs.dayTitle', { position: day.position, name: day.name })}
               </h3>
               <ul className="sets">
                 {day.exercises.map((item, index) => (
@@ -221,10 +223,10 @@ function ProgramDetail({
                 <button
                   type="button"
                   disabled={busy}
-                  aria-label={`Start a workout from day ${day.position}, ${day.name}`}
+                  aria-label={t('programs.startDay', { position: day.position, name: day.name })}
                   onClick={() => void handleStart(program, day.id)}
                 >
-                  {startingDay === day.id ? 'Starting…' : 'Start workout'}
+                  {startingDay === day.id ? t('programs.starting') : t('programs.start')}
                 </button>
               </div>
             </div>
@@ -236,7 +238,7 @@ function ProgramDetail({
               disabled={busy}
               onClick={() => void handleDelete(program)}
             >
-              {deleting ? 'Deleting…' : 'Delete'}
+              {deleting ? t('common.deleting') : t('common.delete')}
             </button>
           </div>
         </>
