@@ -8,9 +8,11 @@ import {
   kgToUnit,
   maxWeightIn,
   parseWeightUnit,
+  stepWeight,
   unitToKg,
   weightError,
   weightFieldText,
+  weightStep,
 } from './units'
 import { MAX_WEIGHT_KG as WORKOUT_MAX_WEIGHT_KG } from './workoutForm'
 
@@ -118,5 +120,47 @@ describe('parseWeightUnit', () => {
     expect(parseWeightUnit('kg')).toBe('kg')
     expect(parseWeightUnit('stone')).toBe('kg')
     expect(parseWeightUnit(null)).toBe('kg')
+  })
+})
+
+describe('stepWeight', () => {
+  it('moves by the smallest plate pair: 2.5 lb or 1.25 kg', () => {
+    expect(weightStep('lb')).toBe(2.5)
+    expect(weightStep('kg')).toBe(1.25)
+    expect(stepWeight('61', 'lb', 1)).toBe('63.5')
+    expect(stepWeight('61', 'lb', -1)).toBe('58.5')
+    expect(stepWeight('22.5', 'kg', -1)).toBe('21.25')
+    expect(stepWeight('60', 'kg', 1)).toBe('61.25')
+  })
+
+  it('starts a blank field from 0', () => {
+    expect(stepWeight('', 'lb', 1)).toBe('2.5')
+    expect(stepWeight(' ', 'kg', 1)).toBe('1.25')
+  })
+
+  it('never goes below 0 or above the limit', () => {
+    expect(stepWeight('1', 'lb', -1)).toBe('0')
+    expect(stepWeight('0', 'kg', -1)).toBe('0')
+    expect(stepWeight('', 'lb', -1)).toBe('0')
+    expect(stepWeight('2203', 'lb', 1)).toBe('2204.62')
+    expect(stepWeight('999.5', 'kg', 1)).toBe('1000')
+  })
+
+  it('drops float noise and keeps 2 decimals at most', () => {
+    expect(stepWeight('132.28', 'lb', 1)).toBe('134.78')
+    expect(stepWeight('0.1', 'kg', 1)).toBe('1.35')
+  })
+
+  it('leaves text that is not a number for validation to report', () => {
+    expect(stepWeight('abc', 'lb', 1)).toBe('abc')
+  })
+
+  it('gives back the first text after + then −, so the saved kilograms are sent', () => {
+    const saved = weightFieldText(60, 'lb')
+
+    const back = stepWeight(stepWeight(saved, 'lb', 1), 'lb', -1)
+
+    expect(back).toBe(saved)
+    expect(fieldToKg(back, 'lb', 60, saved)).toBe(60)
   })
 })

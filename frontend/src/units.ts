@@ -98,3 +98,27 @@ export function formatWeightIn(kg: number, unit: WeightUnit): string {
 export function parseWeightUnit(value: string | null): WeightUnit {
   return WEIGHT_UNITS.find((unit) => unit === value) ?? DEFAULT_WEIGHT_UNIT
 }
+
+/**
+ * What the − / + buttons next to a weight field add or take away: the
+ * smallest plate pair, 2.5 lb or 1.25 kg. The input itself keeps step="any",
+ * so that any typed weight (61 lb, or 132.28 lb for a saved 60 kg) stays
+ * valid: with step="2.5" the browser marks those :invalid.
+ */
+export function weightStep(unit: WeightUnit): number {
+  return unit === 'kg' ? 1.25 : 2.5
+}
+
+/**
+ * The field's text after one press of − (direction -1) or + (1).
+ *
+ * A blank field counts as 0. The result stays between 0 and the unit's
+ * limit, rounded to 2 decimals to drop float noise. Text that is not a
+ * number is left as it is, for validation to report.
+ */
+export function stepWeight(text: string, unit: WeightUnit, direction: -1 | 1): string {
+  const current = text.trim() === '' ? 0 : Number(text)
+  if (!Number.isFinite(current)) return text
+  const next = roundTo(current + direction * weightStep(unit), 2)
+  return String(Math.min(Math.max(next, 0), maxWeightIn(unit)))
+}
