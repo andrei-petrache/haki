@@ -1,0 +1,114 @@
+name: Auto-merge update
+
+# The required checks ask for a branch up to date with main, and Dependabot
+# does not rebase a pull request only because main moved. After each push to
+# main this brings one pull request that auto-merge waits on up to date
+# (update-branch, as the tag bot), so the queue moves one merge at a time.
+# Only pull requests that scripts/check-automerge.py accepts and whose
+# auto-merge the tag bot armed (.github/workflows/automerge.yml).
+#
+# Dry run until AUTO_MERGE_DEPS or AUTO_MERGE_DOCS is 'true': it logs what
+# it would update and changes nothing.
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+# One at a time, never cancelled: each update starts a new CI run
+concurrency:
+  group: automerge-update
+  cancel-in-progress: false
+
+jobs:
+  pick:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      number: ${{ steps.pick.outputs.number }}
+      head: ${{ steps.pick.outputs.head }}
+      kind: ${{ steps.pick.outputs.kind }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Pick the oldest eligible pull request behind main
+        id: pick
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          DEPS: ${{ vars.AUTO_MERGE_DEPS }}
+          DOCS: ${{ vars.AUTO_MERGE_DOCS }}
+        run: |
+          d="$RUNNER_TEMP"
+          for n in $(gh api "repos/$REPO/pulls?state=open&base=main&sort=created&direction=asc&per_page=50" \
+              --jq '.[] | select(.user.login == "dependabot[bot]" or .user.login == "andrei-petrache") | .number'); do
+            gh api "repos/$REPO/pulls/$n" > "$d/pr.json"
+            gh api "repos/$REPO/pulls/$n/commits?per_page=100" > "$d/commits.json"
+            gh api "repos/$REPO/pulls/$n/files?per_page=100" > "$d/files.json"
+            out="$(python3 scripts/check-automerge.py "$d/pr.json" "$d/commits.json" "$d/files.json")" || {
+              echo "#$n: $out"; continue; }
+            kind="$(awk '{print $2}' <<<"$out")"
+            head="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["head"]["sha"])' "$d/pr.json")"
+            armed_by="$(python3 -c 'import json,sys; a=json.load(open(sys.argv[1])).get("auto_merge") or {}; print((a.get("enabled_by") or {}).get("login", ""))' "$d/pr.json")"
+            behind="$(gh api "repos/$REPO/compare/$GITHUB_SHA...$head" --jq .behind_by)"
+            switch="$([ "$kind" = deps ] && echo "$DEPS" || echo "$DOCS")"
+            # In a dry run nothing is armed: an eligible pull request counts
+            if [ "$switch" = true ] && [ "$armed_by" != "haki-tag-bot[bot]" ]; then
+              echo "#$n: $out, but its auto-merge was not armed by the tag bot"; continue
+            fi
+            if [ "$behind" = 0 ]; then
+              echo "#$n: $out, up to date with main"; continue
+            fi
+            echo "#$n: $out, $behind commit(s) behind main"
+            echo "number=$n" >> "$GITHUB_OUTPUT"
+            echo "head=$head" >> "$GITHUB_OUTPUT"
+            echo "kind=$kind" >> "$GITHUB_OUTPUT"
+            break
+          done
+
+  update:
+    needs: pick
+    if: needs.pick.outputs.number != ''
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    environment: tag-bot
+    permissions:
+      contents: read
+    steps:
+      - name: Dry run or for real
+        id: mode
+        env:
+          KIND: ${{ needs.pick.outputs.kind }}
+          DEPS: ${{ vars.AUTO_MERGE_DEPS }}
+          DOCS: ${{ vars.AUTO_MERGE_DOCS }}
+        run: |
+          switch="$([ "$KIND" = deps ] && echo "$DEPS" || echo "$DOCS")"
+          echo "real=$([ "$switch" = true ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+
+      - name: Create the tag bot's token
+        id: app
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          client-id: ${{ vars.TAG_BOT_CLIENT_ID }}
+          private-key: ${{ secrets.TAG_BOT_PRIVATE_KEY }}
+          permission-contents: ${{ steps.mode.outputs.real == 'true' && 'write' || 'read' }}
+          permission-pull-requests: ${{ steps.mode.outputs.real == 'true' && 'write' || 'read' }}
+
+      - name: Bring the pull request up to date with main
+        env:
+          GH_TOKEN: ${{ steps.app.outputs.token }}
+          REPO: ${{ github.repository }}
+          NUMBER: ${{ needs.pick.outputs.number }}
+          HEAD: ${{ needs.pick.outputs.head }}
+          REAL: ${{ steps.mode.outputs.real }}
+        run: |
+          if [ "$REAL" = true ]; then
+            # Refused if the branch moved since it was picked
+            gh api -X PUT "repos/$REPO/pulls/$NUMBER/update-branch" -f expected_head_sha="$HEAD" --jq .message
+          else
+            gh api "repos/$REPO/pulls/$NUMBER" --jq '"Dry run: would update #\(.number) (\(.title)) from main"'
+          fi

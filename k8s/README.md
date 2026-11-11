@@ -607,6 +607,50 @@ API. The bot armed auto-merge 3 s after opening it; GitHub merged it 51 s
 after its checks passed, and the first new pod was Ready 2 min 16 s later,
 most of it ArgoCD's poll.
 
+### Auto-merge of Dependabot and docs pull requests
+
+`.github/workflows/automerge.yml` arms auto-merge (rebase), as the tag bot,
+on two kinds of pull request, decided by `scripts/check-automerge.py` from
+`main`'s copy:
+
+- Dependabot's own minor and patch updates for pip, npm, the Docker base
+  images (patch only) and compose: its branch in this repository, every
+  commit Dependabot's and verified (the only other one allowed is the tag
+  bot's update from `main`), only that ecosystem's files, and the
+  manifests' own diff staying within minor or patch (the commit metadata
+  can go stale when Dependabot rebases). GitHub Actions bumps never: they
+  change the workflows.
+- Andrei's pull requests that change files under `docs/` only. `CLAUDE.md`
+  and `k8s/README.md` are not under `docs/`: a person merges them.
+
+It runs on `pull_request_target`, like `prod-guard`, and reads the pull
+request only through the API, as data. It uses the tag bot's token because
+a merge made with the `GITHUB_TOKEN` would not start the CI run on `main`
+(no publish, no staging bump). If a pull request it armed stops being
+eligible (a commit pushed on it), it takes the auto-merge back.
+`.github/workflows/automerge-update.yml` then brings one armed pull request
+up to date with `main` after each push to `main` (update-branch): the
+ruleset asks for an up-to-date branch, and Dependabot does not rebase only
+because `main` moved.
+
+Both are dry runs until the repository variables `AUTO_MERGE_DEPS` and
+`AUTO_MERGE_DOCS` are `true`: they log what they would arm, take back or
+update, and change nothing. Turning them on, in this order:
+
+1. Settings → Actions → Policies: a policy that allows `pull_request_target`
+   for `.github/workflows/guard.yml` and `.github/workflows/automerge.yml`.
+   `prod-guard` needs it anyway: GitHub blocks the event by default on
+   public repositories from 2 December 2026 (a brownout on 16 November).
+2. Settings → General: **Allow auto-merge** (on since S9).
+3. One Monday batch of Dependabot pull requests in dry run, its logs read.
+4. The variables, one kind at a time.
+
+The checks: `python3 -m unittest discover -s scripts -p 'test_check_automerge.py'`.
+Not seen yet: the commit that update-branch makes as the tag bot is assumed
+to be authored by `haki-tag-bot[bot]`, committed by `web-flow`, verified,
+with two parents. If it is not, the check refuses the pull request and
+takes its auto-merge back: it fails safe, and a person merges.
+
 ### Back up before a migration
 
 A migration changes the database for good, and a new image cannot undo it.

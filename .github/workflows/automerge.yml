@@ -1,0 +1,147 @@
+name: Auto-merge
+
+# Arms GitHub's auto-merge on the pull requests that may merge without a
+# person once every required check is green: Dependabot's minor and patch
+# updates (never GitHub Actions bumps) and Andrei's pull requests that change
+# docs/ only. scripts/check-automerge.py decides, from main's copy.
+#
+# pull_request_target, like guard.yml: this file and the script come from
+# main, and the pull request is read through the API as data, never checked
+# out or run. The tag bot's token (environment tag-bot) arms auto-merge,
+# because a merge made with the GITHUB_TOKEN would not start the CI run on
+# main (no publish, no staging bump). It needs the Actions policy that allows
+# pull_request_target for this file (k8s/README.md, "Auto-merge of Dependabot
+# and docs pull requests").
+#
+# Dry run until the repository variables AUTO_MERGE_DEPS and AUTO_MERGE_DOCS
+# are 'true': it logs what it would arm or disarm and changes nothing.
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened, ready_for_review]
+    branches: [main]
+
+permissions:
+  contents: read
+  # To read the pull request, its commits and its files
+  pull-requests: read
+
+concurrency:
+  group: automerge-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  decide:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      kind: ${{ steps.check.outputs.kind }}
+      disarm: ${{ steps.check.outputs.disarm }}
+    steps:
+      # main as it is now; nothing of the pull request is checked out
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Read the pull request, its commits and its files
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          gh api "repos/$REPO/pulls/$NUMBER" > "$RUNNER_TEMP/pr.json"
+          gh api "repos/$REPO/pulls/$NUMBER/commits?per_page=100" > "$RUNNER_TEMP/commits.json"
+          gh api "repos/$REPO/pulls/$NUMBER/files?per_page=100" > "$RUNNER_TEMP/files.json"
+
+      - name: Decide
+        id: check
+        run: |
+          set +e
+          out="$(python3 scripts/check-automerge.py "$RUNNER_TEMP/pr.json" "$RUNNER_TEMP/commits.json" "$RUNNER_TEMP/files.json")"
+          rc=$?
+          set -e
+          echo "$out"
+          echo "$out" >> "$GITHUB_STEP_SUMMARY"
+          case "$rc" in
+            0) kind="$(awk '{print $2}' <<<"$out")" ;;
+            1) kind=none ;;
+            *) echo "::error::check-automerge.py could not read its input"; exit 1 ;;
+          esac
+          # An auto-merge the tag bot armed on a kind it arms, on a pull
+          # request that is no longer eligible (say, a commit pushed after
+          # it), is taken back
+          armed_by="$(python3 -c 'import json,sys; a=json.load(open(sys.argv[1])).get("auto_merge") or {}; print((a.get("enabled_by") or {}).get("login", ""))' "$RUNNER_TEMP/pr.json")"
+          author="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["user"]["login"])' "$RUNNER_TEMP/pr.json")"
+          disarm=false
+          if [ "$kind" = none ] && [ "$armed_by" = "haki-tag-bot[bot]" ] \
+            && { [ "$author" = "dependabot[bot]" ] || [ "$author" = andrei-petrache ]; }; then
+            disarm=true
+          fi
+          echo "kind=$kind" >> "$GITHUB_OUTPUT"
+          echo "disarm=$disarm" >> "$GITHUB_OUTPUT"
+
+  act:
+    needs: decide
+    if: needs.decide.outputs.kind != 'none' || needs.decide.outputs.disarm == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    # The tag bot's private key lives only in this environment, which accepts
+    # jobs from main alone; pull_request_target runs on main
+    environment: tag-bot
+    permissions:
+      contents: read
+    steps:
+      - name: Dry run or for real
+        id: mode
+        env:
+          KIND: ${{ needs.decide.outputs.kind }}
+          DEPS: ${{ vars.AUTO_MERGE_DEPS }}
+          DOCS: ${{ vars.AUTO_MERGE_DOCS }}
+        run: |
+          case "$KIND" in
+            deps) switch="$DEPS"; name=AUTO_MERGE_DEPS ;;
+            docs) switch="$DOCS"; name=AUTO_MERGE_DOCS ;;
+            # Taking back an auto-merge is always for real
+            *) switch=true; name="" ;;
+          esac
+          if [ "$switch" = true ]; then
+            echo "real=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "real=false" >> "$GITHUB_OUTPUT"
+            echo "Dry run: $name is not 'true'"
+          fi
+
+      # A token valid for an hour, for this repository only; in a dry run it
+      # may only read, which still proves this job can create it
+      - name: Create the tag bot's token
+        id: app
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          client-id: ${{ vars.TAG_BOT_CLIENT_ID }}
+          private-key: ${{ secrets.TAG_BOT_PRIVATE_KEY }}
+          permission-contents: ${{ steps.mode.outputs.real == 'true' && 'write' || 'read' }}
+          permission-pull-requests: ${{ steps.mode.outputs.real == 'true' && 'write' || 'read' }}
+
+      - name: Arm or take back auto-merge
+        env:
+          GH_TOKEN: ${{ steps.app.outputs.token }}
+          REPO: ${{ github.repository }}
+          NUMBER: ${{ github.event.pull_request.number }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          KIND: ${{ needs.decide.outputs.kind }}
+          REAL: ${{ steps.mode.outputs.real }}
+        run: |
+          # The pull request must still be at the commit that was judged
+          now="$(gh api "repos/$REPO/pulls/$NUMBER" --jq .head.sha)"
+          if [ "$now" != "$HEAD_SHA" ]; then
+            echo "The pull request moved to ${now:0:7}; the run for it decides"
+            exit 0
+          fi
+          if [ "$KIND" = none ]; then
+            gh pr merge "$NUMBER" --repo "$REPO" --disable-auto
+            echo "::warning::#$NUMBER is no longer eligible: auto-merge taken back"
+          elif [ "$REAL" = true ]; then
+            gh pr merge "$NUMBER" --repo "$REPO" --auto --rebase --match-head-commit "$HEAD_SHA"
+            echo "Auto-merge armed on #$NUMBER ($KIND) at ${HEAD_SHA:0:7}"
+          else
+            echo "Dry run: would arm auto-merge (rebase) on #$NUMBER ($KIND) at ${HEAD_SHA:0:7}"
+          fi
