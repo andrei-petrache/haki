@@ -1,10 +1,12 @@
-from fastapi import APIRouter, HTTPException, Response, status
-from sqlalchemy import select
+from typing import Annotated
+
+from fastapi import APIRouter, HTTPException, Query, Response, status
+from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.auth import CurrentUser, SessionDep
-from app.models import CatalogFood, Food, User
+from app.models import CatalogFood, Food, MealEntry, User
 from app.schemas import CatalogFoodCopyIn, FoodIn, FoodResponse, IdPath
 
 router = APIRouter(prefix="/foods", tags=["foods"])
@@ -41,6 +43,35 @@ def commit_or_conflict(session: Session, detail: str) -> None:
 def list_foods(current_user: CurrentUser, session: SessionDep) -> list[Food]:
     """Return the current user's foods, sorted by name."""
     query = select(Food).where(Food.user_id == current_user.id).order_by(Food.name)
+    return list(session.scalars(query))
+
+
+@router.get("/recent", response_model=list[FoodResponse])
+def list_recent_foods(
+    current_user: CurrentUser,
+    session: SessionDep,
+    limit: Annotated[int, Query(ge=1, le=50)] = 20,
+) -> list[Food]:
+    """Return the current user's foods by when they were last logged, newest
+    first, each once. Foods never logged are left out.
+
+    "Last logged" is the newest entry's id, not its day: a meal logged today
+    for yesterday counts as used today, and ids never tie, unlike times.
+    """
+    last_use = (
+        select(MealEntry.food_id, func.max(MealEntry.id).label("last_entry_id"))
+        .where(MealEntry.user_id == current_user.id)
+        .group_by(MealEntry.food_id)
+        .subquery()
+    )
+    query = (
+        select(Food)
+        .join(last_use, last_use.c.food_id == Food.id)
+        # Entries can only point at their owner's foods; checked again anyway
+        .where(Food.user_id == current_user.id)
+        .order_by(last_use.c.last_entry_id.desc())
+        .limit(limit)
+    )
     return list(session.scalars(query))
 
 
