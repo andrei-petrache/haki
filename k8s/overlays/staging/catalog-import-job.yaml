@@ -1,0 +1,101 @@
+# Loads the food and exercise catalog from the data files in the backend
+# image (python -m app.catalog_import, backend/app/catalog_data/): an upsert
+# under an advisory lock, in one transaction, that never deletes and changes
+# nothing on a second run. It writes only the catalog_* tables.
+# Staging only for now: prod gets it only with Andrei's OK at a promotion
+# (check-manifests.sh refuses it in the prod overlay until then).
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: haki-catalog-import
+  annotations:
+    # ArgoCD: after every full sync, once the migration has run (Sync, wave 0)
+    # and the backend is healthy. A failed import marks the sync as failed
+    # but does not hold back the backend: the app works without the catalog.
+    argocd.argoproj.io/hook: PostSync
+    argocd.argoproj.io/sync-wave: "0"
+    # The previous run (and its logs) stays until the next sync replaces it
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+  labels:
+    app.kubernetes.io/name: haki-catalog-import
+    app.kubernetes.io/component: catalog-import
+    app.kubernetes.io/part-of: haki
+spec:
+  backoffLimit: 3
+  activeDeadlineSeconds: 120
+  podReplacementPolicy: Failed
+  # The import's exit codes: 2 = bad data files (a retry cannot help, nothing
+  # was written), 3 = database unreachable (a retry may help), 1 = other.
+  podFailurePolicy:
+    rules:
+      - action: FailJob
+        onExitCodes:
+          containerName: import
+          operator: In
+          values: [2]
+      - action: Ignore
+        onPodConditions:
+          - type: DisruptionTarget
+  # No ttlSecondsAfterFinished, as for haki-migrate: ArgoCD reads the
+  # finished Job to learn the result.
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: haki-catalog-import
+        app.kubernetes.io/component: catalog-import
+        app.kubernetes.io/part-of: haki
+    spec:
+      restartPolicy: Never
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: import
+          # The migration's image, not the backend's: the import must match
+          # the schema the migration applied, also during a rollback pin.
+          image: haki-migrate
+          imagePullPolicy: IfNotPresent
+          command: ["python", "-m", "app.catalog_import"]
+          env:
+            - name: DB_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: haki-backend-config
+                  key: DB_HOST
+            - name: DB_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: haki-backend-config
+                  key: DB_PORT
+            - name: DB_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: haki-backend-config
+                  key: DB_NAME
+            - name: DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: haki-secrets
+                  key: DB_USER
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: haki-secrets
+                  key: DB_PASSWORD
+            # No JWT_SECRET_KEY: the import loads only the database settings
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              memory: 256Mi

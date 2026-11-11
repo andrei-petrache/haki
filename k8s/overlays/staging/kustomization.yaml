@@ -8,6 +8,8 @@ namespace: haki-staging
 
 resources:
   - ../../base
+  # Staging only until Andrei's OK for prod (see the file)
+  - catalog-import-job.yaml
 
 replicas:
   - name: haki-backend
