@@ -2,16 +2,18 @@ import { useEffect, useState } from 'react'
 import { createFood, deleteFood, describeError, fetchFoods, updateFood } from './api'
 import type { Food, FoodInput } from './api'
 import { formatDecimal } from './format'
+import { useI18n } from './i18n/context'
+import type { MessageKey } from './i18n/i18n'
 
 // Form inputs hold text; convert to numbers only on submit
 type FoodFields = Record<keyof FoodInput, string>
 type NutrientKey = Exclude<keyof FoodInput, 'name'>
 
-const NUTRIENT_FIELDS: { key: NutrientKey; label: string; max: number }[] = [
-  { key: 'calories_per_100g', label: 'Calories (kcal)', max: 900 },
-  { key: 'protein_per_100g', label: 'Protein (g)', max: 100 },
-  { key: 'carbs_per_100g', label: 'Carbs (g)', max: 100 },
-  { key: 'fat_per_100g', label: 'Fat (g)', max: 100 },
+const NUTRIENT_FIELDS: { key: NutrientKey; label: MessageKey; max: number }[] = [
+  { key: 'calories_per_100g', label: 'foods.calories', max: 900 },
+  { key: 'protein_per_100g', label: 'foods.protein', max: 100 },
+  { key: 'carbs_per_100g', label: 'foods.carbs', max: 100 },
+  { key: 'fat_per_100g', label: 'foods.fat', max: 100 },
 ]
 
 function toFields(food?: FoodInput): FoodFields {
@@ -46,6 +48,7 @@ function FoodForm({
   onSubmit: (food: FoodInput) => Promise<void>
   onCancel?: () => void
 }) {
+  const { t } = useI18n()
   const [fields, setFields] = useState(() => toFields(initial))
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
@@ -75,7 +78,7 @@ function FoodForm({
       }}
     >
       <label>
-        Name
+        {t('foods.name')}
         <input
           value={fields.name}
           onChange={(event) => setField('name', event.target.value)}
@@ -84,10 +87,10 @@ function FoodForm({
         />
       </label>
       <fieldset className="nutrients">
-        <legend className="muted">Per 100 g</legend>
+        <legend className="muted">{t('foods.per100g')}</legend>
         {NUTRIENT_FIELDS.map(({ key, label, max }) => (
           <label key={key}>
-            {label}
+            {t(label)}
             <input
               type="number"
               inputMode="decimal"
@@ -104,11 +107,11 @@ function FoodForm({
       {error && <p className="error">{error}</p>}
       <div className="actions">
         <button type="submit" disabled={busy}>
-          {busy ? 'Saving…' : submitLabel}
+          {busy ? t('common.saving') : submitLabel}
         </button>
         {onCancel && (
           <button type="button" className="link" onClick={onCancel}>
-            Cancel
+            {t('common.cancel')}
           </button>
         )}
       </div>
@@ -117,6 +120,7 @@ function FoodForm({
 }
 
 export default function FoodsPage({ token }: { token: string }) {
+  const { t } = useI18n()
   const [foods, setFoods] = useState<Food[] | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [editingId, setEditingId] = useState<number | null>(null)
@@ -155,7 +159,7 @@ export default function FoodsPage({ token }: { token: string }) {
   }
 
   async function handleDelete(food: Food) {
-    if (!window.confirm(`Delete "${food.name}"?`)) return
+    if (!window.confirm(t('foods.deleteConfirm', { name: food.name }))) return
     setError(null)
     try {
       await deleteFood(token, food.id)
@@ -168,16 +172,16 @@ export default function FoodsPage({ token }: { token: string }) {
   return (
     <div className="page">
       <section className="card">
-        <h2>Add a food</h2>
-        <FoodForm key={addFormKey} submitLabel="Add food" onSubmit={handleCreate} />
+        <h2>{t('foods.addTitle')}</h2>
+        <FoodForm key={addFormKey} submitLabel={t('foods.add')} onSubmit={handleCreate} />
       </section>
 
       <section className="card">
-        <h2>Your foods</h2>
+        <h2>{t('foods.yours')}</h2>
         {error && <p className="error">{error}</p>}
-        {foods === null && !error && <p className="muted">Loading…</p>}
+        {foods === null && !error && <p className="muted">{t('app.loading')}</p>}
         {foods?.length === 0 && (
-          <p className="muted">No foods yet. Add the first one above.</p>
+          <p className="muted">{t('foods.none')}</p>
         )}
         {foods && foods.length > 0 && (
           <ul className="rows">
@@ -186,7 +190,7 @@ export default function FoodsPage({ token }: { token: string }) {
                 <li key={food.id}>
                   <FoodForm
                     initial={food}
-                    submitLabel="Save"
+                    submitLabel={t('common.save')}
                     onSubmit={(input) => handleUpdate(food.id, input)}
                     onCancel={() => setEditingId(null)}
                   />
@@ -197,10 +201,12 @@ export default function FoodsPage({ token }: { token: string }) {
                     <strong>{food.name}</strong>
                     <br />
                     <span className="muted">
-                      {formatDecimal(food.calories_per_100g)} kcal · P{' '}
-                      {formatDecimal(food.protein_per_100g)} · C{' '}
-                      {formatDecimal(food.carbs_per_100g)} · F{' '}
-                      {formatDecimal(food.fat_per_100g)} per 100 g
+                      {t('foods.row', {
+                        kcal: formatDecimal(food.calories_per_100g),
+                        protein: formatDecimal(food.protein_per_100g),
+                        carbs: formatDecimal(food.carbs_per_100g),
+                        fat: formatDecimal(food.fat_per_100g),
+                      })}
                     </span>
                   </span>
                   <span className="actions">
@@ -209,14 +215,14 @@ export default function FoodsPage({ token }: { token: string }) {
                       className="secondary"
                       onClick={() => setEditingId(food.id)}
                     >
-                      Edit
+                      {t('common.edit')}
                     </button>
                     <button
                       type="button"
                       className="secondary"
                       onClick={() => void handleDelete(food)}
                     >
-                      Delete
+                      {t('common.delete')}
                     </button>
                   </span>
                 </li>

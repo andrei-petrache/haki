@@ -61,6 +61,27 @@ test('the header fits a phone in Romanian', async () => {
   await page.setViewportSize({ width: 1280, height: 720 })
 })
 
+test('Foods and Today in Romanian fit a phone', async () => {
+  await page.setViewportSize({ width: 390, height: 844 })
+
+  await tab('Alimente').click()
+  await expect(page.getByRole('heading', { name: 'Adaugă un aliment' })).toBeVisible()
+  await expect(page.getByLabel('Carbohidrați (g)')).toBeVisible()
+  await expect(page.getByText('Niciun aliment încă. Adaugă-l pe primul mai sus.')).toBeVisible()
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390)
+  await page.screenshot({ path: `${SHOTS}/9-ro-foods-phone.png`, fullPage: true })
+
+  await tab('Azi').click()
+  await expect(page.getByText('kcal mâncate')).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Mergi la Alimente' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Ziua de dinainte' })).toBeVisible()
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390)
+  await page.screenshot({ path: `${SHOTS}/10-ro-today-phone.png`, fullPage: true })
+
+  await page.setViewportSize({ width: 1280, height: 720 })
+  await tab('Profil').click()
+})
+
 test('choosing English in Profile wins over the browser, across a reload', async () => {
   await expect(page.getByLabel('Limba')).toHaveValue('auto')
 
