@@ -24,7 +24,7 @@ spec:
     repoURL: https://github.com/andrei-petrache/haki.git
     # The commit whose prod overlay renders exactly what ran in haki when
     # ArgoCD took it over (kubectl diff -k k8s/overlays/prod was empty)
-    targetRevision: c0d2f07e7d46f44adacb80f54ac0ec2fe810740f
+    targetRevision: 2817619da3eb96a3464c7162f20a485439b1ac72
     path: k8s/overlays/prod
   destination:
     server: https://kubernetes.default.svc
