@@ -10,6 +10,7 @@ import {
 import type { Exercise, Workout } from './api'
 import { localDateString } from './format'
 import { withoutKeys } from './formErrors'
+import { useI18n } from './i18n/context'
 import type { WeightUnit } from './units'
 import WeightInput from './WeightInput'
 import {
@@ -62,6 +63,8 @@ function ExerciseBlock({
   onRemove: () => void
   unit: WeightUnit
 }) {
+  const { t } = useI18n()
+
   function setSet(setIndex: number, change: Partial<SetFields>) {
     onChange({
       ...item,
@@ -71,28 +74,28 @@ function ExerciseBlock({
 
   return (
     <fieldset className="exercise-block">
-      <legend className="muted">Exercise {index + 1}</legend>
+      <legend className="muted">{t('workouts.exerciseN', { n: index + 1 })}</legend>
       <div className="exercise-head">
         <label className="grow">
-          Exercise
+          {t('exercise.label')}
           <select
             value={item.exercise}
             onChange={(event) => onChange({ ...item, exercise: event.target.value })}
           >
             <option value="" disabled>
-              Choose an exercise…
+              {t('exercise.choose')}
             </option>
             {catalog.map((exercise) => (
               <option key={exercise.id} value={exercise.id}>
                 {exercise.name}
               </option>
             ))}
-            <option value={NEW_EXERCISE}>New exercise…</option>
+            <option value={NEW_EXERCISE}>{t('exercise.new')}</option>
           </select>
         </label>
         {item.exercise === NEW_EXERCISE && (
           <label className="grow">
-            New exercise name
+            {t('exercise.newName')}
             <input
               value={item.newName}
               maxLength={MAX_NAME_LENGTH}
@@ -101,7 +104,7 @@ function ExerciseBlock({
           </label>
         )}
         <button type="button" className="secondary" onClick={onRemove}>
-          Remove exercise
+          {t('workouts.removeExercise')}
         </button>
       </div>
       <FieldError errors={errors} field={exerciseKey(index)} />
@@ -113,7 +116,7 @@ function ExerciseBlock({
           <div className="set-row">
             <span className="muted">{setIndex + 1}</span>
             <label>
-              Reps
+              {t('workouts.reps')}
               <input
                 type="number"
                 inputMode="numeric"
@@ -127,13 +130,13 @@ function ExerciseBlock({
             <WeightInput
               value={set.weight}
               unit={unit}
-              of={`set ${setIndex + 1} of exercise ${index + 1}`}
+              of={t('workouts.setOf', { set: setIndex + 1, exercise: index + 1 })}
               onChange={(weight) => setSet(setIndex, { weight })}
             />
             <button
               type="button"
               className="icon"
-              aria-label={`Remove set ${setIndex + 1} of exercise ${index + 1}`}
+              aria-label={t('workouts.removeSet', { set: setIndex + 1, exercise: index + 1 })}
               onClick={() =>
                 onChange({ ...item, sets: item.sets.filter((_, i) => i !== setIndex) })
               }
@@ -151,7 +154,7 @@ function ExerciseBlock({
         disabled={item.sets.length >= MAX_SETS}
         onClick={() => onChange({ ...item, sets: [...item.sets, emptySet()] })}
       >
-        + Add set
+        {t('workouts.addSet')}
       </button>
     </fieldset>
   )
@@ -176,6 +179,7 @@ export default function WorkoutEditor({
   onCancel: () => void
   weightUnit: WeightUnit
 }) {
+  const { t } = useI18n()
   const [catalog, setCatalog] = useState<Exercise[] | null>(null)
   const [fields, setFields] = useState<WorkoutFields | null>(() =>
     initial ? workoutToFields(initial, weightUnit) : null,
@@ -249,7 +253,7 @@ export default function WorkoutEditor({
           // Created meanwhile elsewhere (e.g. another tab): once reloaded,
           // the next Save matches the name to it
           setCatalog(await fetchExercises(token))
-          setSaveError(`"${name}" already exists. Save again to use it.`)
+          setSaveError(t('exercise.exists', { name }))
           return
         }
       }
@@ -266,7 +270,7 @@ export default function WorkoutEditor({
     }
   }
 
-  const title = initial ? 'Edit workout' : 'New workout'
+  const title = initial ? t('workouts.edit') : t('workouts.new')
 
   if (!fields || !catalog) {
     return (
@@ -275,10 +279,10 @@ export default function WorkoutEditor({
         {saveError ? (
           <p className="error">{saveError}</p>
         ) : (
-          <p className="muted">Loading…</p>
+          <p className="muted">{t('app.loading')}</p>
         )}
         <button type="button" className="link" onClick={onCancel}>
-          Cancel
+          {t('common.cancel')}
         </button>
       </section>
     )
@@ -296,7 +300,7 @@ export default function WorkoutEditor({
     >
       <h2>{title}</h2>
       <label className="date-field">
-        Date
+        {t('workouts.date')}
         <input
           type="date"
           value={fields.performedOn}
@@ -308,7 +312,7 @@ export default function WorkoutEditor({
       </label>
       <FieldError errors={errors} field={DATE_KEY} />
       <label>
-        Note
+        {t('workouts.note')}
         <textarea
           rows={3}
           maxLength={MAX_NOTE_LENGTH}
@@ -343,16 +347,16 @@ export default function WorkoutEditor({
           setFields({ ...fields, exercises: [...fields.exercises, emptyExercise(catalog)] })
         }}
       >
-        Add exercise
+        {t('workouts.addExercise')}
       </button>
 
       {saveError && <p className="error">{saveError}</p>}
       <div className="actions">
         <button type="submit" disabled={busy}>
-          {busy ? 'Saving…' : 'Save'}
+          {busy ? t('common.saving') : t('common.save')}
         </button>
         <button type="button" className="link" onClick={onCancel}>
-          Cancel
+          {t('common.cancel')}
         </button>
       </div>
     </form>

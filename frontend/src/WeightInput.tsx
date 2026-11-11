@@ -1,5 +1,6 @@
 import { maxWeightIn, stepWeight, weightStep } from './units'
 import type { WeightUnit } from './units'
+import { useI18n } from './i18n/context'
 
 /**
  * A weight field in the chosen unit, with − / + buttons for the smallest
@@ -22,14 +23,17 @@ export default function WeightInput({
   of: string
   onChange: (text: string) => void
 }) {
+  const { t, locale } = useI18n()
   const step = weightStep(unit)
+  // 2.5 in English, 2,5 in Romanian
+  const stepText = new Intl.NumberFormat(locale).format(step)
   const max = maxWeightIn(unit)
   const current = Number(value)
 
   return (
     <div className="weight-input">
       <label>
-        Weight ({unit})
+        {t('weight.label', { unit })}
         <input
           type="number"
           inputMode="decimal"
@@ -43,7 +47,7 @@ export default function WeightInput({
       <button
         type="button"
         className="icon"
-        aria-label={`Decrease the weight of ${of} by ${step} ${unit}`}
+        aria-label={t('weight.decrease', { of, step: stepText, unit })}
         // Blank, 0 or not a number: there is nothing to take away
         disabled={!(current > 0)}
         onClick={() => onChange(stepWeight(value, unit, -1))}
@@ -53,7 +57,7 @@ export default function WeightInput({
       <button
         type="button"
         className="icon"
-        aria-label={`Increase the weight of ${of} by ${step} ${unit}`}
+        aria-label={t('weight.increase', { of, step: stepText, unit })}
         disabled={current >= max}
         onClick={() => onChange(stepWeight(value, unit, 1))}
       >

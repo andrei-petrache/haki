@@ -82,6 +82,29 @@ test('Foods and Today in Romanian fit a phone', async () => {
   await tab('Profil').click()
 })
 
+test('the workout editor in Romanian fits a phone', async () => {
+  await page.setViewportSize({ width: 390, height: 844 })
+  await tab('Antrenamente').click()
+  await expect(page.getByText('Niciun antrenament încă')).toBeVisible()
+
+  await page.getByRole('button', { name: 'Antrenament nou' }).click()
+
+  await expect(page.getByRole('heading', { name: 'Antrenament nou' })).toBeVisible()
+  await expect(page.getByText('Exercițiul 1')).toBeVisible()
+  await expect(page.getByLabel('Repetări')).toBeVisible()
+  await expect(page.getByLabel('Greutate (kg)')).toBeVisible()
+  // The step in Romanian, with a decimal comma
+  await expect(
+    page.getByRole('button', { name: 'Crește greutatea la setul 1 din exercițiul 1 cu 1,25 kg' }),
+  ).toBeVisible()
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390)
+  await page.screenshot({ path: `${SHOTS}/11-ro-workout-editor-phone.png`, fullPage: true })
+
+  await page.getByRole('button', { name: 'Renunță' }).click()
+  await page.setViewportSize({ width: 1280, height: 720 })
+  await tab('Profil').click()
+})
+
 test('choosing English in Profile wins over the browser, across a reload', async () => {
   await expect(page.getByLabel('Limba')).toHaveValue('auto')
 
