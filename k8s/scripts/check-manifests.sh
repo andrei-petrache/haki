@@ -277,7 +277,9 @@ for overlay in k8s/overlays/*/; do
        (.spec.ttlSecondsAfterFinished // "no-ttl"),
        (.spec.template.spec.containers[0].command | join(" "))] | join(" ")' <<<"$import")"
     [[ "$got" == "PostSync BeforeHookCreation no-ttl python -m app.catalog_import" ]]       || fail "$overlay: haki-catalog-import must be a PostSync hook with BeforeHookCreation, no TTL, running python -m app.catalog_import (got '$got')"
-    [[ "$(yq -N '.spec.template.spec.containers[0].image' <<<"$import")" == "$job_image" ]]       || fail "$overlay: haki-catalog-import must run the migration's image ($job_image)"
+    # By name in the file too: rendered, the two match whenever the tags do,
+    # and they differ only during a rollback pin
+    [[ "$(yq -N '.spec.template.spec.containers[0].image' "$overlay/catalog-import-job.yaml")" == "haki-migrate"       && "$(yq -N '.spec.template.spec.containers[0].image' <<<"$import")" == "$job_image" ]]       || fail "$overlay: haki-catalog-import must run the migration's image (haki-migrate, $job_image)"
     [[ "$(yq -N '[.spec.template.spec.containers[0].env[].name] | join(" ")' <<<"$import")" == "DB_HOST DB_PORT DB_NAME DB_USER DB_PASSWORD" ]]       || fail "$overlay: haki-catalog-import gets only the database settings"
   fi
   # The namespace and the database must survive a prune or a deleted
