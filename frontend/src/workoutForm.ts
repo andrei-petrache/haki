@@ -4,6 +4,10 @@
  */
 import type { Exercise, Workout, WorkoutInput } from './api'
 import { localDateString, shiftDate } from './format'
+import { firstChangedRow, withoutKeys, withoutRowsFrom } from './formErrors'
+import type { FormErrors } from './formErrors'
+
+export type { FormErrors } from './formErrors'
 
 // Must match the limits in backend/app/schemas.py
 export const EARLIEST_WORKOUT_DATE = '2000-01-01'
@@ -66,11 +70,8 @@ export function workoutToFields(workout: Workout): WorkoutFields {
   }
 }
 
-/**
- * Validation errors, keyed by where they belong in the form (see the *Key
- * functions), so each one can be shown next to its field or row.
- */
-export type FormErrors = Record<string, string>
+// Validation errors are keyed by where they belong in the form (see the
+// *Key functions), so each one can be shown next to its field or row.
 
 export const DATE_KEY = 'performedOn'
 export const NOTE_KEY = 'note'
@@ -245,4 +246,35 @@ export function toWorkoutInput(fields: WorkoutFields, catalog: Exercise[]): Work
       })),
     })),
   }
+}
+
+/**
+ * The errors left once exercise block index changed from before to after:
+ * each field the user changed loses its error, the others keep theirs until
+ * the next Save. A set added or removed also clears the "sets" error, and a
+ * removed set the errors of the sets after it, which moved up a row.
+ */
+export function clearExerciseErrors(
+  errors: FormErrors,
+  index: number,
+  before: ExerciseFields,
+  after: ExerciseFields,
+): FormErrors {
+  let left = errors
+  if (after.exercise !== before.exercise || after.newName !== before.newName) {
+    left = withoutKeys(left, exerciseKey(index))
+  }
+  if (after.sets.length !== before.sets.length) {
+    left = withoutKeys(left, setsKey(index))
+    return withoutRowsFrom(left, `exercise.${index}.set`, firstChangedRow(before.sets, after.sets))
+  }
+  before.sets.forEach((set, setIndex) => {
+    if (after.sets[setIndex] !== set) left = withoutKeys(left, setKey(index, setIndex))
+  })
+  return left
+}
+
+/** The errors left once exercise block index is removed (the blocks after it move up). */
+export function clearRemovedExercise(errors: FormErrors, index: number): FormErrors {
+  return withoutRowsFrom(withoutKeys(errors, EXERCISES_KEY), 'exercise', index)
 }
