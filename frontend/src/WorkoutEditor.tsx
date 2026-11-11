@@ -9,6 +9,7 @@ import {
 } from './api'
 import type { Exercise, Workout } from './api'
 import { localDateString } from './format'
+import { withoutKeys } from './formErrors'
 import {
   DATE_KEY,
   EXERCISES_KEY,
@@ -20,6 +21,8 @@ import {
   MAX_WEIGHT_KG,
   NEW_EXERCISE,
   NOTE_KEY,
+  clearExerciseErrors,
+  clearRemovedExercise,
   emptyExercise,
   emptySet,
   exerciseKey,
@@ -203,6 +206,8 @@ export default function WorkoutEditor({
   }, [token])
 
   function setExercise(index: number, item: ExerciseFields) {
+    // The error of what changed goes away; the rest wait for the next Save
+    if (fields) setErrors((old) => clearExerciseErrors(old, index, fields.exercises[index], item))
     setFields(
       (current) =>
         current && {
@@ -213,6 +218,7 @@ export default function WorkoutEditor({
   }
 
   function removeExercise(index: number) {
+    setErrors((old) => clearRemovedExercise(old, index))
     setFields(
       (current) =>
         current && {
@@ -296,7 +302,10 @@ export default function WorkoutEditor({
         <input
           type="date"
           value={fields.performedOn}
-          onChange={(event) => setFields({ ...fields, performedOn: event.target.value })}
+          onChange={(event) => {
+            setErrors((old) => withoutKeys(old, DATE_KEY))
+            setFields({ ...fields, performedOn: event.target.value })
+          }}
         />
       </label>
       <FieldError errors={errors} field={DATE_KEY} />
@@ -306,7 +315,10 @@ export default function WorkoutEditor({
           rows={3}
           maxLength={MAX_NOTE_LENGTH}
           value={fields.note}
-          onChange={(event) => setFields({ ...fields, note: event.target.value })}
+          onChange={(event) => {
+            setErrors((old) => withoutKeys(old, NOTE_KEY))
+            setFields({ ...fields, note: event.target.value })
+          }}
         />
       </label>
       <FieldError errors={errors} field={NOTE_KEY} />
@@ -327,9 +339,10 @@ export default function WorkoutEditor({
         type="button"
         className="secondary add-exercise"
         disabled={fields.exercises.length >= MAX_EXERCISES}
-        onClick={() =>
+        onClick={() => {
+          setErrors((old) => withoutKeys(old, EXERCISES_KEY))
           setFields({ ...fields, exercises: [...fields.exercises, emptyExercise(catalog)] })
-        }
+        }}
       >
         Add exercise
       </button>
