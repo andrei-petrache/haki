@@ -5,6 +5,7 @@
 import type { Exercise, Workout, WorkoutInput } from './api'
 import { localDateString, shiftDate } from './format'
 import { firstChangedRow, withoutKeys, withoutRowsFrom } from './formErrors'
+import { tActive } from './i18n/i18n'
 import type { FormErrors } from './formErrors'
 import { weightError, weightFieldText, weightToSend } from './units'
 import type { WeightUnit } from './units'
@@ -107,9 +108,9 @@ function parseNumber(text: string): number | null {
 /** What is wrong with one set row (reps and weight), or null if nothing is. */
 export function setError(set: SetFields, unit: WeightUnit = 'kg'): string | null {
   const reps = parseNumber(set.reps)
-  if (reps === null) return 'Enter the reps'
+  if (reps === null) return tActive('form.enterReps')
   if (!Number.isInteger(reps) || reps < 1 || reps > MAX_REPS) {
-    return `Reps must be a whole number from 1 to ${MAX_REPS}`
+    return tActive('form.repsRange', { max: MAX_REPS })
   }
   // Blank is not bodyweight; the limit is checked in kg, as the API does
   return weightError(set.weight, unit)
@@ -122,12 +123,12 @@ export function setError(set: SetFields, unit: WeightUnit = 'kg'): string | null
  */
 export function dateError(day: string, today: string = localDateString()): string | null {
   // A cleared date input gives ''; anything not YYYY-MM-DD counts as cleared
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) return 'Choose a date'
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) return tActive('form.chooseDate')
   // Tomorrow, as the API allows: the user's local day can be ahead of its own
   const latest = shiftDate(today, 1)
   // YYYY-MM-DD strings sort like the dates they stand for
   if (day < EARLIEST_WORKOUT_DATE || day > latest) {
-    return `The date must be from ${EARLIEST_WORKOUT_DATE} to ${latest}`
+    return tActive('form.dateRange', { from: EARLIEST_WORKOUT_DATE, to: latest })
   }
   return null
 }
@@ -147,12 +148,12 @@ export function validateWorkout(
   const date = dateError(fields.performedOn, today)
   if (date) errors[DATE_KEY] = date
   if (fields.note.trim().length > MAX_NOTE_LENGTH) {
-    errors[NOTE_KEY] = `The note can have at most ${MAX_NOTE_LENGTH} characters`
+    errors[NOTE_KEY] = tActive('form.noteTooLong', { max: MAX_NOTE_LENGTH })
   }
   if (fields.exercises.length === 0) {
-    errors[EXERCISES_KEY] = 'Add at least one exercise'
+    errors[EXERCISES_KEY] = tActive('form.addExercise')
   } else if (fields.exercises.length > MAX_EXERCISES) {
-    errors[EXERCISES_KEY] = `A workout can have at most ${MAX_EXERCISES} exercises`
+    errors[EXERCISES_KEY] = tActive('form.tooManyExercises', { max: MAX_EXERCISES })
   }
 
   fields.exercises.forEach((item, index) => {
@@ -160,9 +161,9 @@ export function validateWorkout(
     if (choice) errors[exerciseKey(index)] = choice
 
     if (item.sets.length === 0) {
-      errors[setsKey(index)] = 'Add at least one set'
+      errors[setsKey(index)] = tActive('form.addSet')
     } else if (item.sets.length > MAX_SETS) {
-      errors[setsKey(index)] = `An exercise can have at most ${MAX_SETS} sets`
+      errors[setsKey(index)] = tActive('form.tooManySets', { max: MAX_SETS })
     }
     item.sets.forEach((set, setIndex) => {
       const error = setError(set, unit)
@@ -187,12 +188,12 @@ export type ExerciseChoice = { exercise: string; newName: string }
 
 /** What is wrong with an exercise choice, or null if nothing is. */
 export function choiceError(item: ExerciseChoice): string | null {
-  if (item.exercise === '') return 'Choose an exercise'
+  if (item.exercise === '') return tActive('form.chooseExercise')
   if (item.exercise !== NEW_EXERCISE) return null
   const name = item.newName.trim()
-  if (name === '') return 'Enter the new exercise name'
+  if (name === '') return tActive('form.enterExerciseName')
   if (name.length > MAX_NAME_LENGTH) {
-    return `The name can have at most ${MAX_NAME_LENGTH} characters`
+    return tActive('form.nameTooLong', { max: MAX_NAME_LENGTH })
   }
   return null
 }

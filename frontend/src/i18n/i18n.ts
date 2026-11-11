@@ -122,3 +122,29 @@ export function saveLocaleChoice(
     // Storage full or blocked: the choice still holds until the page reloads
   }
 }
+
+/**
+ * The language for texts made outside components: form validation, number
+ * and date formats, the API client's own messages. App sets it while it
+ * renders, so everything rendered after it follows. English until then,
+ * and in unit tests, which therefore keep their English texts.
+ */
+let active: Locale = 'en'
+
+export function setActiveLocale(locale: Locale): void {
+  active = locale
+}
+
+export function activeLocale(): Locale {
+  return active
+}
+
+/** t() for the active language, where there is no component to ask. */
+export function tActive(key: MessageKey, params?: Params): string {
+  return translate(DICTIONARIES[active], active, key, params)
+}
+
+/** A plain number for a message in the active language: "2204.62", "2204,62" (no grouping). */
+export function formatNumber(value: number): string {
+  return new Intl.NumberFormat(active, { maximumFractionDigits: 2, useGrouping: false }).format(value)
+}

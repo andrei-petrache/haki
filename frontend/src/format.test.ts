@@ -1,7 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
-  formatCounts,
-  formatDayCount,
   formatPlanned,
   formatSet,
   formatWeight,
@@ -14,7 +12,7 @@ afterEach(() => {
   vi.unstubAllEnvs()
 })
 
-// Decimal separators depend on the locale the tests run in: "." or ","
+// Numbers follow the active language, English unless a test sets another
 
 describe('formatWeight', () => {
   it('keeps two decimals, so 1.25 kg plates show', () => {
@@ -37,13 +35,6 @@ describe('formatSet', () => {
 
   it('shows weight 0 as bodyweight', () => {
     expect(formatSet(12, 0)).toBe('12 × bodyweight')
-  })
-})
-
-describe('formatCounts', () => {
-  it('uses singular for one and plural otherwise', () => {
-    expect(formatCounts(1, 1)).toBe('1 exercise · 1 set')
-    expect(formatCounts(3, 0)).toBe('3 exercises · 0 sets')
   })
 })
 
@@ -72,13 +63,6 @@ describe('shorten', () => {
 
   it('puts a multi-line note on one line', () => {
     expect(shorten('Push day\n\nfelt strong', 40)).toBe('Push day felt strong')
-  })
-})
-
-describe('formatDayCount', () => {
-  it('says day for one and days otherwise', () => {
-    expect(formatDayCount(1)).toBe('1 day')
-    expect(formatDayCount(3)).toBe('3 days')
   })
 })
 

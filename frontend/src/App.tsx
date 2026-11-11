@@ -16,6 +16,7 @@ import {
   browserLanguages,
   detectLocale,
   loadLocaleChoice,
+  setActiveLocale,
   parseLocaleChoice,
   resolveLocale,
   saveLocaleChoice,
@@ -234,7 +235,11 @@ function App() {
   const [localeChoice, setLocaleChoice] = useState<LocaleChoice>(() => loadLocaleChoice())
   const browserLocale = detectLocale(browserLanguages())
   const locale = resolveLocale(localeChoice, browserLanguages())
-  const i18n = useMemo<I18n>(() => ({ locale, t: translator(locale) }), [locale])
+  const i18n = useMemo<I18n>(() => {
+    // Before the children render: validation and formats outside components follow
+    setActiveLocale(locale)
+    return { locale, t: translator(locale) }
+  }, [locale])
   const { t } = i18n
   const [loadError, setLoadError] = useState<string | null>(null)
   // Bumped by "Try again", to re-run the effect that loads the profile

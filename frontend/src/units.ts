@@ -2,6 +2,8 @@
  * Weight units in the UI. The API always stores kilograms: conversion
  * happens only here, when a weight is shown or typed. No React, no fetch.
  */
+import { formatNumber, tActive } from './i18n/i18n'
+
 export const WEIGHT_UNITS = ['kg', 'lb'] as const
 export type WeightUnit = (typeof WEIGHT_UNITS)[number]
 
@@ -86,10 +88,10 @@ export function fieldToKg(
  * above the 2204.62 lb the message and the input's max show.
  */
 export function weightError(text: string, unit: WeightUnit): string | null {
-  if (text.trim() === '') return 'Enter the weight (0 for bodyweight)'
+  if (text.trim() === '') return tActive('form.enterWeight')
   const value = Number(text)
   if (!Number.isFinite(value) || value < 0 || value > maxWeightIn(unit)) {
-    return `Weight must be from 0 to ${maxWeightIn(unit)} ${unit}`
+    return tActive('form.weightRange', { max: formatNumber(maxWeightIn(unit)), unit })
   }
   return null
 }

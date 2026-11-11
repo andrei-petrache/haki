@@ -1,3 +1,5 @@
+import { tActive } from './i18n/i18n'
+
 const API_BASE = '/api'
 
 export type User = {
@@ -100,17 +102,17 @@ function errorMessage(body: unknown): string {
     if (typeof detail === 'string') return detail
     // Validation errors (422) come as a list of problems; name the field
     if (Array.isArray(detail) && detail.length > 0) {
-      const message = String(detail[0]?.msg ?? 'Invalid input')
+      const message = String(detail[0]?.msg ?? tActive('api.invalidInput'))
       const field = Array.isArray(detail[0]?.loc) ? detail[0].loc.at(-1) : null
       return typeof field === 'string' ? `${field}: ${message}` : message
     }
   }
-  return 'Something went wrong'
+  return tActive('api.unknown')
 }
 
 /** A message to show the user for any error thrown by the functions below. */
 export function describeError(err: unknown): string {
-  return err instanceof ApiError ? err.message : 'Cannot reach the server'
+  return err instanceof ApiError ? err.message : tActive('app.cannotReach')
 }
 
 let onUnauthorized: (() => void) | null = null
@@ -138,10 +140,10 @@ async function request<T>(
     // Our own text for both: they come from Nginx too, as HTML, not our JSON.
     // 429: this client sent too many login/signup attempts (Nginx rate limit)
     if (response.status === 429) {
-      throw new ApiError(429, 'Too many attempts. Wait a minute, then try again.')
+      throw new ApiError(429, tActive('api.tooManyAttempts'))
     }
     if (response.status === 503) {
-      throw new ApiError(503, 'Service temporarily unavailable, try again in a moment.')
+      throw new ApiError(503, tActive('api.unavailable'))
     }
     throw new ApiError(response.status, errorMessage(body))
   }
