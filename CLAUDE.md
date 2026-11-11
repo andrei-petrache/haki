@@ -77,6 +77,9 @@ and docs are in English.
 - Name branches after the change with a type prefix: `feat/...`, `fix/...`,
   `ci/...`, `docs/...`, `refactor/...`, `chore/...`, `test/...` (e.g.
   `feat/weekly-summary`).
+- No attribution lines in commits or pull request descriptions: no
+  `Co-Authored-By:` trailer, no "Generated with ..." footer, nor any other
+  line crediting a tool or a session.
 - Fetch `main` yourself. When SSH fails, use
   `git fetch https://github.com/andrei-petrache/haki main` and then
   `git merge --ff-only FETCH_HEAD`.
