@@ -57,6 +57,13 @@ the list when it first shows up in the code or in a review.
 | GHCR | GitHub Container Registry, where the images are published by commit SHA |
 | GitHub App | An identity of its own on GitHub, with only the permissions it was given; `haki-tag-bot` pushes the tag branch and opens its pull request, and unlike `GITHUB_TOKEN` its pull requests start CI |
 | Environment (GitHub) | A named set of secrets with its own rules; `tag-bot` holds the App's key and accepts jobs from `main` only |
+| Required reviewer | An environment rule: a job in `prod` waits until the named person approves it on GitHub |
+| `workflow_dispatch` | A workflow started by hand, with inputs; `promote-prod` takes the SHA to promote |
+| `pull_request_target` | A workflow event that runs the base branch's copy of the workflow, with the pull request only as data; `prod-guard` uses it so a pull request cannot weaken the rule it is checked by |
+| `base.sha` (event) | The base branch's commit as the pull request event recorded it; it can lag behind `main` (seen on #82) |
+| `web-flow` | GitHub's own identity as the committer of commits made through the API or the web editor; GitHub signs them, so they are "verified" |
+| Bypass list | Who may do what a ruleset forbids; `protect-bot-branches` lets only the App `haki-tag-bot` write `bot/**` |
+| `GH013` | Git's refusal from GitHub when a push breaks a repository rule ("Cannot update this protected ref") |
 
 ## Kubernetes
 
@@ -73,6 +80,8 @@ the list when it first shows up in the code or in a review.
 | kubeconform | Validates manifests against the Kubernetes schemas, in CI |
 | `reclaimPolicy: Delete` | Deleting the PVC also deletes the volume, and so the data |
 | `kubectl port-forward` | Opens a local port (here 127.0.0.1) that leads to a Service in the cluster, used to call the staging API directly in the revert drill |
+| Kustomize component | A reusable piece that overlays include; staging and prod share the image tags in `k8s/components/images` |
+| ValidatingAdmissionPolicy | A rule in the API server that refuses objects by an expression; tried for ArgoCD Applications on a throwaway cluster, not added |
 | Grace period / `deletionTimestamp` | A pod being stopped gets up to 30 s to exit; `deletionTimestamp` marks the end of that window, not the moment the pod is gone |
 
 ## GitOps
@@ -90,3 +99,7 @@ the list when it first shows up in the code or in a review.
 | Polling | ArgoCD checks Git about every 3 minutes; without a webhook, a merge waits up to that long |
 | Rollback by `git revert` | A new commit that undoes an earlier one; ArgoCD applies it like any other change |
 | Rollback pin | Backend and frontend go back to an older tag while the migration stays on the newer one, recorded in `rollback-pin.yaml`; while it exists, no other tag reaches staging |
+| `targetRevision` | The commit, branch or tag an Application follows; staging's is `main`, prod's a full commit SHA |
+| App of apps | An Application whose resources are other Applications; `haki-apps` applies `haki-prod.yaml` from `main` |
+| Promotion | Moving prod to a commit of `main` by changing `haki-prod`'s `targetRevision`, through `promote-prod`: a check, an approval, the bot's pull request; a rollback is a promotion of an older SHA |
+| `hook-delete-policy: BeforeHookCreation` | The previous hook (the old migration Job) is deleted when the new one is created; the only deletion in a prod sync |
