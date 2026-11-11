@@ -1,5 +1,13 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { formatCounts, formatSet, formatWeight, parseDay, shorten } from './format'
+import {
+  formatCounts,
+  formatDayCount,
+  formatPlanned,
+  formatSet,
+  formatWeight,
+  parseDay,
+  shorten,
+} from './format'
 
 afterEach(() => {
   vi.unstubAllEnvs()
@@ -63,5 +71,19 @@ describe('shorten', () => {
 
   it('puts a multi-line note on one line', () => {
     expect(shorten('Push day\n\nfelt strong', 40)).toBe('Push day felt strong')
+  })
+})
+
+describe('formatDayCount', () => {
+  it('says day for one and days otherwise', () => {
+    expect(formatDayCount(1)).toBe('1 day')
+    expect(formatDayCount(3)).toBe('3 days')
+  })
+})
+
+describe('formatPlanned', () => {
+  it('writes sets × reps × weight, or bodyweight for 0 kg', () => {
+    expect(formatPlanned(3, 8, 60)).toBe('3 × 8 × 60 kg')
+    expect(formatPlanned(3, 10, 0)).toBe('3 × 10 × bodyweight')
   })
 })
