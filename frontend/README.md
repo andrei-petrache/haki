@@ -49,3 +49,6 @@ one fresh account and deletes everything it created at the end; the stack, its
 images and the temporary env file are removed whatever the outcome.
 Screenshots and failure traces go to `out-dir` (default: a new directory under
 `/tmp`). Test files are named `*.e2e.ts`, so Vitest does not pick them up.
+Each file signs up its own account (`e2e/helpers.ts`); `weight-units.e2e.ts`
+checks through the API that weights shown and typed in pounds are stored in
+kilograms and never change by themselves.

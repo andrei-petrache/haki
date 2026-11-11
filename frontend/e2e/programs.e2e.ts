@@ -4,36 +4,22 @@
  * whole file (login and signup are rate limited); everything it created is
  * deleted through the API at the end, and the stack is thrown away after.
  */
-import { randomBytes } from 'node:crypto'
 import { expect, test } from '@playwright/test'
 import type { Locator, Page } from '@playwright/test'
-
-const SHOTS = `${process.env.E2E_OUT ?? '/tmp/haki-e2e'}/screenshots`
-const EMAIL = `e2e-${Date.now()}-${randomBytes(3).toString('hex')}@example.com`
-const PASSWORD = randomBytes(16).toString('hex')
+import * as session from './helpers'
+import { SHOTS } from './helpers'
 
 test.describe.configure({ mode: 'serial' })
 
 let page: Page
 
-async function token(): Promise<string> {
-  const value = await page.evaluate(() => localStorage.getItem('haki_token'))
-  if (!value) throw new Error('not logged in')
-  return value
+/** The shared helpers, on this file's page. */
+function api(method: string, path: string) {
+  return session.api(page, method, path)
 }
 
-async function api(method: string, path: string): Promise<{ status: number; body: unknown }> {
-  const response = await page.request.fetch(`/api${path}`, {
-    method,
-    headers: { Authorization: `Bearer ${await token()}` },
-  })
-  const text = await response.text()
-  return { status: response.status(), body: text ? JSON.parse(text) : null }
-}
-
-async function ids(path: string): Promise<number[]> {
-  const { body } = await api('GET', path)
-  return (body as { id: number }[]).map((item) => item.id)
+function ids(path: string) {
+  return session.ids(page, path)
 }
 
 function dayBlock(index: number): Locator {
@@ -78,26 +64,12 @@ test.beforeAll(async ({ browser }) => {
 })
 
 test.afterAll(async () => {
-  // Leave nothing behind but the account itself, which goes with the stack.
-  // Workouts and programs first: an exercise they use cannot be deleted.
-  for (const id of await ids('/workouts')) await api('DELETE', `/workouts/${id}`)
-  for (const id of await ids('/programs')) await api('DELETE', `/programs/${id}`)
-  for (const id of await ids('/exercises')) await api('DELETE', `/exercises/${id}`)
-
-  expect(await ids('/workouts')).toEqual([])
-  expect(await ids('/programs')).toEqual([])
-  expect(await ids('/exercises')).toEqual([])
+  await session.deleteEverything(page)
   await page.close()
 })
 
 test('sign up a fresh test account', async () => {
-  await page.goto('/')
-  await page.getByRole('button', { name: 'New here? Create an account' }).click()
-  await page.getByLabel('Email').fill(EMAIL)
-  await page.getByLabel('Password').fill(PASSWORD)
-  await page.getByRole('button', { name: 'Sign up' }).click()
-
-  await expect(page.getByRole('button', { name: 'Log out' })).toBeVisible()
+  await session.signUp(page)
 })
 
 test('starts with no programs', async () => {
