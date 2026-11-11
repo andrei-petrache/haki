@@ -467,6 +467,45 @@ ruleset's "Require branches to be up to date before merging", GitHub also
 refuses to merge it until it is updated, and the update reruns the
 `manifests` check against the pin, which fails.
 
+## Monitoring
+
+Prometheus and kube-state-metrics for staging and the platform, in their own
+namespace `monitoring`, deployed by the ArgoCD Application `monitoring`
+(`k8s/monitoring`, project `platform`). Prod is not scraped yet. Plain
+manifests rather than kube-prometheus-stack: no operator, no CRDs, no
+webhooks, a few hundred MiB in all.
+
+What it scrapes, and nothing more (the rest is dropped at scrape time):
+
+- Envoy, staging's gateway proxy: requests, response classes and latency per
+  route rule. The backend exposes no metrics of its own; its traffic is the
+  rule for `/api`.
+- The kubelet: CPU and memory per container (cAdvisor) and how full
+  staging's volumes are, with a token that may only read node metrics.
+- kube-state-metrics: the state of staging's pods and workloads, restarts
+  included, for `haki-staging` and `monitoring` only.
+
+Limits (requests / limits): Prometheus 50m-500m CPU, 192-512 MiB, data in
+an emptyDir of at most 400 MiB kept for 2 days (a restart loses it);
+kube-state-metrics 10m-200m CPU, 32-96 MiB. `check-manifests.sh` refuses a
+container without limits, an image without a digest, a Service other than
+ClusterIP, a Secret, a volume claim, a Gateway or HTTPRoute, and a cluster
+role that does more than read.
+
+Applied by hand, once, after the pull request that adds them is merged:
+
+```bash
+kubectl apply -f k8s/argocd/project-platform.yaml -f k8s/argocd/monitoring.yaml
+kubectl -n argocd get application monitoring \
+  -o jsonpath='{.status.sync.status} {.status.health.status}{"\n"}'   # Synced Healthy
+```
+
+Nothing is reachable from outside the machine. To look at it:
+
+```bash
+kubectl -n monitoring port-forward svc/prometheus 9090:9090   # http://127.0.0.1:9090
+```
+
 ## Start from scratch
 
 Run from the repository root. An overlay is applied in phases, selected by

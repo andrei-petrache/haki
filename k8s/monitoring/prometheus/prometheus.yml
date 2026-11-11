@@ -1,0 +1,83 @@
+# Prometheus for staging and the platform. It scrapes only what the
+# dashboards and alerts use and drops the rest at scrape time, to stay small.
+# Prod (namespace haki) is not scraped yet.
+global:
+  scrape_interval: 30s
+  evaluation_interval: 30s
+
+scrape_configs:
+  - job_name: prometheus
+    static_configs:
+      - targets: [localhost:9090]
+
+  - job_name: kube-state-metrics
+    static_configs:
+      - targets: [kube-state-metrics.monitoring.svc:8080]
+
+  # Envoy, staging's gateway proxy: requests, response classes and latency
+  # per route rule. The backend has no metrics of its own; its traffic is
+  # the rule that matches /api.
+  - job_name: envoy-staging
+    metrics_path: /stats/prometheus
+    kubernetes_sd_configs:
+      - role: pod
+        namespaces:
+          names: [envoy-gateway-system]
+    relabel_configs:
+      - source_labels: [__meta_kubernetes_pod_label_gateway_envoyproxy_io_owning_gateway_namespace]
+        regex: haki-staging
+        action: keep
+      - source_labels: [__meta_kubernetes_pod_container_port_number]
+        regex: "19001"
+        action: keep
+      - source_labels: [__meta_kubernetes_pod_name]
+        target_label: pod
+    metric_relabel_configs:
+      - source_labels: [__name__]
+        regex: envoy_cluster_upstream_rq_(xx|total|time_bucket|time_count|time_sum)
+        action: keep
+      - source_labels: [envoy_cluster_name]
+        regex: httproute/haki-staging/.*
+        action: keep
+
+  # The kubelet's cAdvisor: CPU and memory per container. Its certificate is
+  # the kind node's own, signed by nobody Prometheus knows; the cluster is
+  # local, and the token only reads metrics (nodes/metrics).
+  - job_name: cadvisor
+    scheme: https
+    metrics_path: /metrics/cadvisor
+    authorization:
+      credentials_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+    tls_config:
+      insecure_skip_verify: true
+    kubernetes_sd_configs:
+      - role: node
+    metric_relabel_configs:
+      - source_labels: [__name__]
+        regex: container_(memory_working_set_bytes|cpu_usage_seconds_total)
+        action: keep
+      - source_labels: [namespace]
+        regex: haki-staging|monitoring
+        action: keep
+      # The pod's own cgroup, not one of its containers
+      - source_labels: [container]
+        regex: ""
+        action: drop
+
+  # The kubelet itself: how full staging's volumes are (the database's)
+  - job_name: kubelet
+    scheme: https
+    metrics_path: /metrics
+    authorization:
+      credentials_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+    tls_config:
+      insecure_skip_verify: true
+    kubernetes_sd_configs:
+      - role: node
+    metric_relabel_configs:
+      - source_labels: [__name__]
+        regex: kubelet_volume_stats_(capacity|used|available)_bytes
+        action: keep
+      - source_labels: [namespace]
+        regex: haki-staging
+        action: keep

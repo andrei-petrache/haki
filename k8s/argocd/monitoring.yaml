@@ -1,0 +1,33 @@
+# The ArgoCD Application for monitoring: k8s/monitoring on main, synced into
+# the monitoring namespace. Applied by hand, once (see k8s/README.md,
+# "Monitoring"):
+#   kubectl apply -f k8s/argocd/monitoring.yaml
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: monitoring
+  namespace: argocd
+  annotations:
+    # As for staging: compare through a server-side dry run, so the defaults
+    # the API server fills in do not show as drift
+    argocd.argoproj.io/compare-options: ServerSideDiff=true
+  # No finalizers: deleting this Application never deletes what it deployed
+spec:
+  project: platform
+  source:
+    repoURL: https://github.com/andrei-petrache/haki.git
+    targetRevision: main
+    path: k8s/monitoring
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: monitoring
+  syncPolicy:
+    automated:
+      enabled: true
+      # Nothing here holds data that matters: what left Git goes
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - PruneLast=true
+    retry:
+      limit: 2
