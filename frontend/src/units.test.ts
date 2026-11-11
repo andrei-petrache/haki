@@ -94,6 +94,18 @@ describe('weightError', () => {
     }
   })
 
+  it('accepts 2204.62 lb, which is under 1000 kg', () => {
+    expect(weightError('2204.62', 'lb')).toBeNull()
+    expect(unitToKg(2204.62, 'lb')).toBeLessThanOrEqual(MAX_WEIGHT_KG)
+  })
+
+  it('rejects 2204.623 lb, above the limit shown, though it rounds to 1000 kg', () => {
+    // Rounded to the gram it is 1000 kg: the check must come before rounding
+    expect(unitToKg(2204.623, 'lb')).toBe(1000)
+
+    expect(weightError('2204.623', 'lb')).toBe('Weight must be from 0 to 2204.62 lb')
+  })
+
   it('rejects a blank weight instead of treating it as bodyweight', () => {
     for (const text of ['', '  ']) {
       expect(weightError(text, 'lb')).toBe('Enter the weight (0 for bodyweight)')
