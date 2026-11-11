@@ -67,11 +67,17 @@ class TokenResponse(BaseModel):
     token_type: str = "bearer"
 
 
+# Pure fat is about 900 kcal per 100 g, but USDA rounds its energy factors
+# per food: lard (171401) is 902. The margin admits such values and still
+# rejects a typo like 1500.
+MAX_CALORIES_PER_100G = 950
+
+
 class FoodIn(BaseModel):
     """Nutrients per 100 g. Upper bounds reject impossible values."""
 
     name: FoodName
-    calories_per_100g: float = Field(ge=0, le=900)
+    calories_per_100g: float = Field(ge=0, le=MAX_CALORIES_PER_100G)
     protein_per_100g: float = Field(ge=0, le=100)
     carbs_per_100g: float = Field(ge=0, le=100)
     fat_per_100g: float = Field(ge=0, le=100)

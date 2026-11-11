@@ -461,6 +461,16 @@
       "source_description": "Oil, olive, salad or cooking"
     },
     {
+      "ref": "171401",
+      "name": "Lard",
+      "name_ro": "Untură de porc",
+      "calories_per_100g": 902.0,
+      "protein_per_100g": 0.0,
+      "carbs_per_100g": 0.0,
+      "fat_per_100g": 100.0,
+      "source_description": "Lard"
+    },
+    {
       "ref": "168929",
       "name": "Cornmeal, degermed, yellow",
       "name_ro": "Mălai",

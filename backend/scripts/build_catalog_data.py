@@ -12,8 +12,8 @@ Not run by CI or in the image: the JSON files are committed and reviewed.
 
 Foods: a Romanian name only where the USDA food is the same food. Values
 per 100 g: energy in kcal (nutrient 208), protein (203), carbohydrate by
-difference (205), total fat (204). Lard (USDA 171401, 902 kcal) is left
-out: user foods are limited to 900 kcal per 100 g.
+difference (205), total fat (204). Every value must pass a user food's
+bounds (app/schemas.py FoodIn), e.g. lard (171401) at 902 kcal.
 
 Exercises: names and labels only; free-exercise-db's instructions and
 images are not imported (their origin is not stated), only image paths.
@@ -100,6 +100,7 @@ FOODS = [
     # Fats
     ("171025", "Sunflower oil", "Ulei de floarea-soarelui"),
     ("171413", "Olive oil", "Ulei de măsline"),
+    ("171401", "Lard", "Untură de porc"),
     # Grains and starches
     ("168929", "Cornmeal, degermed, yellow", "Mălai"),
     ("169697", "Cornmeal, whole-grain, yellow", "Mălai integral"),
