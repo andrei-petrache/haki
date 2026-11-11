@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { ApiError, createExercise, createProgram, describeError, fetchExercises } from './api'
 import type { Exercise } from './api'
 import { withoutKeys } from './formErrors'
+import { useI18n } from './i18n/context'
 import {
   DAYS_KEY,
   MAX_DAYS,
@@ -55,30 +56,31 @@ function PlannedRow({
   onRemove: () => void
   unit: WeightUnit
 }) {
-  const label = `exercise ${index + 1} of day ${day + 1}`
+  const { t } = useI18n()
+  const label = t('programs.plannedOf', { exercise: index + 1, day: day + 1 })
   return (
     <div className="planned">
       <div className="exercise-head">
         <label className="grow">
-          Exercise
+          {t('exercise.label')}
           <select
             value={item.exercise}
             onChange={(event) => onChange({ ...item, exercise: event.target.value })}
           >
             <option value="" disabled>
-              Choose an exercise…
+              {t('exercise.choose')}
             </option>
             {catalog.map((exercise) => (
               <option key={exercise.id} value={exercise.id}>
                 {exercise.name}
               </option>
             ))}
-            <option value={NEW_EXERCISE}>New exercise…</option>
+            <option value={NEW_EXERCISE}>{t('exercise.new')}</option>
           </select>
         </label>
         {item.exercise === NEW_EXERCISE && (
           <label className="grow">
-            New exercise name
+            {t('exercise.newName')}
             <input
               value={item.newName}
               maxLength={MAX_NAME_LENGTH}
@@ -90,7 +92,7 @@ function PlannedRow({
       <FieldError errors={errors} field={plannedExerciseKey(day, index)} />
       <div className="planned-row">
         <label>
-          Sets
+          {t('programs.sets')}
           <input
             type="number"
             inputMode="numeric"
@@ -102,7 +104,7 @@ function PlannedRow({
           />
         </label>
         <label>
-          Reps
+          {t('workouts.reps')}
           <input
             type="number"
             inputMode="numeric"
@@ -122,7 +124,7 @@ function PlannedRow({
         <button
           type="button"
           className="icon"
-          aria-label={`Remove ${label}`}
+          aria-label={t('programs.removePlanned', { what: label })}
           onClick={onRemove}
         >
           ×
@@ -150,38 +152,40 @@ function DayBlock({
   onRemove: () => void
   unit: WeightUnit
 }) {
+  const { t } = useI18n()
+
   function setPlanned(i: number, item: PlannedFields) {
     onChange({ ...day, exercises: day.exercises.map((old, j) => (j === i ? item : old)) })
   }
 
   return (
     <fieldset className="exercise-block">
-      <legend className="muted">Day {index + 1}</legend>
+      <legend className="muted">{t('programs.dayN', { n: index + 1 })}</legend>
       <div className="exercise-head">
         <label>
-          Day
+          {t('programs.day')}
           <select
             value={day.position}
             onChange={(event) => onChange({ ...day, position: Number(event.target.value) })}
           >
             {POSITIONS.map((position) => (
               <option key={position} value={position}>
-                Day {position}
+                {t('programs.dayN', { n: position })}
               </option>
             ))}
           </select>
         </label>
         <label className="grow">
-          Name
+          {t('programs.name')}
           <input
             value={day.name}
             maxLength={MAX_NAME_LENGTH}
-            placeholder="e.g. Push"
+            placeholder={t('programs.dayNamePlaceholder')}
             onChange={(event) => onChange({ ...day, name: event.target.value })}
           />
         </label>
         <button type="button" className="secondary" onClick={onRemove}>
-          Remove day
+          {t('programs.removeDay')}
         </button>
       </div>
       <FieldError errors={errors} field={dayPositionKey(index)} />
@@ -211,7 +215,7 @@ function DayBlock({
         disabled={day.exercises.length >= MAX_EXERCISES_PER_DAY}
         onClick={() => onChange({ ...day, exercises: [...day.exercises, emptyPlanned(catalog)] })}
       >
-        + Add exercise
+        {t('programs.addExercise')}
       </button>
     </fieldset>
   )
@@ -234,6 +238,7 @@ export default function ProgramEditor({
   onCancel: () => void
   weightUnit: WeightUnit
 }) {
+  const { t } = useI18n()
   const [catalog, setCatalog] = useState<Exercise[] | null>(null)
   const [fields, setFields] = useState<ProgramFields | null>(null)
   const [errors, setErrors] = useState<FormErrors>({})
@@ -298,7 +303,7 @@ export default function ProgramEditor({
           // Created meanwhile elsewhere (e.g. another tab): once reloaded,
           // the next Save matches the name to it
           setCatalog(await fetchExercises(token))
-          setSaveError(`"${name}" already exists. Save again to use it.`)
+          setSaveError(t('exercise.exists', { name }))
           return
         }
       }
@@ -307,11 +312,11 @@ export default function ProgramEditor({
     } catch (err) {
       if (err instanceof ApiError && err.status === 409) {
         // Days on the same place are caught above, so this is the name
-        setErrors({ [NAME_KEY]: 'You already have a program with this name' })
+        setErrors({ [NAME_KEY]: t('programs.duplicateName') })
       } else if (err instanceof ApiError && err.status === 404) {
         // An exercise was deleted meanwhile (e.g. in another tab)
         setCatalog(await fetchExercises(token).catch(() => known))
-        setSaveError('An exercise in this program no longer exists. Choose it again.')
+        setSaveError(t('programs.exerciseGone'))
       } else {
         setSaveError(describeError(err))
       }
@@ -324,10 +329,10 @@ export default function ProgramEditor({
   if (!fields || !catalog) {
     return (
       <section className="card">
-        <h2>New program</h2>
-        {saveError ? <p className="error">{saveError}</p> : <p className="muted">Loading…</p>}
+        <h2>{t('programs.new')}</h2>
+        {saveError ? <p className="error">{saveError}</p> : <p className="muted">{t('app.loading')}</p>}
         <button type="button" className="link" onClick={onCancel}>
-          Cancel
+          {t('common.cancel')}
         </button>
       </section>
     )
@@ -345,13 +350,13 @@ export default function ProgramEditor({
         void handleSave(fields, catalog)
       }}
     >
-      <h2>New program</h2>
+      <h2>{t('programs.new')}</h2>
       <label>
-        Name
+        {t('programs.name')}
         <input
           value={fields.name}
           maxLength={MAX_NAME_LENGTH}
-          placeholder="e.g. Push/Pull/Legs"
+          placeholder={t('programs.namePlaceholder')}
           onChange={(event) => {
             setErrors((old) => withoutKeys(old, NAME_KEY))
             setFields({ ...fields, name: event.target.value })
@@ -383,16 +388,16 @@ export default function ProgramEditor({
           setFields({ ...fields, days: [...fields.days, nextDay] })
         }}
       >
-        Add day
+        {t('programs.addDay')}
       </button>
 
       {saveError && <p className="error">{saveError}</p>}
       <div className="actions">
         <button type="submit" disabled={busy}>
-          {busy ? 'Saving…' : 'Save'}
+          {busy ? t('common.saving') : t('common.save')}
         </button>
         <button type="button" className="link" onClick={onCancel}>
-          Cancel
+          {t('common.cancel')}
         </button>
       </div>
     </form>

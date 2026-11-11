@@ -34,6 +34,21 @@ async function expectRoomyWeight(input: Locator) {
   expect(lines, 'weight label lines').toBe(1)
 }
 
+/** The labels' texts in a row of fields do not touch or overlap. */
+async function expectLabelsApart(row: Locator) {
+  const edges = await row.evaluate((element) =>
+    [...element.querySelectorAll('label')].map((label) => {
+      const range = document.createRange()
+      range.selectNodeContents(label.firstChild ?? label)
+      const rect = range.getBoundingClientRect()
+      return { left: rect.left, right: rect.right }
+    }),
+  )
+  for (let i = 1; i < edges.length; i++) {
+    expect(edges[i].left, `label ${i + 1} starts after label ${i} ends`).toBeGreaterThan(edges[i - 1].right)
+  }
+}
+
 test.beforeAll(async ({ browser }) => {
   page = await browser.newPage({ locale: 'ro-RO' })
 })
@@ -117,8 +132,29 @@ test('the workout editor in Romanian fits a phone', async () => {
   ).toBeVisible()
   // Room to type a weight, and its label on one line
   await expectRoomyWeight(page.getByLabel('Greutate (kg)'))
+  await expectLabelsApart(page.locator('.set-row').first())
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390)
   await page.screenshot({ path: `${SHOTS}/11-ro-workout-editor-phone.png`, fullPage: true })
+
+  await page.getByRole('button', { name: 'Renunță' }).click()
+  await page.setViewportSize({ width: 1280, height: 720 })
+  await tab('Profil').click()
+})
+
+test('the program editor in Romanian fits a phone', async () => {
+  await page.setViewportSize({ width: 390, height: 844 })
+  await tab('Programe').click()
+  await expect(page.getByText('Niciun program încă')).toBeVisible()
+
+  await page.getByRole('button', { name: 'Program nou' }).click()
+
+  await expect(page.getByRole('heading', { name: 'Program nou' })).toBeVisible()
+  await expect(page.locator('legend', { hasText: 'Ziua 1' })).toBeVisible()
+  await expect(page.getByLabel('Seturi')).toBeVisible()
+  await expectRoomyWeight(page.getByLabel('Greutate (kg)'))
+  await expectLabelsApart(page.locator('.planned-row').first())
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390)
+  await page.screenshot({ path: `${SHOTS}/12-ro-program-editor-phone.png`, fullPage: true })
 
   await page.getByRole('button', { name: 'Renunță' }).click()
   await page.setViewportSize({ width: 1280, height: 720 })

@@ -548,8 +548,14 @@ textarea {
   }
 
   .planned-row {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 2.4fr) auto;
+    /* Sets and reps hold at most 4 digits; the weight needs its buttons too */
+    grid-template-columns: minmax(0, 0.7fr) minmax(0, 0.9fr) minmax(0, 2.4fr) auto;
     gap: 0.35rem;
+  }
+
+  /* So "Repetări" fits its column and does not run into the weight's label */
+  .planned-row label {
+    font-size: 0.85rem;
   }
 
   .set-row .icon,
@@ -573,6 +579,8 @@ textarea {
 .weight-input label {
   flex: 1;
   min-width: 0;
+  /* One line; it may run on above the − / + buttons, which sit lower */
+  white-space: nowrap;
 }
 
 .weight-input input {
