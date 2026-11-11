@@ -1,0 +1,100 @@
+/**
+ * Weight units in the UI. The API always stores kilograms: conversion
+ * happens only here, when a weight is shown or typed. No React, no fetch.
+ */
+import { formatWeight } from './format'
+
+export const WEIGHT_UNITS = ['kg', 'lb'] as const
+export type WeightUnit = (typeof WEIGHT_UNITS)[number]
+
+/** Kilograms for everyone until the beta tells us otherwise. */
+export const DEFAULT_WEIGHT_UNIT: WeightUnit = 'kg'
+
+/** Kilograms in one pound, exact by definition. */
+export const KG_PER_LB = 0.45359237
+
+/** Must match the limit in backend/app/schemas.py (WeightKg). */
+export const MAX_WEIGHT_KG = 1000
+
+/** A rounding to this many decimals, without float noise (61.2349999 -> 61.235). */
+function roundTo(value: number, decimals: number): number {
+  const factor = 10 ** decimals
+  return Math.round(value * factor) / factor
+}
+
+/** A weight in kilograms as a number in the given unit, not rounded. */
+export function kgToUnit(kg: number, unit: WeightUnit): number {
+  return unit === 'kg' ? kg : kg / KG_PER_LB
+}
+
+/**
+ * A typed weight in the given unit, as kilograms for the API.
+ *
+ * Pounds are rounded to the gram (3 decimals): any pound value with up to 2
+ * decimals then comes back the same when shown again. Rounding to 2 decimals
+ * of a kilogram (10 g, about 0.02 lb) would not. Kilograms are kept as typed.
+ */
+export function unitToKg(value: number, unit: WeightUnit): number {
+  return unit === 'kg' ? value : roundTo(value * KG_PER_LB, 3)
+}
+
+/** The heaviest weight that can be typed in the unit: 1000 kg, or 2204.62 lb. */
+export function maxWeightIn(unit: WeightUnit): number {
+  // Down, not to the nearest: 2204.63 lb would be just over 1000 kg
+  return unit === 'kg' ? MAX_WEIGHT_KG : Math.floor(kgToUnit(MAX_WEIGHT_KG, unit) * 100) / 100
+}
+
+/**
+ * A saved weight as the text an editor's number input starts with.
+ *
+ * Plain digits with a "." (String(), not formatWeight()): a number input
+ * rejects "22,5". Pounds get 2 decimals at most: 60 kg is "132.28".
+ */
+export function weightFieldText(kg: number, unit: WeightUnit): string {
+  return unit === 'kg' ? String(kg) : String(roundTo(kgToUnit(kg, unit), 2))
+}
+
+/**
+ * The kilograms to send for a weight field.
+ *
+ * A field still showing the text it was filled with (savedText, from
+ * weightFieldText) sends the saved kilograms unchanged: opening a workout in
+ * pounds and saving it must not turn 60 kg into 60.001. A new field
+ * (savedKg null) or a changed one is converted from what was typed.
+ *
+ * Call it on valid text only (see weightError).
+ */
+export function fieldToKg(
+  text: string,
+  unit: WeightUnit,
+  savedKg: number | null = null,
+  savedText: string | null = null,
+): number {
+  if (savedKg !== null && text === savedText) return savedKg
+  return unitToKg(Number(text), unit)
+}
+
+/**
+ * What is wrong with a typed weight in the unit, or null if nothing is.
+ *
+ * Blank is not bodyweight (Number('') would silently be 0). The limit is
+ * checked in kilograms after the conversion, as the API checks it.
+ */
+export function weightError(text: string, unit: WeightUnit): string | null {
+  if (text.trim() === '') return 'Enter the weight (0 for bodyweight)'
+  const value = Number(text)
+  if (!Number.isFinite(value) || value < 0 || unitToKg(value, unit) > MAX_WEIGHT_KG) {
+    return `Weight must be from 0 to ${maxWeightIn(unit)} ${unit}`
+  }
+  return null
+}
+
+/** A weight for display in the unit, e.g. "60 kg" or "132.28 lb". */
+export function formatWeightIn(kg: number, unit: WeightUnit): string {
+  return `${formatWeight(kgToUnit(kg, unit))} ${unit}`
+}
+
+/** A unit read back from storage; anything unknown (or nothing) is the default. */
+export function parseWeightUnit(value: string | null): WeightUnit {
+  return WEIGHT_UNITS.find((unit) => unit === value) ?? DEFAULT_WEIGHT_UNIT
+}
