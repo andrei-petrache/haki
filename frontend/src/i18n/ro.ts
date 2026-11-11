@@ -193,4 +193,5 @@ export const ro: Dictionary = {
   'rest.dismiss': 'OK',
   'rest.startLabel': 'Pauză',
   'rest.startPreset': 'Pornește o pauză de {time}',
+  'history.lastTime': 'Ultima dată ({day}): {sets}',
 }

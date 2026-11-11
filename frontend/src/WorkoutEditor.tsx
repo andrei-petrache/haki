@@ -8,7 +8,9 @@ import {
   updateWorkout,
 } from './api'
 import type { Exercise, Workout } from './api'
-import { localDateString } from './format'
+import { formatDay, formatSet, localDateString } from './format'
+import { lastTime, loadHistory } from './history'
+import type { Current } from './history'
 import { withoutKeys } from './formErrors'
 import { useI18n } from './i18n/context'
 import type { WeightUnit } from './units'
@@ -55,6 +57,7 @@ function ExerciseBlock({
   onChange,
   onRemove,
   unit,
+  last,
 }: {
   index: number
   item: ExerciseFields
@@ -63,6 +66,8 @@ function ExerciseBlock({
   onChange: (item: ExerciseFields) => void
   onRemove: () => void
   unit: WeightUnit
+  /** What the history says about last time, ready to show; null for nothing */
+  last: string | null
 }) {
   const { t } = useI18n()
 
@@ -109,6 +114,7 @@ function ExerciseBlock({
         </button>
       </div>
       <FieldError errors={errors} field={exerciseKey(index)} />
+      {last && <p className="muted last-time">{last}</p>}
 
       {item.sets.map((set, setIndex) => (
         // Rows have no state of their own (the inputs are controlled), so the
@@ -182,6 +188,8 @@ export default function WorkoutEditor({
 }) {
   const { t } = useI18n()
   const [catalog, setCatalog] = useState<Exercise[] | null>(null)
+  // The recent workouts, for "last time"; null while loading, [] if it failed
+  const [history, setHistory] = useState<Workout[] | null>(null)
   const [fields, setFields] = useState<WorkoutFields | null>(() =>
     initial ? workoutToFields(initial, weightUnit) : null,
   )
@@ -207,6 +215,35 @@ export default function WorkoutEditor({
       cancelled = true
     }
   }, [token])
+
+  // Alongside the form, never in its way: a failure only hides "last time"
+  useEffect(() => {
+    let cancelled = false
+    loadHistory(token)
+      .then((loaded) => {
+        if (!cancelled) setHistory(loaded)
+      })
+      .catch(() => {
+        if (!cancelled) setHistory([])
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [token])
+
+  // The workout being edited is not its own "last time"
+  const current: Current = initial ? { id: initial.id, performed_on: initial.performed_on } : null
+
+  function lastText(item: ExerciseFields): string | null {
+    const exerciseId = Number(item.exercise)
+    if (!history || !Number.isInteger(exerciseId) || exerciseId < 1) return null
+    const last = lastTime(history, exerciseId, current)
+    if (!last) return null
+    return t('history.lastTime', {
+      day: formatDay(last.performedOn),
+      sets: last.sets.map((set) => formatSet(set.reps, set.weight_kg, weightUnit)).join(', '),
+    })
+  }
 
   function setExercise(index: number, item: ExerciseFields) {
     // The error of what changed goes away; the rest wait for the next Save
@@ -336,6 +373,7 @@ export default function WorkoutEditor({
           onChange={(changed) => setExercise(index, changed)}
           onRemove={() => removeExercise(index)}
           unit={weightUnit}
+          last={lastText(item)}
         />
       ))}
       <FieldError errors={errors} field={EXERCISES_KEY} />
