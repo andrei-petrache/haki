@@ -538,6 +538,30 @@ textarea {
   margin-bottom: 0.2rem;
 }
 
+/* Phone: the set and planned rows give the weight more room. At 390 px the
+   number column, the gaps and the − / + / × buttons left the weight input
+   about 48 px, and "Greutate (kg)" wrapped to two lines. */
+@media (max-width: 30rem) {
+  .set-row {
+    grid-template-columns: 1rem minmax(0, 1fr) minmax(0, 2.4fr) auto;
+    gap: 0.35rem;
+  }
+
+  .planned-row {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 2.4fr) auto;
+    gap: 0.35rem;
+  }
+
+  .set-row .icon,
+  .planned-row .icon {
+    padding-inline: 0.55rem;
+  }
+
+  .weight-input {
+    gap: 0.2rem;
+  }
+}
+
 /* A weight field and its − / + buttons, sharing one grid cell */
 .weight-input {
   display: flex;

@@ -16,6 +16,24 @@ function tab(name: string): Locator {
   return page.getByRole('navigation').getByRole('button', { name, exact: true })
 }
 
+/**
+ * A weight input wide enough to type "102,5" into (72 px or more), whose
+ * label's text fits on one line.
+ */
+async function expectRoomyWeight(input: Locator) {
+  const box = await input.boundingBox()
+  expect(box, 'weight input').not.toBeNull()
+  expect(box!.width, 'weight input width').toBeGreaterThanOrEqual(72)
+  const lines = await input.evaluate((element) => {
+    const text = element.closest('label')?.firstChild
+    if (!text) return 0
+    const range = document.createRange()
+    range.selectNodeContents(text)
+    return new Set([...range.getClientRects()].map((rect) => Math.round(rect.top))).size
+  })
+  expect(lines, 'weight label lines').toBe(1)
+}
+
 test.beforeAll(async ({ browser }) => {
   page = await browser.newPage({ locale: 'ro-RO' })
 })
@@ -97,6 +115,8 @@ test('the workout editor in Romanian fits a phone', async () => {
   await expect(
     page.getByRole('button', { name: 'Crește greutatea la setul 1 din exercițiul 1 cu 1,25 kg' }),
   ).toBeVisible()
+  // Room to type a weight, and its label on one line
+  await expectRoomyWeight(page.getByLabel('Greutate (kg)'))
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390)
   await page.screenshot({ path: `${SHOTS}/11-ro-workout-editor-phone.png`, fullPage: true })
 
