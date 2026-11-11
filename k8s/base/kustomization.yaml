@@ -9,6 +9,7 @@ resources:
   - namespace.yaml
   - postgres.yaml
   - migrate-job.yaml
+  - catalog-import-job.yaml
   - backend.yaml
   - frontend.yaml
   - gateway.yaml
