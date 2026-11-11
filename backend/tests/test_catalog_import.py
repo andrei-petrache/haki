@@ -15,6 +15,7 @@ from app.catalog_import import (
     EXIT_BAD_DATA,
     EXIT_DATABASE,
     EXIT_OK,
+    NAME_MAX,
     import_catalog,
     load_files,
     main,
@@ -255,6 +256,60 @@ def test_a_bad_file_writes_nothing(
 
     assert count(session, CatalogSource) == 0
     assert count(session, CatalogFood) == 0
+    assert count(session, CatalogExercise) == 0
+
+
+# Lengths: the columns hold 100 characters per name, 250 of search text
+
+
+def test_the_source_descriptions_are_longer_than_a_name_and_never_stored(
+    session: Session,
+) -> None:
+    # Why the files carry names of their own: USDA's descriptions do not fit
+    foods = load_files(DATA_DIR)[0].foods
+    longest = max(len(item.source_description or "") for item in foods)
+    import_catalog(session)
+
+    assert longest > NAME_MAX
+    assert not hasattr(CatalogFood, "source_description")
+
+
+@pytest.mark.parametrize("field", ["name", "name_ro"])
+def test_a_name_of_100_characters_is_imported_whole(
+    session: Session, data_dir: Path, edit: EditFile, field: str
+) -> None:
+    edit("foods.json", lambda d: d["foods"][0].update({field: "x" * NAME_MAX}))
+
+    import_catalog(session, data_dir)
+
+    assert getattr(catalog_food(session, "171077"), field) == "x" * NAME_MAX
+
+
+@pytest.mark.parametrize("field", ["name", "name_ro"])
+def test_a_longer_name_is_rejected_not_cut(
+    session: Session, data_dir: Path, edit: EditFile, field: str
+) -> None:
+    edit("foods.json", lambda d: d["foods"][0].update({field: "x" * 101}))
+
+    with pytest.raises(ValidationError, match="at most 100 characters"):
+        import_catalog(session, data_dir)
+
+    assert count(session, CatalogFood) == 0
+
+
+def test_a_search_text_too_long_after_normalizing_is_rejected(
+    session: Session, data_dir: Path, edit: EditFile
+) -> None:
+    # "ﬃ" is one character, "ffi" after normalizing: 100 + 100 become 600
+    ligatures = "ﬃ" * NAME_MAX
+    edit(
+        "exercises.json",
+        lambda d: d["exercises"][0].update(name=ligatures, name_ro=ligatures),
+    )
+
+    with pytest.raises(ValidationError, match="at most 250"):
+        import_catalog(session, data_dir)
+
     assert count(session, CatalogExercise) == 0
 
 
