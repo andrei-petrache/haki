@@ -262,7 +262,10 @@ def test_the_previous_version_still_inserts_foods_and_exercises(
         {"user_id": user.id},
     )
 
-    assert count(db, Food, user_id=user.id, catalog_food_id=None) == 1
+    # Nor do they know favourited_at (null: not a favourite)
+    assert (
+        count(db, Food, user_id=user.id, catalog_food_id=None, favourited_at=None) == 1
+    )
     assert count(db, Exercise, user_id=user.id, catalog_exercise_id=None) == 1
 
 
