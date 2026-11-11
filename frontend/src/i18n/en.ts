@@ -200,4 +200,19 @@ export const en = {
   'credits.license': 'Licence',
   'credits.version': 'Version',
   'credits.shareAlike': 'Changes to this data must be shared under the same licence.',
+
+  'catalog.search': 'Search the catalog',
+  'catalog.searching': 'Searching…',
+  'catalog.none': 'Nothing in the catalog matches "{q}"',
+  'catalog.more': 'Showing the first {count}: type more to narrow it down',
+  'catalog.add': 'Add',
+  'catalog.addName': 'Add {name}',
+  'catalog.adding': 'Adding…',
+  'catalog.foodsTitle': 'Add from the catalog',
+  'catalog.foodsPlaceholder': 'e.g. feta, chicken breast',
+  'catalog.foodRow': '{kcal} kcal · P {protein} · C {carbs} · F {fat} per 100 g · {source}',
+  'catalog.foodAdded': 'Added "{name}" to your foods.',
+  'catalog.foodExisting': '"{name}" is already in your foods.',
+  'catalog.foodTaken':
+    'You already have a food called "{name}". Rename yours to add this one from the catalog.',
 } satisfies Record<string, string | Plural>

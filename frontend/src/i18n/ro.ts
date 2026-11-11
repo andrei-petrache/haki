@@ -204,4 +204,19 @@ export const ro: Dictionary = {
   'credits.license': 'Licență',
   'credits.version': 'Versiune',
   'credits.shareAlike': 'Modificările acestor date trebuie publicate sub aceeași licență.',
+
+  'catalog.search': 'Caută în catalog',
+  'catalog.searching': 'Se caută…',
+  'catalog.none': 'Nimic din catalog nu se potrivește cu „{q}”',
+  'catalog.more': 'Sunt primele {count}: scrie mai mult ca să restrângi căutarea',
+  'catalog.add': 'Adaugă',
+  'catalog.addName': 'Adaugă {name}',
+  'catalog.adding': 'Se adaugă…',
+  'catalog.foodsTitle': 'Adaugă din catalog',
+  'catalog.foodsPlaceholder': 'ex. feta, piept de pui',
+  'catalog.foodRow': '{kcal} kcal · P {protein} · C {carbs} · G {fat} la 100 g · {source}',
+  'catalog.foodAdded': 'Am adăugat „{name}” la alimentele tale.',
+  'catalog.foodExisting': '„{name}” e deja printre alimentele tale.',
+  'catalog.foodTaken':
+    'Ai deja un aliment numit „{name}”. Redenumește-l pe al tău ca să-l adaugi pe acesta din catalog.',
 }
