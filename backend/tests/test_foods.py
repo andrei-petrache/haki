@@ -29,7 +29,7 @@ def test_create_food_returns_it_with_id(
 
     assert response.status_code == 201
     body = response.json()
-    assert body == {**OATS, "id": body["id"]}
+    assert body == {**OATS, "id": body["id"], "catalog_food_id": None}
 
 
 def test_list_foods_returns_own_foods_sorted_by_name(
@@ -56,7 +56,7 @@ def test_update_food_replaces_fields(
     response = client.put(f"/foods/{food['id']}", json=changes, headers=auth_headers)
 
     assert response.status_code == 200
-    assert response.json() == {**changes, "id": food["id"]}
+    assert response.json() == {**changes, "id": food["id"], "catalog_food_id": None}
 
 
 def test_delete_food_removes_it(

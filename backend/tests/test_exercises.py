@@ -25,7 +25,7 @@ def test_create_exercise_returns_it_with_id(
 
     assert response.status_code == 201
     body = response.json()
-    assert body == {"name": "Squat", "id": body["id"]}
+    assert body == {"name": "Squat", "id": body["id"], "catalog_exercise_id": None}
 
 
 def test_list_exercises_returns_own_exercises_sorted_ignoring_case(
@@ -60,7 +60,11 @@ def test_rename_exercise_changes_its_name(
     )
 
     assert response.status_code == 200
-    assert response.json() == {"name": "Back squat", "id": exercise["id"]}
+    assert response.json() == {
+        "name": "Back squat",
+        "id": exercise["id"],
+        "catalog_exercise_id": None,
+    }
 
 
 def test_rename_exercise_to_a_different_case_of_its_own_name(
