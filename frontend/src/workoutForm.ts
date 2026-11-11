@@ -93,8 +93,8 @@ function parseNumber(text: string): number | null {
   return text.trim() === '' ? null : Number(text)
 }
 
-/** What is wrong with one set row, or null if nothing is. */
-function setError(set: SetFields): string | null {
+/** What is wrong with one set row (reps and weight), or null if nothing is. */
+export function setError(set: SetFields): string | null {
   const reps = parseNumber(set.reps)
   const weight = parseNumber(set.weight)
   if (reps === null) return 'Enter the reps'
@@ -109,8 +109,12 @@ function setError(set: SetFields): string | null {
   return null
 }
 
-/** What is wrong with the date, or null if nothing is. */
-function dateError(day: string, today: string): string | null {
+/**
+ * What is wrong with a workout's date, or null if nothing is.
+ *
+ * Also used when a workout is started from a program day.
+ */
+export function dateError(day: string, today: string = localDateString()): string | null {
   // A cleared date input gives ''; anything not YYYY-MM-DD counts as cleared
   if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) return 'Choose a date'
   // Tomorrow, as the API allows: the user's local day can be ahead of its own
@@ -145,17 +149,8 @@ export function validateWorkout(
   }
 
   fields.exercises.forEach((item, index) => {
-    if (item.exercise === '') {
-      errors[exerciseKey(index)] = 'Choose an exercise'
-    } else if (item.exercise === NEW_EXERCISE) {
-      const name = item.newName.trim()
-      if (name === '') {
-        errors[exerciseKey(index)] = 'Enter the new exercise name'
-      } else if (name.length > MAX_NAME_LENGTH) {
-        errors[exerciseKey(index)] =
-          `The name can have at most ${MAX_NAME_LENGTH} characters`
-      }
-    }
+    const choice = choiceError(item)
+    if (choice) errors[exerciseKey(index)] = choice
 
     if (item.sets.length === 0) {
       errors[setsKey(index)] = 'Add at least one set'
@@ -180,6 +175,21 @@ function findByName(catalog: Exercise[], name: string): Exercise | undefined {
   return catalog.find((exercise) => nameKey(exercise.name) === nameKey(name))
 }
 
+/** An exercise as a form picks it: from the catalog, or by a new name. */
+export type ExerciseChoice = { exercise: string; newName: string }
+
+/** What is wrong with an exercise choice, or null if nothing is. */
+export function choiceError(item: ExerciseChoice): string | null {
+  if (item.exercise === '') return 'Choose an exercise'
+  if (item.exercise !== NEW_EXERCISE) return null
+  const name = item.newName.trim()
+  if (name === '') return 'Enter the new exercise name'
+  if (name.length > MAX_NAME_LENGTH) {
+    return `The name can have at most ${MAX_NAME_LENGTH} characters`
+  }
+  return null
+}
+
 /**
  * The new exercise names that need a POST /exercises before saving.
  *
@@ -188,9 +198,9 @@ function findByName(catalog: Exercise[], name: string): Exercise | undefined {
  * created by an earlier, failed save are in the catalog by then, so a retry
  * does not create them again (which would be a 409).
  */
-export function exercisesToCreate(fields: WorkoutFields, catalog: Exercise[]): string[] {
+export function newExerciseNames(items: ExerciseChoice[], catalog: Exercise[]): string[] {
   const names = new Map<string, string>()
-  for (const item of fields.exercises) {
+  for (const item of items) {
     if (item.exercise !== NEW_EXERCISE) continue
     const name = item.newName.trim()
     if (!findByName(catalog, name) && !names.has(nameKey(name))) {
@@ -198,6 +208,22 @@ export function exercisesToCreate(fields: WorkoutFields, catalog: Exercise[]): s
     }
   }
   return [...names.values()]
+}
+
+export function exercisesToCreate(fields: WorkoutFields, catalog: Exercise[]): string[] {
+  return newExerciseNames(fields.exercises, catalog)
+}
+
+/**
+ * The id of the chosen exercise, a new name resolved through the catalog.
+ *
+ * Call it only once every name from newExerciseNames is in the catalog.
+ */
+export function exerciseIdOf(item: ExerciseChoice, catalog: Exercise[]): number {
+  if (item.exercise !== NEW_EXERCISE) return Number(item.exercise)
+  const exercise = findByName(catalog, item.newName)
+  if (!exercise) throw new Error(`Exercise not created: ${item.newName}`)
+  return exercise.id
 }
 
 /**
@@ -211,20 +237,12 @@ export function toWorkoutInput(fields: WorkoutFields, catalog: Exercise[]): Work
     performed_on: fields.performedOn,
     // A blank note is no note
     note: fields.note.trim() || null,
-    exercises: fields.exercises.map((item) => {
-      let exerciseId = Number(item.exercise)
-      if (item.exercise === NEW_EXERCISE) {
-        const exercise = findByName(catalog, item.newName)
-        if (!exercise) throw new Error(`Exercise not created: ${item.newName}`)
-        exerciseId = exercise.id
-      }
-      return {
-        exercise_id: exerciseId,
-        sets: item.sets.map((set) => ({
-          reps: Number(set.reps),
-          weight_kg: Number(set.weight),
-        })),
-      }
-    }),
+    exercises: fields.exercises.map((item) => ({
+      exercise_id: exerciseIdOf(item, catalog),
+      sets: item.sets.map((set) => ({
+        reps: Number(set.reps),
+        weight_kg: Number(set.weight),
+      })),
+    })),
   }
 }
