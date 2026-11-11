@@ -1,11 +1,14 @@
 import { useEffect, useRef, useState } from 'react'
 import { ApiError, createExercise, createProgram, describeError, fetchExercises } from './api'
 import type { Exercise } from './api'
+import { withoutKeys } from './formErrors'
 import {
   DAYS_KEY,
   MAX_DAYS,
   MAX_EXERCISES_PER_DAY,
   NAME_KEY,
+  clearDayErrors,
+  clearRemovedDay,
   dayExercisesKey,
   dayNameKey,
   dayPositionKey,
@@ -255,6 +258,8 @@ export default function ProgramEditor({
   }, [token])
 
   function setDay(index: number, day: DayFields) {
+    // The error of what changed goes away; the rest wait for the next Save
+    if (fields) setErrors((old) => clearDayErrors(old, index, fields.days[index], day))
     setFields(
       (current) =>
         current && { ...current, days: current.days.map((old, i) => (i === index ? day : old)) },
@@ -262,6 +267,7 @@ export default function ProgramEditor({
   }
 
   function removeDay(index: number) {
+    setErrors((old) => clearRemovedDay(old, index))
     setFields(
       (current) => current && { ...current, days: current.days.filter((_, i) => i !== index) },
     )
@@ -344,7 +350,10 @@ export default function ProgramEditor({
           value={fields.name}
           maxLength={MAX_NAME_LENGTH}
           placeholder="e.g. Push/Pull/Legs"
-          onChange={(event) => setFields({ ...fields, name: event.target.value })}
+          onChange={(event) => {
+            setErrors((old) => withoutKeys(old, NAME_KEY))
+            setFields({ ...fields, name: event.target.value })
+          }}
         />
       </label>
       <FieldError errors={errors} field={NAME_KEY} />
@@ -365,7 +374,11 @@ export default function ProgramEditor({
         type="button"
         className="secondary add-exercise"
         disabled={nextDay === null}
-        onClick={() => nextDay && setFields({ ...fields, days: [...fields.days, nextDay] })}
+        onClick={() => {
+          if (!nextDay) return
+          setErrors((old) => withoutKeys(old, DAYS_KEY))
+          setFields({ ...fields, days: [...fields.days, nextDay] })
+        }}
       >
         Add day
       </button>

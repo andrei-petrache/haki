@@ -119,9 +119,15 @@ test('shows what is missing before sending anything', async () => {
 
 test('creates a two-day program with new exercises', async () => {
   await page.getByLabel('Name', { exact: true }).first().fill('E2E Push/Pull')
+  // Each error goes away as soon as its field is changed, before any Save
+  await expect(page.getByText('Enter a name for the program')).toBeHidden()
+  await expect(page.getByText('Enter a name for the day')).toBeVisible()
   const push = dayBlock(0)
   await push.getByLabel('Name', { exact: true }).fill('Push')
+  await expect(page.getByText('Enter a name for the day')).toBeHidden()
   await plan(push, 0, { create: 'E2E Bench' }, '3', '8', '60')
+  await expect(page.getByText('Enter the new exercise name')).toBeHidden()
+  await expect(page.getByText('Enter the sets')).toBeHidden()
   await push.getByRole('button', { name: '+ Add exercise' }).click()
   await plan(push, 1, { create: 'E2E Dips' }, '3', '10', '0')
 
@@ -186,6 +192,8 @@ test('refuses a duplicate name, ignoring case, next to the name', async () => {
 
   await expect(page.getByText('You already have a program with this name')).toBeVisible()
   expect(await ids('/programs')).toHaveLength(2)
+  await page.getByLabel('Name', { exact: true }).first().fill('E2E Push/Pull 2')
+  await expect(page.getByText('You already have a program with this name')).toBeHidden()
   await page.getByRole('button', { name: 'Cancel' }).click()
 })
 
