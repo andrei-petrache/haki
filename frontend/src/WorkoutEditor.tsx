@@ -12,6 +12,7 @@ import { localDateString } from './format'
 import { withoutKeys } from './formErrors'
 import { useI18n } from './i18n/context'
 import type { WeightUnit } from './units'
+import { RestStart } from './RestTimer'
 import WeightInput from './WeightInput'
 import {
   DATE_KEY,
@@ -351,6 +352,8 @@ export default function WorkoutEditor({
       </button>
 
       {saveError && <p className="error">{saveError}</p>}
+      <RestStart />
+
       <div className="actions">
         <button type="submit" disabled={busy}>
           {busy ? t('common.saving') : t('common.save')}

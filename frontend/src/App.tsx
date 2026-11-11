@@ -24,6 +24,7 @@ import {
 } from './i18n/i18n'
 import type { Locale, LocaleChoice, MessageKey } from './i18n/i18n'
 import ProgramsPage from './ProgramsPage'
+import { RestBar } from './RestTimer'
 import TodayPage from './TodayPage'
 import { loadWeightUnit, parseWeightUnit, saveWeightUnit } from './units'
 import type { WeightUnit } from './units'
@@ -313,6 +314,8 @@ function App() {
         }}
         onLogout={handleLogout}
       />
+      {/* Outside the pages: a running rest shows on every screen */}
+      <RestBar />
       {!user && !loadError && <p>{t('app.loading')}</p>}
       {!user && loadError && (
         <section className="card">

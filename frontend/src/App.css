@@ -591,3 +591,38 @@ textarea {
 .weight-input .icon {
   margin-bottom: 0.2rem;
 }
+
+/* Rest timer: the bar under the header while a rest runs, the start buttons in the editor */
+.rest-bar {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--card-bg);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.rest-bar.over {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.rest-start {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.rest-start button {
+  padding: 0.35rem 0.65rem;
+  font-variant-numeric: tabular-nums;
+}
