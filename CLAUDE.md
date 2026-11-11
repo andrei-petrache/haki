@@ -27,6 +27,12 @@ and docs are in English.
   branch once, right before merge.
 - Open the PR, wait for CI. Merge by auto-merge when it is available and all
   checks are green; until it is enabled, report to Andrei, who merges.
+- Once your PR is merged you may delete your own remote branch, after
+  checking on GitHub that the PR shows as merged and that the branch's tip is
+  still the PR's head commit that was merged (rebase merges give the commits
+  on `main` new SHAs, so compare with the PR's head, not with `main`). Never
+  delete a branch that is the base of an open PR, nor another session's,
+  Dependabot's or the bot's (`bot/**`) branches.
 - Reports to Andrei: at most 10 lines: what changed, what is green, which
   decision is needed. No pasted logs.
 
