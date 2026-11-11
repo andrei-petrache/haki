@@ -17,6 +17,8 @@ Newest first. Sprints follow the project plan; the review is
 
 | Date | Sprint | What shipped | Key commits |
 | --- | --- | --- | --- |
+| 11 Nov | S9 (done) | The first promotion to prod: Programs on prod through the approved workflow (#82), with a dump right before the merge and a manual sync of 18 s, migration included; the ruleset on `bot/**` (only the tag bot writes those branches); `prod-guard` accepts the bot's commit as GitHub signs it (#85) and automated sync in one shape (#83); automated sync for prod, without prune (#84) | `fdc9943`, `df47b3c`, `a572e97`, `dfe3829` |
+| 9-10 Nov | S9 (days 3-4) | Prod under ArgoCD: the staging tags in a shared component (#68); the Application `haki-prod` pinned to one commit SHA and taken over by hand with every pod and volume kept (#69); `prod-guard` on `pull_request_target` and `haki-apps` applying `haki-prod.yaml` from `main` (#70); the `promote-prod` workflow with approval in the environment `prod` (#75), judged by the images prod runs (#77); the publish log names each push (#74) | `00e3da8`, `0669212`, `f784f43`, `c339f35`, `c0d2f07` |
 | 4 Nov | S9 (day 2) | Programs API: weekly plans, their days and planned exercises, and a workout started from a day; on staging through the first real auto-merge (#60), 8 min 5 s from the merge to the last new pod Ready; the revert drill with the rollback pin (#61) and its lift (#62) | `0ab4935`, `f0d9605`, `387843a`, `3ecb61d` |
 | 3 Nov | S9 (day 1) | CI opens the staging tag pull request itself, as the GitHub App `haki-tag-bot` (first real bump: `f5d2daa`, through #55); a rollback pin that keeps the migration on the newer image; the `tag-pr-scope` check and a switch for the bot's auto-merge | `155609e`, `3aba5ca`, `9ebcabf`, `024f6de` |
 | 3 Nov | S8 (done) | A tag change and its `git revert` reached staging through pull requests and ArgoCD alone (21 s and 94-95 s from merge to the first new pod Ready); the rollback limit after a migration checked on a throwaway database | `62841b0`, `384f067` |
@@ -52,10 +54,32 @@ without my OK.
 
 ## Where I am
 
-Staging runs `387843a`: Programs (the API reports version `0.2.0.dev0`).
-Prod runs `081c5f2`: Workouts and the L16, L18 and L19 fixes. S9 started on
-3 November 2026: a code change merged to `main` reaches staging through a tag
-pull request that CI opens and merges itself; prod stays manual.
+Prod runs `c0d2f07`, images `4b65cc6`: Programs, since 11 November 2026, under
+ArgoCD with automated sync (no prune, self-heal). Staging follows `main`.
+S9 is done (3-11 November 2026): a code change merged to `main` reaches
+staging through the tag pull request that CI opens and merges itself; prod
+moves only when a promotion, approved in the environment `prod`, lands on
+`main`, and merging it is the deploy.
+
+S9, days 3-5 (9-11 November 2026), from the pull requests, their CI runs and
+`kubectl` (times UTC):
+
+| Step | Result |
+| --- | --- |
+| Shared image component (#68) | The three staging tags moved into `k8s/components/images`; the rendered manifests did not change |
+| Prod's Application (#69) | `haki-prod` in its own project (the `haki` namespace only, no Secrets or volumes), `targetRevision` a full SHA (`00e3da8`), no automated sync, `retry.limit: 0`, `PruneLast` |
+| Takeover of prod (9 November, 18:32) | Dump first; manual sync without prune in 14 s; the migration hook ran as a no-op (`b4a97ba12fd6`); same pods, volume and rows. The Deployments' generation went up by one from ArgoCD's annotation alone |
+| Throwaway cluster (`haki-test`) | An AppProject cannot limit an Application's name, so a second document in `haki-prod.yaml` would be created; a deleted file or a prune sync keeps `haki-prod`; self-heal undid a `kubectl patch` in 4 s |
+| `prod-guard` (#70) | Runs on `pull_request_target`, from `main`'s copy of the workflow and `scripts/check-prod-app.sh`, with the pull request's commits read as data; the proof #71 was refused ("no pull request may change targetRevision"). `haki-apps` applies `haki-prod.yaml` from `main`; it added two annotations to `haki-prod` and started no sync |
+| Environment `prod` (9 November) | Required reviewer: me; jobs from `main` only; no secrets |
+| `promote-prod` (#75, #77) | `workflow_dispatch` with the SHA: `check`, `approve` (waits in the environment), `open-pr` (the bot's one commit through the API on `bot/promote-prod`). The proof #76, a person's commit on that branch, was refused. The mentor's catch: #75 judged the revision, but prod runs the images written at it; #77 renders `k8s/overlays/prod` at the revision and counts migrations between the `haki-migrate` images |
+| First run (10 November) | `check` listed the Programs migration (images `081c5f2` -> `4b65cc6`); approved; the bot opened #82 with one verified commit. `prod-guard` refused it: the commit's committer is `web-flow`, not the bot, because GitHub makes and signs API commits itself. An extra commit of mine on the branch was refused too ("exactly one commit") and the branch reset |
+| 11 November | #85 accepts author bot + committer `web-flow` + verified; the ruleset `protect-bot-branches` (`bot/**`: no creation, update, deletion or force push; bypass only the App) closes the gap: my push was refused, `GH013 Cannot update this protected ref`. #82 reopened: `prod-guard` green |
+| #83, then #82 regenerated | `prod-guard` accepts `automated` only as `enabled: true, prune: false, selfHeal: true`. #82 was behind `main` and a person cannot update `bot/**`, so the workflow ran again (run #2) and rewrote #82 in place: one commit on `main`. `prod-guard` failed once on a stale `base.sha` (`fdc9943`) in the event, then passed after a close and reopen (base `df47b3c`) |
+| Dump before the merge (13:23) | `pg_dump -Fc` from the pod: 24669 bytes, CUSTOM, 74 entries, 8 tables, `pg_restore --list` clean; row counts saved and identical to the day before |
+| Merge of #82 (13:20) and the diff | `haki-apps` moved `haki-prod` to `c0d2f07` in about 2 min: OutOfSync, with only the two Deployments differing. Rendered diff `00e3da8` -> `c0d2f07`: three image lines, the same 15 resources on both sides |
+| Manual sync (13:27:47 -> 13:28:05) | 18 s, no prune. The hook `haki-migrate` ran `b4a97ba12fd6 -> 3bf97e2ee106` in 5 s; backend (2) and frontend on `4b65cc6`; the database pod and its volume untouched; 11 tables, the three new ones empty, the old counts identical; `/ready` with `database: ok`, `/programs` 401 without a token, the frontend 200 |
+| Automated sync (#84, merged 13:36) | `haki-apps` applied it at 13:39: `automated {enabled, prune: false, selfHeal: true}`; `haki-prod` stayed Synced on `c0d2f07` with no new operation. `k8s/README.md`: dump right before the merge of a promotion with a migration, because the merge is the deploy |
 
 S9, day 2 (4 November 2026), from the pull requests, their CI runs and two
 live observers (times UTC):
@@ -85,8 +109,8 @@ S9, day 1 (3 November 2026), from the pull requests and their CI runs:
 | Rollback pin (#56) | The migration Job runs the backend image under its own name, `haki-migrate`; `scripts/staging-rollback-pin.sh` moves backend and frontend back while the migration stays on the newer tag, recorded in `rollback-pin.yaml`. CI green; tried on staging on day 2 (#61, #62) |
 | Auto-merge of the tag pull request (#57) | `tag-pr-scope` passes the bot's pull request only if it changes the three staging tags, to one SHA, with no pin; it is the 9th required check. The job arms auto-merge only while `TAG_BOT_AUTO_MERGE` is `true`. First real run on day 2 (#60) |
 
-Next in S9: prod updated only with approval, then Programs on prod (see the
-[plan](plan.md)).
+Next: S9-S10 hardening (Prometheus and Grafana, Argo Rollouts, scheduled
+backups), after the open items below (see the [plan](plan.md)).
 
 S8 is done (3 November 2026): ArgoCD v3.5.7 manages staging, with automated
 sync, prune and self-heal, and a merged pull request is the only way a
@@ -129,10 +153,25 @@ Open items, outside the sprints:
   Applications named only `haki-staging`, `haki-prod` or `haki-apps`, in
   `argocd` only; the project `haki-prod` used by `haki-prod` alone; and
   `haki-prod`'s `targetRevision` a full commit SHA
-- [ ] A ruleset on `bot/**`: only the tag bot (GitHub App) may create or
-  update those branches. Not added for now; `prod-guard` already refuses a
-  promotion with a commit that is not the bot's. Check first that a
-  personal repository's ruleset can list a GitHub App in its bypass list
+- [x] A ruleset on `bot/**`: `protect-bot-branches` (11 November 2026). A
+  personal repository's ruleset does list a GitHub App in its bypass list;
+  with it, only `haki-tag-bot` creates, updates, deletes or force-pushes
+  `bot/bump-staging` and `bot/promote-prod` (my push: `GH013`)
+- [ ] `guard.yml` takes `BASE` from the `pull_request_target` event, and that
+  `base.sha` can lag behind `main`: when #82 was rewritten in place after
+  #83 merged, the event still said `fdc9943`, so `prod-guard` counted #83's
+  commit as the promotion's second one. Read the base at run time (`main` as
+  checked out, or the pull request's `base.sha` from the API) instead. Until
+  then: close and reopen the promotion's pull request; "Re-run jobs" reuses
+  the stale event. After S9
+- [ ] #81: the `pull_request_target` policy `prod-guard` needs from 2 December
+  2026, when GitHub restricts that event on public repositories by default;
+  an Actions setting of the repository, mine to change
+- [ ] Dependabot #79 (frontend, minor and patch) and #80 (backend, minor and
+  patch)
+- [ ] GHCR refused `haki-frontend:3666079` twice with `write_package` while
+  the backend of the same run was pushed; the next publish worked. Cause
+  unknown; the publish log now names each push (#74)
 - [ ] TypeScript 7, held back in `.github/dependabot.yml`: `typescript-eslint`
   accepts only `typescript <6.1.0` (8.72.2, 9 November 2026), so `npm ci`
   fails with ERESOLVE (#65). Lift the hold once a release accepts 7

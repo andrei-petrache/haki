@@ -13,7 +13,7 @@ Sprint numbers are those of the original plan, with the shifts noted below.
 | S6-S7 | 3. Kubernetes (local) | kind, manifests, StatefulSet, probes, self-healing, resource limits, Kustomize for staging and prod, Gateway | Done |
 | - | Feature | **Workouts**, planned with S5, shipped after S7 as the first release through Kustomize, Gateway and probes | Done |
 | S8 | 4. GitOps | ArgoCD: the cluster's state lives in Git; staging updates itself on merge; a rollback is a `git revert` | Done |
-| S9 | 4. GitOps | Prod updated only with approval: promotion between environments behind a gate. CI updates the image tag in Git (until then, a code change reaches staging through a separate pull request that changes the tag). Choose and test the explicit exception that lets an older image pass the migration hook for a rollback. Feature **Programs** (weekly plans, e.g. Push/Pull/Legs), shipped staging first, then prod, with a revert drill of its migration on staging | In progress |
+| S9 | 4. GitOps | Prod updated only with approval: promotion between environments behind a gate. CI updates the image tag in Git (until then, a code change reaches staging through a separate pull request that changes the tag). Choose and test the explicit exception that lets an older image pass the migration hook for a rollback. Feature **Programs** (weekly plans, e.g. Push/Pull/Legs), shipped staging first, then prod, with a revert drill of its migration on staging | Done |
 | S9-S10 | 6. Hardening (local) | Prometheus and Grafana with alerts; Argo Rollouts (blue-green, automatic rollback); scheduled database backups and a restore drill | Next |
 | S11 | 6. Hardening (local) | Feature **Dashboard** (weekly calories and training volume), shipped blue-green; a broken release rolls back on its own | Next |
 | S11-S13 | 5. AWS with Terraform | VPC, EKS and IAM as code; everything that works locally moves to the cloud; secrets in AWS Secrets Manager synced into the cluster | Next |
@@ -30,7 +30,11 @@ Sprint numbers are those of the original plan, with the shifts noted below.
 - [x] Feature **Programs** on staging (#59, then #60; 4 November)
 - [x] Revert drill of the Programs migration on staging, with the rollback
   pin (#61) and its lift (#62; 4 November)
-- [ ] Prod updated only with approval, then Programs on prod
+- [x] Prod under ArgoCD, pinned to one commit SHA and guarded by
+  `prod-guard` (#68, #69, #70; 9 November); promotion through the
+  `promote-prod` workflow with approval (#75, #77; 10 November)
+- [x] Programs on prod through the first promotion (#82), then automated
+  sync for prod without prune (#83, #84; 11 November). S9 done
 
 ## Rules for AWS
 
