@@ -6,12 +6,28 @@ from typing import Any
 
 import pytest
 from pydantic import ValidationError
-from sqlalchemy import func, select
+from sqlalchemy import create_engine, func, select
 from sqlalchemy.orm import Session
 
-from app.catalog_import import DATA_DIR, import_catalog, load_files
+from app import catalog_import
+from app.catalog_import import (
+    DATA_DIR,
+    EXIT_BAD_DATA,
+    EXIT_DATABASE,
+    EXIT_OK,
+    import_catalog,
+    load_files,
+    main,
+)
 from app.catalog_search import normalize, query_words, search_text
-from app.models import CatalogExercise, CatalogFood, CatalogSource, Food, User
+from app.models import (
+    Base,
+    CatalogExercise,
+    CatalogFood,
+    CatalogSource,
+    Food,
+    User,
+)
 
 EditFile = Callable[[str, Callable[[dict[str, Any]], None]], None]
 
@@ -272,3 +288,48 @@ def test_search_text_skips_a_missing_name() -> None:
 def test_query_words() -> None:
     assert query_words("  Piept, de PUI ") == ["piept", "de", "pui"]
     assert query_words("%_") == []
+
+
+# The command and its exit codes
+
+
+def test_command_imports_and_exits_0(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    url = f"sqlite:///{tmp_path / 'catalog.db'}"
+    engine = create_engine(url)
+    Base.metadata.create_all(engine)
+    monkeypatch.setenv("DATABASE_URL", url)
+
+    assert main() == EXIT_OK
+
+    with Session(engine) as check:
+        assert count(check, CatalogFood) == len(load_files(DATA_DIR)[0].foods)
+    engine.dispose()
+
+
+def test_command_exits_2_on_bad_data(
+    data_dir: Path, edit: EditFile, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    edit("exercises.json", lambda d: d["exercises"][0].pop("name"))
+    monkeypatch.setattr(catalog_import, "DATA_DIR", data_dir)
+
+    assert main() == EXIT_BAD_DATA
+
+
+def test_command_exits_2_on_a_missing_file(
+    data_dir: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    (data_dir / "foods.json").unlink()
+    monkeypatch.setattr(catalog_import, "DATA_DIR", data_dir)
+
+    assert main() == EXIT_BAD_DATA
+
+
+def test_command_exits_3_when_the_database_is_unreachable(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # Port 1 on the loopback refuses at once
+    monkeypatch.setenv("DATABASE_URL", "postgresql+psycopg://x:y@127.0.0.1:1/x_test")
+
+    assert main() == EXIT_DATABASE

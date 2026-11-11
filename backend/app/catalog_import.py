@@ -23,6 +23,8 @@ from typing import Annotated, Any
 
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints, model_validator
 from sqlalchemy import create_engine, select, text
+from sqlalchemy.exc import OperationalError
+from sqlalchemy.exc import TimeoutError as PoolTimeoutError
 from sqlalchemy.orm import Session
 
 from app.catalog_search import search_text
@@ -209,12 +211,28 @@ def import_catalog(session: Session, data_dir: Path = DATA_DIR) -> dict[str, Cou
     return counts
 
 
+# Exit codes, so a failed Job says why without reading its log
+EXIT_OK = 0
+EXIT_ERROR = 1  # anything unexpected; the traceback is in the log
+EXIT_BAD_DATA = 2  # a data file is missing, not JSON, or fails validation
+EXIT_DATABASE = 3  # the database refused or could not be reached; retry
+
+
 def main() -> int:
+    """Run the import; return one of the EXIT_* codes."""
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
+    try:
+        load_files(DATA_DIR)
+    except (OSError, ValueError) as error:  # ValidationError is a ValueError
+        logger.error("Catalog data files are invalid, nothing written: %s", error)
+        return EXIT_BAD_DATA
     engine = create_engine(DatabaseSettings().db_url, pool_pre_ping=True)
     try:
         with Session(engine) as session:
-            counts = import_catalog(session)
+            counts = import_catalog(session, DATA_DIR)
+    except (OperationalError, PoolTimeoutError) as error:
+        logger.error("Database unavailable, nothing written: %s", error)
+        return EXIT_DATABASE
     finally:
         engine.dispose()
     for table, result in counts.items():
@@ -225,7 +243,7 @@ def main() -> int:
             result.updated,
             result.unchanged,
         )
-    return 0
+    return EXIT_OK
 
 
 if __name__ == "__main__":
