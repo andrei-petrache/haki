@@ -7,7 +7,8 @@ import {
   fetchWorkouts,
 } from './api'
 import type { Workout, WorkoutSummary } from './api'
-import { formatCounts, formatDay, formatSet, shorten } from './format'
+import { formatDay, formatSet, shorten } from './format'
+import { useI18n } from './i18n/context'
 import WorkoutEditor from './WorkoutEditor'
 import type { WeightUnit } from './units'
 
@@ -34,6 +35,7 @@ function WorkoutList({
   onOpen: (id: number) => void
   onNew: () => void
 }) {
+  const { t } = useI18n()
   const [workouts, setWorkouts] = useState<WorkoutSummary[] | null>(null)
   // A full page means there may be more; an empty next page then just ends it
   const [hasMore, setHasMore] = useState(false)
@@ -75,14 +77,14 @@ function WorkoutList({
   return (
     <section className="card">
       <div className="card-head">
-        <h2>Your workouts</h2>
+        <h2>{t('workouts.yours')}</h2>
         <button type="button" onClick={onNew}>
-          New workout
+          {t('workouts.new')}
         </button>
       </div>
       {error && <p className="error">{error}</p>}
-      {workouts === null && !error && <p className="muted">Loading…</p>}
-      {workouts?.length === 0 && <p className="muted empty">No workouts yet</p>}
+      {workouts === null && !error && <p className="muted">{t('app.loading')}</p>}
+      {workouts?.length === 0 && <p className="muted empty">{t('workouts.none')}</p>}
       {workouts && workouts.length > 0 && (
         <ul className="workout-list">
           {workouts.map((workout) => (
@@ -95,7 +97,8 @@ function WorkoutList({
                 <strong>{formatDay(workout.performed_on)}</strong>
                 {workout.note && <span>{shorten(workout.note, NOTE_PREVIEW_LENGTH)}</span>}
                 <span className="muted">
-                  {formatCounts(workout.exercise_count, workout.set_count)}
+                  {t('count.exercises', { count: workout.exercise_count })} ·{' '}
+                  {t('count.sets', { count: workout.set_count })}
                 </span>
               </button>
             </li>
@@ -109,7 +112,7 @@ function WorkoutList({
           disabled={loadingMore}
           onClick={() => void handleLoadMore(workouts)}
         >
-          {loadingMore ? 'Loading…' : 'Load more'}
+          {loadingMore ? t('app.loading') : t('common.loadMore')}
         </button>
       )}
     </section>
@@ -129,6 +132,7 @@ function WorkoutDetail({
   onEdit: (workout: Workout) => void
   weightUnit: WeightUnit
 }) {
+  const { t } = useI18n()
   const [workout, setWorkout] = useState<Workout | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [deleting, setDeleting] = useState(false)
@@ -148,7 +152,7 @@ function WorkoutDetail({
   }, [token, id])
 
   async function handleDelete(loaded: Workout) {
-    if (!window.confirm(`Delete the workout of ${formatDay(loaded.performed_on)}?`)) {
+    if (!window.confirm(t('workouts.deleteConfirm', { day: formatDay(loaded.performed_on) }))) {
       return
     }
     setError(null)
@@ -165,15 +169,15 @@ function WorkoutDetail({
   return (
     <section className="card">
       <button type="button" className="link" onClick={onBack}>
-        ‹ Back to workouts
+        {t('workouts.back')}
       </button>
       {error && <p className="error">{error}</p>}
-      {!workout && !error && <p className="muted">Loading…</p>}
+      {!workout && !error && <p className="muted">{t('app.loading')}</p>}
       {workout && (
         <>
           <h2>{formatDay(workout.performed_on)}</h2>
           {workout.note && <p className="workout-note">{workout.note}</p>}
-          {workout.exercises.length === 0 && <p className="muted">No exercises</p>}
+          {workout.exercises.length === 0 && <p className="muted">{t('workouts.noExercises')}</p>}
           {workout.exercises.map((item, index) => (
             // The same exercise may appear twice in a workout: the index is the key
             <div key={index} className="workout-exercise">
@@ -192,7 +196,7 @@ function WorkoutDetail({
               disabled={deleting}
               onClick={() => onEdit(workout)}
             >
-              Edit
+              {t('common.edit')}
             </button>
             <button
               type="button"
@@ -200,7 +204,7 @@ function WorkoutDetail({
               disabled={deleting}
               onClick={() => void handleDelete(workout)}
             >
-              {deleting ? 'Deleting…' : 'Delete'}
+              {deleting ? t('common.deleting') : t('common.delete')}
             </button>
           </div>
         </>
