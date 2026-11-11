@@ -9,6 +9,7 @@ import {
 import type { Workout, WorkoutSummary } from './api'
 import { formatCounts, formatDay, formatSet, shorten } from './format'
 import WorkoutEditor from './WorkoutEditor'
+import type { WeightUnit } from './units'
 
 const NOTE_PREVIEW_LENGTH = 80
 
@@ -120,11 +121,13 @@ function WorkoutDetail({
   id,
   onBack,
   onEdit,
+  weightUnit,
 }: {
   token: string
   id: number
   onBack: () => void
   onEdit: (workout: Workout) => void
+  weightUnit: WeightUnit
 }) {
   const [workout, setWorkout] = useState<Workout | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -177,7 +180,7 @@ function WorkoutDetail({
               <h3>{item.exercise_name}</h3>
               <ol className="sets">
                 {item.sets.map((set, setIndex) => (
-                  <li key={setIndex}>{formatSet(set.reps, set.weight_kg)}</li>
+                  <li key={setIndex}>{formatSet(set.reps, set.weight_kg, weightUnit)}</li>
                 ))}
               </ol>
             </div>
@@ -209,9 +212,11 @@ function WorkoutDetail({
 /** The workouts tab; openWorkoutId opens one workout first, e.g. one just started. */
 export default function WorkoutsPage({
   token,
+  weightUnit,
   openWorkoutId = null,
 }: {
   token: string
+  weightUnit: WeightUnit
   openWorkoutId?: number | null
 }) {
   const [view, setView] = useState<View>(() =>
@@ -235,6 +240,7 @@ export default function WorkoutsPage({
           id={view.id}
           onBack={showList}
           onEdit={(workout) => setView({ kind: 'edit', workout })}
+          weightUnit={weightUnit}
         />
       )}
       {view.kind === 'new' && (

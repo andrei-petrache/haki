@@ -11,6 +11,7 @@ import type { Program, ProgramSummary } from './api'
 import { formatDayCount, formatPlanned, localDateString } from './format'
 import ProgramEditor from './ProgramEditor'
 import { dateError } from './workoutForm'
+import type { WeightUnit } from './units'
 
 type View = { kind: 'list' } | { kind: 'detail'; id: number } | { kind: 'new' }
 
@@ -110,11 +111,13 @@ function ProgramDetail({
   id,
   onBack,
   onWorkoutStarted,
+  weightUnit,
 }: {
   token: string
   id: number
   onBack: () => void
   onWorkoutStarted: (workoutId: number) => void
+  weightUnit: WeightUnit
 }) {
   const [program, setProgram] = useState<Program | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -210,7 +213,7 @@ function ProgramDetail({
                 {day.exercises.map((item, index) => (
                   // The same exercise may appear twice in a day: the index is the key
                   <li key={index}>
-                    {item.exercise_name}: {formatPlanned(item.sets, item.reps, item.weight_kg)}
+                    {item.exercise_name}: {formatPlanned(item.sets, item.reps, item.weight_kg, weightUnit)}
                   </li>
                 ))}
               </ul>
@@ -244,9 +247,11 @@ function ProgramDetail({
 
 export default function ProgramsPage({
   token,
+  weightUnit,
   onWorkoutStarted,
 }: {
   token: string
+  weightUnit: WeightUnit
   onWorkoutStarted: (workoutId: number) => void
 }) {
   const [view, setView] = useState<View>({ kind: 'list' })
@@ -268,6 +273,7 @@ export default function ProgramsPage({
           id={view.id}
           onBack={showList}
           onWorkoutStarted={onWorkoutStarted}
+          weightUnit={weightUnit}
         />
       )}
       {view.kind === 'new' && (

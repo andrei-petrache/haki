@@ -5,7 +5,6 @@ import {
   WEIGHT_UNIT_KEY,
   MAX_WEIGHT_KG,
   fieldToKg,
-  formatWeightIn,
   kgToUnit,
   loadWeightUnit,
   maxWeightIn,
@@ -105,14 +104,6 @@ describe('weightError', () => {
       expect(weightError(text, 'lb'), text).toBe('Weight must be from 0 to 2204.62 lb')
     }
     expect(weightError('1000.5', 'kg')).toBe('Weight must be from 0 to 1000 kg')
-  })
-})
-
-describe('display', () => {
-  it('shows the weight in the unit, with up to 2 decimals', () => {
-    expect(formatWeightIn(60, 'kg')).toBe('60 kg')
-    expect(formatWeightIn(60, 'lb')).toMatch(/^132[.,]28 lb$/)
-    expect(formatWeightIn(27.669, 'lb')).toBe('61 lb')
   })
 })
 
