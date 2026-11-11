@@ -8,7 +8,17 @@ POST /exercises/from-catalog.
 from typing import Annotated
 
 from fastapi import APIRouter, HTTPException, Query, status
-from sqlalchemy import Select, case, func, select
+from sqlalchemy import (
+    ColumnElement,
+    Select,
+    String,
+    case,
+    cast,
+    func,
+    select,
+    type_coerce,
+)
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Session, joinedload
 
 from app.auth import CurrentUser, SessionDep
@@ -28,6 +38,8 @@ router = APIRouter(prefix="/catalog", tags=["catalog"])
 # Words beyond these are ignored: each one adds a LIKE to the query
 MAX_QUERY_WORDS = 8
 SearchQuery = Annotated[str, Query(max_length=100)]
+# The source's muscle names: lower-case words, e.g. "chest", "lower back"
+MuscleQuery = Annotated[str | None, Query(pattern=r"^[a-z]+( [a-z]+)*$", max_length=30)]
 LanguageQuery = Annotated[CatalogLanguage, Query()]
 
 CATALOG_FOOD_NOT_FOUND = "Catalog food not found"
@@ -70,6 +82,18 @@ def get_catalog_item[M: (CatalogFood, CatalogExercise)](
     return item
 
 
+def works_muscle(session: Session, muscle: str) -> ColumnElement[bool]:
+    """Exercises whose primary muscles include `muscle`.
+
+    PostgreSQL: JSONB @>, served by ix_catalog_exercises_primary_muscles.
+    SQLite (tests) has no @>: the JSON text holds the name in quotes, and
+    the pattern on MuscleQuery keeps LIKE wildcards and quotes out of it.
+    """
+    if session.get_bind().dialect.name == "postgresql":
+        return type_coerce(CatalogExercise.primary_muscles, JSONB).contains([muscle])
+    return cast(CatalogExercise.primary_muscles, String).like(f'%"{muscle}"%')
+
+
 @router.get("/sources", response_model=list[CatalogSourceResponse])
 def list_sources(current_user: CurrentUser, session: SessionDep) -> list[CatalogSource]:
     """Every source of the catalog, with its licence and credit line."""
@@ -104,12 +128,18 @@ def search_exercises(
     session: SessionDep,
     q: SearchQuery = "",
     language: LanguageQuery = "en",
+    muscle: MuscleQuery = None,
     limit: LimitQuery = 20,
     offset: OffsetQuery = 0,
 ) -> list[CatalogExercise]:
-    """Search the catalog's exercises by name; an empty query lists them all."""
-    query = search_query(CatalogExercise, q, language).limit(limit).offset(offset)
-    return list(session.scalars(query))
+    """Search the catalog's exercises by name, and by primary muscle if given.
+
+    An empty query lists them all.
+    """
+    query = search_query(CatalogExercise, q, language)
+    if muscle is not None:
+        query = query.where(works_muscle(session, muscle))
+    return list(session.scalars(query.limit(limit).offset(offset)))
 
 
 @router.get("/exercises/{exercise_id}", response_model=CatalogExerciseResponse)

@@ -257,6 +257,61 @@ def test_search_exercises_in_romanian(
     assert squat["source"]["key"] == "free-exercise-db"
 
 
+def test_filter_exercises_by_primary_muscle(
+    client: TestClient, auth_headers: Headers, catalog: None
+) -> None:
+    found = search(client, auth_headers, "exercises", muscle="chest", limit=100)
+
+    assert "Barbell Bench Press - Medium Grip" in names(found)
+    assert all("chest" in item["primary_muscles"] for item in found)
+
+
+def test_muscle_filter_combines_with_the_search(
+    client: TestClient, auth_headers: Headers, catalog: None
+) -> None:
+    found = search(
+        client, auth_headers, "exercises", q="impins", muscle="shoulders", limit=100
+    )
+
+    assert "Împins Arnold cu gantere" in names(found, "name_ro")
+    assert all("shoulders" in item["primary_muscles"] for item in found)
+    assert all(item["name_ro"].startswith("Împins") for item in found)
+
+
+def test_a_secondary_muscle_is_not_a_match(
+    client: TestClient, auth_headers: Headers, catalog: None
+) -> None:
+    # The bench press works the triceps second: a triceps filter skips it
+    found = search(client, auth_headers, "exercises", muscle="triceps", limit=100)
+
+    assert "Barbell Bench Press - Medium Grip" not in names(found)
+
+
+def test_a_muscle_with_two_words(
+    client: TestClient, auth_headers: Headers, catalog: None
+) -> None:
+    found = search(client, auth_headers, "exercises", muscle="lower back", limit=100)
+
+    assert "Barbell Deadlift" in names(found)
+
+
+def test_an_unknown_muscle_finds_nothing(
+    client: TestClient, auth_headers: Headers, catalog: None
+) -> None:
+    assert search(client, auth_headers, "exercises", muscle="wings") == []
+
+
+@pytest.mark.parametrize("muscle", ["Chest", "chest%", '"chest"', "", "x" * 31])
+def test_muscle_must_be_lower_case_words(
+    client: TestClient, auth_headers: Headers, muscle: str
+) -> None:
+    response = client.get(
+        "/catalog/exercises", params={"muscle": muscle}, headers=auth_headers
+    )
+
+    assert response.status_code == 422
+
+
 def test_exercise_images_are_not_returned(
     client: TestClient, auth_headers: Headers, catalog: None, session: Session
 ) -> None:
