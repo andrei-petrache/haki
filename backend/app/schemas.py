@@ -81,6 +81,8 @@ class FoodResponse(FoodIn):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
+    # The catalog food this one was copied from; null when typed in by hand
+    catalog_food_id: int | None = None
 
 
 class ExerciseIn(BaseModel):
@@ -91,6 +93,75 @@ class ExerciseResponse(ExerciseIn):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
+    # The catalog exercise this one was copied from; null when typed in by hand
+    catalog_exercise_id: int | None = None
+
+
+# The catalog's two languages: English names always, Romanian ones mostly
+CatalogLanguage = Literal["en", "ro"]
+
+
+class CatalogSourceResponse(BaseModel):
+    """Where catalog items come from, and how to credit them."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    key: str
+    name: str
+    url: str
+    license: str
+    attribution: str
+    # Credit required on screen by the licence, not only a courtesy
+    attribution_required: bool
+    share_alike: bool
+    version: str
+
+
+class CatalogFoodResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    name: str
+    name_ro: str | None
+    calories_per_100g: float
+    protein_per_100g: float
+    carbs_per_100g: float
+    fat_per_100g: float
+    source: CatalogSourceResponse
+
+
+class CatalogExerciseResponse(BaseModel):
+    """A catalog exercise. Image references are kept in the database but not
+    returned: images are not served until their origin and hosting are
+    decided."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    name: str
+    name_ro: str | None
+    category: str | None
+    equipment: str | None
+    level: str | None
+    force: str | None
+    mechanic: str | None
+    primary_muscles: list[str]
+    secondary_muscles: list[str]
+    source: CatalogSourceResponse
+
+
+class CatalogFoodCopyIn(BaseModel):
+    """Add a catalog food to the user's own foods, named in `language`."""
+
+    catalog_food_id: DbId
+    language: CatalogLanguage = "en"
+
+
+class CatalogExerciseCopyIn(BaseModel):
+    """Add a catalog exercise to the user's own exercises."""
+
+    catalog_exercise_id: DbId
+    language: CatalogLanguage = "en"
 
 
 # Upper bounds on what one request may write: at most 50 x 50 sets

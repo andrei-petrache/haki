@@ -1,11 +1,12 @@
 from fastapi import APIRouter, HTTPException, Response, status
 from sqlalchemy import func, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.auth import CurrentUser, SessionDep
 from app.foods import commit_or_conflict
-from app.models import Exercise, User
-from app.schemas import ExerciseIn, ExerciseResponse, IdPath
+from app.models import CatalogExercise, Exercise, User
+from app.schemas import CatalogExerciseCopyIn, ExerciseIn, ExerciseResponse, IdPath
 
 router = APIRouter(prefix="/exercises", tags=["exercises"])
 
@@ -43,6 +44,65 @@ def create_exercise(
     session.add(exercise)
     # The unique index ignores case: "squat" conflicts with "Squat"
     commit_or_conflict(session, DUPLICATE_NAME)
+    session.refresh(exercise)
+    return exercise
+
+
+def find_own_copy(
+    session: Session, user: User, catalog_exercise_id: int
+) -> Exercise | None:
+    """The user's copy of a catalog exercise, if any; never another user's."""
+    query = select(Exercise).where(
+        Exercise.user_id == user.id,
+        Exercise.catalog_exercise_id == catalog_exercise_id,
+    )
+    return session.scalar(query)
+
+
+@router.post(
+    "/from-catalog",
+    status_code=status.HTTP_201_CREATED,
+    response_model=ExerciseResponse,
+)
+def copy_catalog_exercise(
+    data: CatalogExerciseCopyIn,
+    response: Response,
+    current_user: CurrentUser,
+    session: SessionDep,
+) -> Exercise:
+    """Add a catalog exercise to the current user's catalog, as their own copy.
+
+    Same answers as POST /foods/from-catalog: 201, 200 with the existing
+    copy, 404 for an unknown catalog exercise, 409 if the name (ignoring
+    case) is taken by one of the user's own exercises.
+    """
+    item = session.get(CatalogExercise, data.catalog_exercise_id)
+    if item is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Catalog exercise not found"
+        )
+    existing = find_own_copy(session, current_user, item.id)
+    if existing is not None:
+        response.status_code = status.HTTP_200_OK
+        return existing
+    exercise = Exercise(
+        user_id=current_user.id,
+        name=item.name_ro if data.language == "ro" and item.name_ro else item.name,
+        catalog_exercise_id=item.id,
+    )
+    session.add(exercise)
+    try:
+        session.commit()
+    except IntegrityError:
+        session.rollback()
+        # A second request for the same copy can win the race: return its copy
+        existing = find_own_copy(session, current_user, item.id)
+        if existing is not None:
+            response.status_code = status.HTTP_200_OK
+            return existing
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT, detail=DUPLICATE_NAME
+        ) from None
     session.refresh(exercise)
     return exercise
 

@@ -9,6 +9,7 @@ from sqlalchemy.exc import OperationalError
 from sqlalchemy.exc import TimeoutError as PoolTimeoutError
 
 from app.auth import router as auth_router
+from app.catalog import router as catalog_router
 from app.config import settings
 from app.db import database_is_reachable
 from app.entries import router as entries_router
@@ -51,6 +52,7 @@ app.include_router(summary_router)
 app.include_router(exercises_router)
 app.include_router(workouts_router)
 app.include_router(programs_router)
+app.include_router(catalog_router)
 # Outermost: it also counts responses from the exception handlers below
 app.middleware("http")(record_request)
 
