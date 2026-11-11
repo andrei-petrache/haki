@@ -206,8 +206,17 @@ function WorkoutDetail({
   )
 }
 
-export default function WorkoutsPage({ token }: { token: string }) {
-  const [view, setView] = useState<View>({ kind: 'list' })
+/** The workouts tab; openWorkoutId opens one workout first, e.g. one just started. */
+export default function WorkoutsPage({
+  token,
+  openWorkoutId = null,
+}: {
+  token: string
+  openWorkoutId?: number | null
+}) {
+  const [view, setView] = useState<View>(() =>
+    openWorkoutId === null ? { kind: 'list' } : { kind: 'detail', id: openWorkoutId },
+  )
   const showList = () => setView({ kind: 'list' })
   const showDetail = (id: number) => setView({ kind: 'detail', id })
 

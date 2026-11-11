@@ -163,6 +163,8 @@ function App() {
   )
   const [user, setUser] = useState<User | null>(null)
   const [tab, setTab] = useState<Tab>('today')
+  // A workout to open when the Workouts tab shows, e.g. one just started
+  const [openWorkoutId, setOpenWorkoutId] = useState<number | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
   // Bumped by "Try again", to re-run the effect that loads the profile
   const [loadAttempt, setLoadAttempt] = useState(0)
@@ -219,7 +221,14 @@ function App() {
 
   return (
     <main className="container">
-      <Header tab={tab} onTabChange={setTab} onLogout={handleLogout} />
+      <Header
+        tab={tab}
+        onTabChange={(next) => {
+          setOpenWorkoutId(null)
+          setTab(next)
+        }}
+        onLogout={handleLogout}
+      />
       {!user && !loadError && <p>Loading…</p>}
       {!user && loadError && (
         <section className="card">
@@ -239,8 +248,18 @@ function App() {
         <TodayPage token={token} onGoToFoods={() => setTab('foods')} />
       )}
       {user && tab === 'foods' && <FoodsPage token={token} />}
-      {user && tab === 'workouts' && <WorkoutsPage token={token} />}
-      {user && tab === 'programs' && <ProgramsPage token={token} />}
+      {user && tab === 'workouts' && (
+        <WorkoutsPage token={token} openWorkoutId={openWorkoutId} />
+      )}
+      {user && tab === 'programs' && (
+        <ProgramsPage
+          token={token}
+          onWorkoutStarted={(workoutId) => {
+            setOpenWorkoutId(workoutId)
+            setTab('workouts')
+          }}
+        />
+      )}
       {user && tab === 'profile' && <Profile user={user} />}
     </main>
   )
