@@ -11,17 +11,20 @@ import {
 } from './api'
 import type { DailySummary, Food, MealEntry, MealType } from './api'
 import { formatDecimal, formatKcal, localDateString, shiftDate } from './format'
+import { useI18n } from './i18n/context'
+import type { MessageKey } from './i18n/i18n'
 
-const MEAL_LABELS: Record<MealType, string> = {
-  breakfast: 'Breakfast',
-  lunch: 'Lunch',
-  dinner: 'Dinner',
-  snack: 'Snacks',
+const MEAL_LABELS: Record<MealType, MessageKey> = {
+  breakfast: 'meal.breakfast',
+  lunch: 'meal.lunch',
+  dinner: 'meal.dinner',
+  snack: 'meal.snack',
 }
 
 type DayData = { summary: DailySummary; entries: MealEntry[] }
 
 function DayPicker({ day, onChange }: { day: string; onChange: (day: string) => void }) {
+  const { t } = useI18n()
   const today = localDateString()
 
   return (
@@ -29,14 +32,14 @@ function DayPicker({ day, onChange }: { day: string; onChange: (day: string) => 
       <button
         type="button"
         className="icon"
-        aria-label="Previous day"
+        aria-label={t('today.previousDay')}
         onClick={() => onChange(shiftDate(day, -1))}
       >
         ‹
       </button>
       <input
         type="date"
-        aria-label="Day"
+        aria-label={t('today.day')}
         value={day}
         // Clearing the field gives an empty string: keep the current day
         onChange={(event) => event.target.value && onChange(event.target.value)}
@@ -44,7 +47,7 @@ function DayPicker({ day, onChange }: { day: string; onChange: (day: string) => 
       <button
         type="button"
         className="icon"
-        aria-label="Next day"
+        aria-label={t('today.nextDay')}
         onClick={() => onChange(shiftDate(day, 1))}
       >
         ›
@@ -57,7 +60,7 @@ function DayPicker({ day, onChange }: { day: string; onChange: (day: string) => 
         disabled={day === today}
         onClick={() => onChange(today)}
       >
-        Back to today
+        {t('today.backToToday')}
       </button>
     </div>
   )
@@ -72,6 +75,7 @@ function TargetEditor({
   target: number | null
   onSaved: () => void
 }) {
+  const { t } = useI18n()
   const [editing, setEditing] = useState(false)
   const [value, setValue] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -102,7 +106,7 @@ function TargetEditor({
           setEditing(true)
         }}
       >
-        {target === null ? 'Set a daily calorie target' : 'Change target'}
+        {target === null ? t('today.setTarget') : t('today.changeTarget')}
       </button>
     )
   }
@@ -116,7 +120,7 @@ function TargetEditor({
       }}
     >
       <label>
-        Daily target (kcal)
+        {t('today.dailyTarget')}
         <input
           type="number"
           inputMode="numeric"
@@ -131,7 +135,7 @@ function TargetEditor({
       </label>
       <div className="actions">
         <button type="submit" disabled={busy}>
-          Save
+          {t('common.save')}
         </button>
         {target !== null && (
           <button
@@ -140,11 +144,11 @@ function TargetEditor({
             disabled={busy}
             onClick={() => void save(null)}
           >
-            Clear target
+            {t('today.clearTarget')}
           </button>
         )}
         <button type="button" className="link" onClick={() => setEditing(false)}>
-          Cancel
+          {t('common.cancel')}
         </button>
       </div>
       {error && <p className="error">{error}</p>}
@@ -161,6 +165,7 @@ function SummaryCard({
   summary: DailySummary
   onTargetChanged: () => void
 }) {
+  const { t } = useI18n()
   const { totals, daily_calorie_target: target, calories_remaining: remaining } =
     summary
   const over = remaining !== null && remaining < 0
@@ -170,14 +175,14 @@ function SummaryCard({
     <section className="card summary">
       <p className="calories">
         <span className="big">{formatKcal(totals.calories)}</span>
-        {target === null ? ' kcal eaten' : ` / ${formatKcal(target)} kcal`}
+        {target === null ? ` ${t('today.kcalEaten')}` : ` / ${formatKcal(target)} kcal`}
       </p>
 
       {target !== null && (
         <div
           className={over ? 'progress over' : 'progress'}
           role="progressbar"
-          aria-label="Calories eaten"
+          aria-label={t('today.caloriesEaten')}
           aria-valuemin={0}
           aria-valuemax={target}
           aria-valuenow={Math.round(totals.calories)}
@@ -188,22 +193,22 @@ function SummaryCard({
 
       {remaining !== null &&
         (remaining < 0 ? (
-          <p className="over-text">{formatKcal(-remaining)} kcal over target</p>
+          <p className="over-text">{t('today.over', { kcal: formatKcal(-remaining) })}</p>
         ) : (
-          <p className="muted">{formatKcal(remaining)} kcal left</p>
+          <p className="muted">{t('today.left', { kcal: formatKcal(remaining) })}</p>
         ))}
 
       <dl className="macros">
         <div>
-          <dt>Protein</dt>
+          <dt>{t('today.protein')}</dt>
           <dd>{formatDecimal(totals.protein)} g</dd>
         </div>
         <div>
-          <dt>Carbs</dt>
+          <dt>{t('today.carbs')}</dt>
           <dd>{formatDecimal(totals.carbs)} g</dd>
         </div>
         <div>
-          <dt>Fat</dt>
+          <dt>{t('today.fat')}</dt>
           <dd>{formatDecimal(totals.fat)} g</dd>
         </div>
       </dl>
@@ -224,6 +229,7 @@ function AddEntryForm({
   foods: Food[]
   onAdded: () => void
 }) {
+  const { t } = useI18n()
   const [foodId, setFoodId] = useState(String(foods[0].id))
   const [grams, setGrams] = useState('')
   const [mealType, setMealType] = useState<MealType>('breakfast')
@@ -258,10 +264,10 @@ function AddEntryForm({
         void handleSubmit()
       }}
     >
-      <h2>Add to this day</h2>
+      <h2>{t('today.addTitle')}</h2>
       <div className="entry-fields">
         <label className="food-field">
-          Food
+          {t('today.food')}
           <select value={foodId} onChange={(event) => setFoodId(event.target.value)}>
             {foods.map((food) => (
               <option key={food.id} value={food.id}>
@@ -271,7 +277,7 @@ function AddEntryForm({
           </select>
         </label>
         <label>
-          Grams
+          {t('today.grams')}
           <input
             type="number"
             inputMode="decimal"
@@ -284,20 +290,20 @@ function AddEntryForm({
           />
         </label>
         <label>
-          Meal
+          {t('today.meal')}
           <select
             value={mealType}
             onChange={(event) => setMealType(event.target.value as MealType)}
           >
             {MEAL_TYPES.map((meal) => (
               <option key={meal} value={meal}>
-                {MEAL_LABELS[meal]}
+                {t(MEAL_LABELS[meal])}
               </option>
             ))}
           </select>
         </label>
         <button type="submit" disabled={busy}>
-          {busy ? 'Adding…' : 'Add'}
+          {busy ? t('today.adding') : t('today.add')}
         </button>
       </div>
       {error && <p className="error">{error}</p>}
@@ -314,8 +320,9 @@ function EntryList({
   deletingId: number | null
   onDelete: (entry: MealEntry) => void
 }) {
+  const { t } = useI18n()
   if (data.entries.length === 0) {
-    return <p className="muted empty">Nothing logged for this day yet.</p>
+    return <p className="muted empty">{t('today.nothing')}</p>
   }
 
   return (
@@ -326,7 +333,7 @@ function EntryList({
         return (
           <section key={meal} className="card meal">
             <h3>
-              {MEAL_LABELS[meal]}
+              {t(MEAL_LABELS[meal])}
               <span className="muted">
                 {formatKcal(data.summary.meals[meal].calories)} kcal
               </span>
@@ -342,7 +349,7 @@ function EntryList({
                   <button
                     type="button"
                     className="icon"
-                    aria-label={`Delete ${entry.food_name}`}
+                    aria-label={t('today.deleteEntry', { food: entry.food_name })}
                     disabled={deletingId === entry.id}
                     onClick={() => onDelete(entry)}
                   >
@@ -365,6 +372,7 @@ export default function TodayPage({
   token: string
   onGoToFoods: () => void
 }) {
+  const { t } = useI18n()
   const [day, setDay] = useState(localDateString)
   const [foods, setFoods] = useState<Food[] | null>(null)
   const [data, setData] = useState<DayData | null>(null)
@@ -406,8 +414,12 @@ export default function TodayPage({
   }, [token, day, version])
 
   async function handleDelete(entry: MealEntry) {
-    const what = `${entry.food_name} (${formatDecimal(entry.grams)} g)`
-    if (!window.confirm(`Remove ${what} from ${MEAL_LABELS[entry.meal_type]}?`)) return
+    const question = t('today.removeConfirm', {
+      food: entry.food_name,
+      grams: formatDecimal(entry.grams),
+      meal: t(MEAL_LABELS[entry.meal_type]),
+    })
+    if (!window.confirm(question)) return
     setDeletingId(entry.id)
     try {
       await deleteEntry(token, entry.id)
@@ -426,7 +438,7 @@ export default function TodayPage({
     <div className="page">
       <DayPicker day={day} onChange={setDay} />
       {error && <p className="error">{error}</p>}
-      {!current && !error && <p className="muted">Loading…</p>}
+      {!current && !error && <p className="muted">{t('app.loading')}</p>}
 
       {current && (
         <SummaryCard
@@ -438,9 +450,9 @@ export default function TodayPage({
 
       {foods?.length === 0 && (
         <section className="card">
-          <p>You have no foods yet. Add the foods you eat first, then log them here.</p>
+          <p>{t('today.noFoods')}</p>
           <button type="button" onClick={onGoToFoods}>
-            Go to Foods
+            {t('today.goToFoods')}
           </button>
         </section>
       )}
