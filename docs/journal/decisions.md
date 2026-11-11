@@ -77,6 +77,9 @@ can be verified, even when it is slower.
 | Weight inputs keep `step="any"`, with − / + buttons of 2.5 lb or 1.25 kg (#93) | With `step="2.5"` Chromium marks 61 lb, and 132.28 lb for a saved 60 kg, as invalid |
 | Translations without a library: typed dictionaries the build checks, `Intl.PluralRules` for plurals; the browser's language (Romanian or English, else English) unless one is chosen in Profile; API errors stay in English | Two languages fit in a few typed files, with no dependency to pin and update. Error codes need a backend change |
 | End-to-end tests run with the browser fixed to en-US, plus one short Romanian file | The existing tests keep their English texts; Romanian is still checked in a real browser |
+| Texts made outside components (form validation, number and date formats, the API client's own messages) use an active language that `App` sets while it renders; English until then and in unit tests (#116) | No translator to pass through every helper, and the existing unit tests keep their English texts. The cost is one module-level value, set in one place |
+| Numbers and dates follow the chosen language, not the browser's (#116) | A Romanian screen with "61.25" or an English date would read as half translated |
+| On a phone (max-width 30rem) the weight cell gets most of a set or planned row, labels may not wrap, and the tabs are tighter; checked by end-to-end measurements at 390 px, not by eye (#100, #108, #111) | Romanian labels are longer: "Antrenamente" pushed the header off screen and "Greutate (kg)" wrapped over a 48 px input. A measured test fails when a later label or rule brings it back |
 
 ## Bugs caught before they shipped
 
@@ -102,4 +105,5 @@ can be verified, even when it is slower.
 | `check-promotion.sh` judged the revision (#75); prod runs the images written at it (#77) | A pin would have been judged on the wrong commits | Judge what runs, not what points to it |
 | The `pull_request_target` event carried a stale `base.sha` when #82 was rewritten after #83 merged | `prod-guard` counted #83's commit as the promotion's second one | An event is a snapshot; read the live state when the rule depends on it |
 | Romanian tab labels pushed the header past 390 px: the phone padding rule lost to a later `button.tab` rule of the same specificity | The page scrolled sideways on a phone | Measure the computed style in the browser before changing values again; an end-to-end test now checks that the tabs fit on one row |
+| A phone CSS fix that "did nothing" twice: the media query rule lost to a `button.tab` rule of the same specificity further down the file (#100) | Values were changed blindly three times | Read the computed style in the browser first; a rule's place in the file matters when specificity ties |
 | The S8 rollout observer started late and without its arguments (the wrapper dropped them) | The first timed change was measured only after the fact | Start the observer before the merge and check that its log fills before saying "merge" |
