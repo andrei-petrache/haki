@@ -30,6 +30,7 @@ from sqlalchemy.orm import Session
 from app.catalog_search import search_text
 from app.db_config import DatabaseSettings
 from app.models import CatalogExercise, CatalogFood, CatalogSource
+from app.schemas import MAX_CALORIES_PER_100G
 
 logger = logging.getLogger("app.catalog_import")
 
@@ -88,7 +89,7 @@ class FoodData(Named):
     """Nutrients per 100 g, within the bounds a user's own food has (FoodIn),
     so a copy of any catalog food is a valid food."""
 
-    calories_per_100g: float = Field(ge=0, le=900)
+    calories_per_100g: float = Field(ge=0, le=MAX_CALORIES_PER_100G)
     protein_per_100g: float = Field(ge=0, le=100)
     carbs_per_100g: float = Field(ge=0, le=100)
     fat_per_100g: float = Field(ge=0, le=100)

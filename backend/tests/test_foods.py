@@ -75,7 +75,7 @@ def test_delete_food_removes_it(
     [
         {"name": "   "},
         {"name": "x" * 101},
-        {"calories_per_100g": 901},
+        {"calories_per_100g": 951},
         {"calories_per_100g": -1},
         {"protein_per_100g": 101},
         {"carbs_per_100g": -0.5},
@@ -88,6 +88,20 @@ def test_create_food_rejects_invalid_values(
     response = client.post("/foods", json={**OATS, **overrides}, headers=auth_headers)
 
     assert response.status_code == 422
+
+
+def test_create_food_accepts_fats_up_to_950_kcal(
+    client: TestClient, auth_headers: dict[str, str]
+) -> None:
+    lard = {"name": "Lard", "calories_per_100g": 902, "fat_per_100g": 100}
+    edge = {"name": "Edge", "calories_per_100g": 950, "fat_per_100g": 100}
+
+    responses = [
+        client.post("/foods", json={**OATS, **food}, headers=auth_headers)
+        for food in (lard, edge)
+    ]
+
+    assert [r.status_code for r in responses] == [201, 201]
 
 
 def test_create_food_rejects_missing_field(
