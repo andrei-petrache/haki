@@ -663,3 +663,19 @@ textarea {
 .notice {
   font-weight: 600;
 }
+
+/* The exercise picker under an exercise choice */
+.catalog-inline {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.catalog-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.6rem;
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+}

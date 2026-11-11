@@ -215,4 +215,12 @@ export const en = {
   'catalog.foodExisting': '"{name}" is already in your foods.',
   'catalog.foodTaken':
     'You already have a food called "{name}". Rename yours to add this one from the catalog.',
+  'catalog.exercisesOpen': 'From the catalog',
+  'catalog.exercisesClose': 'Close the catalog',
+  'catalog.exercisesPlaceholder': 'e.g. bench press, squat',
+  'catalog.use': 'Use',
+  'catalog.useName': 'Use {name}',
+  'catalog.exerciseAdded': 'Added "{name}" to your exercises.',
+  'catalog.exerciseExisting': 'Using "{name}", already in your exercises.',
+  'catalog.exerciseTaken': 'You already have an exercise called "{name}": using yours.',
 } satisfies Record<string, string | Plural>

@@ -219,4 +219,12 @@ export const ro: Dictionary = {
   'catalog.foodExisting': '„{name}” e deja printre alimentele tale.',
   'catalog.foodTaken':
     'Ai deja un aliment numit „{name}”. Redenumește-l pe al tău ca să-l adaugi pe acesta din catalog.',
+  'catalog.exercisesOpen': 'Din catalog',
+  'catalog.exercisesClose': 'Închide catalogul',
+  'catalog.exercisesPlaceholder': 'ex. împins la piept, genuflexiuni',
+  'catalog.use': 'Folosește',
+  'catalog.useName': 'Folosește {name}',
+  'catalog.exerciseAdded': 'Am adăugat „{name}” la exercițiile tale.',
+  'catalog.exerciseExisting': 'Folosesc „{name}”, care e deja printre exercițiile tale.',
+  'catalog.exerciseTaken': 'Ai deja un exercițiu numit „{name}”: îl folosesc pe al tău.',
 }
