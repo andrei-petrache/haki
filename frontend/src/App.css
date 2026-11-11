@@ -626,3 +626,7 @@ textarea {
   padding: 0.35rem 0.65rem;
   font-variant-numeric: tabular-nums;
 }
+
+.last-time {
+  font-size: 0.9rem;
+}

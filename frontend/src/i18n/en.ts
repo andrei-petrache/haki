@@ -189,4 +189,5 @@ export const en = {
   'rest.dismiss': 'OK',
   'rest.startLabel': 'Rest',
   'rest.startPreset': 'Start a {time} rest',
+  'history.lastTime': 'Last time ({day}): {sets}',
 } satisfies Record<string, string | Plural>
