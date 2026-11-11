@@ -11,6 +11,7 @@ from pydantic import (
     StringConstraints,
     field_serializer,
     field_validator,
+    model_validator,
 )
 
 FoodName = Annotated[
@@ -320,6 +321,21 @@ class MealEntryIn(BaseModel):
     eaten_on: date
     meal_type: MealType
     grams: float = Field(gt=0, le=5000)
+
+
+class MealCopyIn(BaseModel):
+    """Copy every entry of one meal on one day to another meal or day."""
+
+    from_day: date
+    from_meal: MealType
+    to_day: date
+    to_meal: MealType
+
+    @model_validator(mode="after")
+    def different_meal(self) -> MealCopyIn:
+        if (self.from_day, self.from_meal) == (self.to_day, self.to_meal):
+            raise ValueError("The meal would be copied onto itself")
+        return self
 
 
 class Nutrients(BaseModel):

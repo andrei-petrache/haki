@@ -8,7 +8,13 @@ from sqlalchemy.orm import Session, joinedload
 from app.auth import CurrentUser, SessionDep
 from app.foods import get_own_food
 from app.models import MEAL_TYPES, Food, MealEntry, User
-from app.schemas import IdPath, MealEntryIn, MealEntryResponse, Nutrients
+from app.schemas import (
+    IdPath,
+    MealCopyIn,
+    MealEntryIn,
+    MealEntryResponse,
+    Nutrients,
+)
 
 router = APIRouter(prefix="/entries", tags=["entries"])
 
@@ -92,6 +98,46 @@ def create_entry(
     session.add(entry)
     session.commit()
     return to_response(entry)
+
+
+@router.post(
+    "/copy",
+    status_code=status.HTTP_201_CREATED,
+    response_model=list[MealEntryResponse],
+)
+def copy_meal(
+    data: MealCopyIn, current_user: CurrentUser, session: SessionDep
+) -> list[MealEntryResponse]:
+    """Copy every entry of one of the current user's meals to another meal
+    or day, in one transaction, and return the new entries in their order.
+
+    An empty meal copies nothing and returns an empty list. Copying twice
+    logs the meal twice, as logging it again by hand would.
+    """
+    query = (
+        select(MealEntry)
+        .options(joinedload(MealEntry.food))
+        .where(
+            MealEntry.user_id == current_user.id,
+            MealEntry.eaten_on == data.from_day,
+            MealEntry.meal_type == data.from_meal,
+        )
+        .order_by(MealEntry.created_at, MealEntry.id)
+    )
+    copies = [
+        MealEntry(
+            user_id=current_user.id,
+            # The source entries are the user's, so their foods are too
+            food=entry.food,
+            eaten_on=data.to_day,
+            meal_type=data.to_meal,
+            grams=entry.grams,
+        )
+        for entry in session.scalars(query)
+    ]
+    session.add_all(copies)
+    session.commit()
+    return [to_response(entry) for entry in copies]
 
 
 @router.delete("/{entry_id}", status_code=status.HTTP_204_NO_CONTENT)
