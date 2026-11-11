@@ -658,3 +658,8 @@ textarea {
 .attribution {
   font-size: 0.9rem;
 }
+
+/* A short confirmation after adding from the catalog */
+.notice {
+  font-weight: 600;
+}

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { createFood, deleteFood, describeError, fetchFoods, updateFood } from './api'
 import type { Food, FoodInput } from './api'
+import CatalogFoodPicker from './CatalogFoodPicker'
 import { formatDecimal } from './format'
 import { useI18n } from './i18n/context'
 import type { MessageKey } from './i18n/i18n'
@@ -171,6 +172,9 @@ export default function FoodsPage({ token }: { token: string }) {
 
   return (
     <div className="page">
+      {/* The fastest way in: a food from the catalog, as the user's own copy */}
+      <CatalogFoodPicker token={token} onAdded={reload} />
+
       <section className="card">
         <h2>{t('foods.addTitle')}</h2>
         <FoodForm key={addFormKey} submitLabel={t('foods.add')} onSubmit={handleCreate} />
