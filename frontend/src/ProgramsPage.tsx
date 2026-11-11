@@ -1,8 +1,16 @@
-import { useEffect, useState } from 'react'
-import { PROGRAMS_PAGE_SIZE, deleteProgram, describeError, fetchProgram, fetchPrograms } from './api'
+import { useEffect, useRef, useState } from 'react'
+import {
+  PROGRAMS_PAGE_SIZE,
+  deleteProgram,
+  describeError,
+  fetchProgram,
+  fetchPrograms,
+  startWorkout,
+} from './api'
 import type { Program, ProgramSummary } from './api'
-import { formatDayCount, formatPlanned } from './format'
+import { formatDayCount, formatPlanned, localDateString } from './format'
 import ProgramEditor from './ProgramEditor'
+import { dateError } from './workoutForm'
 
 type View = { kind: 'list' } | { kind: 'detail'; id: number } | { kind: 'new' }
 
@@ -97,10 +105,27 @@ function ProgramList({
   )
 }
 
-function ProgramDetail({ token, id, onBack }: { token: string; id: number; onBack: () => void }) {
+function ProgramDetail({
+  token,
+  id,
+  onBack,
+  onWorkoutStarted,
+}: {
+  token: string
+  id: number
+  onBack: () => void
+  onWorkoutStarted: (workoutId: number) => void
+}) {
   const [program, setProgram] = useState<Program | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [deleting, setDeleting] = useState(false)
+  // The day a workout started from this program is for, the user's local day
+  const [performedOn, setPerformedOn] = useState(localDateString)
+  const [dateProblem, setDateProblem] = useState<string | null>(null)
+  // The day being started, for its button's label
+  const [startingDay, setStartingDay] = useState<number | null>(null)
+  // Set synchronously, unlike startingDay: a double click must not start twice
+  const starting = useRef(false)
 
   useEffect(() => {
     let cancelled = false
@@ -130,6 +155,28 @@ function ProgramDetail({ token, id, onBack }: { token: string; id: number; onBac
     }
   }
 
+  async function handleStart(loaded: Program, dayId: number) {
+    if (starting.current) return
+    const problem = dateError(performedOn)
+    setDateProblem(problem)
+    setError(null)
+    if (problem) return
+
+    starting.current = true
+    setStartingDay(dayId)
+    try {
+      const workout = await startWorkout(token, loaded.id, dayId, performedOn)
+      onWorkoutStarted(workout.id)
+    } catch (err) {
+      setError(describeError(err))
+    } finally {
+      starting.current = false
+      setStartingDay(null)
+    }
+  }
+
+  const busy = deleting || startingDay !== null
+
   return (
     <section className="card">
       <button type="button" className="link" onClick={onBack}>
@@ -140,6 +187,19 @@ function ProgramDetail({ token, id, onBack }: { token: string; id: number; onBac
       {program && (
         <>
           <h2>{program.name}</h2>
+          <label className="date-field">
+            Workout date
+            <input
+              type="date"
+              value={performedOn}
+              onChange={(event) => setPerformedOn(event.target.value)}
+            />
+          </label>
+          {dateProblem && <p className="error">{dateProblem}</p>}
+          <p className="muted">
+            Starting a day copies its plan into a new workout. Changing or deleting the
+            program later leaves that workout as it is.
+          </p>
           {/* By position: the API returns the days in that order */}
           {program.days.map((day) => (
             <div key={day.id} className="workout-exercise">
@@ -154,13 +214,23 @@ function ProgramDetail({ token, id, onBack }: { token: string; id: number; onBac
                   </li>
                 ))}
               </ul>
+              <div className="actions">
+                <button
+                  type="button"
+                  disabled={busy}
+                  aria-label={`Start a workout from day ${day.position}, ${day.name}`}
+                  onClick={() => void handleStart(program, day.id)}
+                >
+                  {startingDay === day.id ? 'Starting…' : 'Start workout'}
+                </button>
+              </div>
             </div>
           ))}
           <div className="actions">
             <button
               type="button"
               className="secondary"
-              disabled={deleting}
+              disabled={busy}
               onClick={() => void handleDelete(program)}
             >
               {deleting ? 'Deleting…' : 'Delete'}
@@ -172,7 +242,13 @@ function ProgramDetail({ token, id, onBack }: { token: string; id: number; onBac
   )
 }
 
-export default function ProgramsPage({ token }: { token: string }) {
+export default function ProgramsPage({
+  token,
+  onWorkoutStarted,
+}: {
+  token: string
+  onWorkoutStarted: (workoutId: number) => void
+}) {
   const [view, setView] = useState<View>({ kind: 'list' })
   const showList = () => setView({ kind: 'list' })
   const showDetail = (id: number) => setView({ kind: 'detail', id })
@@ -186,7 +262,14 @@ export default function ProgramsPage({ token }: { token: string }) {
           onNew={() => setView({ kind: 'new' })}
         />
       )}
-      {view.kind === 'detail' && <ProgramDetail token={token} id={view.id} onBack={showList} />}
+      {view.kind === 'detail' && (
+        <ProgramDetail
+          token={token}
+          id={view.id}
+          onBack={showList}
+          onWorkoutStarted={onWorkoutStarted}
+        />
+      )}
       {view.kind === 'new' && (
         <ProgramEditor token={token} onSaved={showDetail} onCancel={showList} />
       )}
