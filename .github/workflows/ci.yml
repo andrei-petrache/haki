@@ -413,6 +413,27 @@ jobs:
           REGISTRY: ghcr.io/${{ github.repository_owner }}
           SHA: ${{ github.sha }}
         run: |
+          # GHCR sometimes refuses a push for a moment: "denied:
+          # permission_denied: write_package" (3666079's frontend) or
+          # "unknown blob" after every layer was pushed (c0d2f07's backend).
+          # A push of the same image and tag is idempotent, so try up to 3
+          # times, 15 s then 30 s apart, and log every attempt.
+          push() {
+            local ref="$1" attempt
+            for attempt in 1 2 3; do
+              echo "Push $ref: attempt $attempt of 3"
+              if docker push "$ref"; then
+                return 0
+              fi
+              if [ "$attempt" -lt 3 ]; then
+                echo "::warning::Push of $ref failed (attempt $attempt of 3); retrying in $((attempt * 15)) s"
+                sleep $((attempt * 15))
+              fi
+            done
+            echo "::error::Push of $ref failed 3 times"
+            return 1
+          }
+
           echo "| Image | Digest |" >> "$GITHUB_STEP_SUMMARY"
           echo "|---|---|" >> "$GITHUB_STEP_SUMMARY"
           for name in haki-backend haki-frontend; do
@@ -422,7 +443,7 @@ jobs:
               # layer GHCR refused (3666079's frontend push said only
               # "denied: permission_denied: write_package")
               echo "::group::Push $name:$tag"
-              docker push "$REGISTRY/$name:$tag"
+              push "$REGISTRY/$name:$tag"
               echo "::endgroup::"
             done
             digest="$(docker image inspect --format '{{index .RepoDigests 0}}' "$REGISTRY/$name:$SHA")"
