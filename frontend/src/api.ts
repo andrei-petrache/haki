@@ -252,3 +252,89 @@ export function updateWorkout(
 export function deleteWorkout(token: string, id: number): Promise<void> {
   return request<void>(`/workouts/${id}`, { method: 'DELETE' }, token)
 }
+
+/** One planned exercise of a program day: `sets` sets of `reps` at `weight_kg`. */
+export type PlannedExerciseInput = {
+  exercise_id: number
+  sets: number
+  reps: number
+  weight_kg: number // 0 for bodyweight exercises
+}
+
+export type PlannedExercise = PlannedExerciseInput & { exercise_name: string }
+
+export type ProgramDayInput = {
+  position: number // the day's place in the week, 1 to 7
+  name: string
+  exercises: PlannedExerciseInput[]
+}
+
+export type ProgramDay = {
+  id: number
+  position: number
+  name: string
+  exercises: PlannedExercise[]
+}
+
+/** A whole program as the client sends it: POST creates all of it or nothing. */
+export type ProgramInput = {
+  name: string
+  days: ProgramDayInput[]
+}
+
+export type Program = {
+  id: number
+  name: string
+  days: ProgramDay[]
+}
+
+/** One row of the program list: a count instead of the days. */
+export type ProgramSummary = {
+  id: number
+  name: string
+  day_count: number
+}
+
+/** The API's default page size: a full page means there may be more. */
+export const PROGRAMS_PAGE_SIZE = 20
+
+/** One page of programs, by name. */
+export function fetchPrograms(
+  token: string,
+  limit: number = PROGRAMS_PAGE_SIZE,
+  offset: number = 0,
+): Promise<ProgramSummary[]> {
+  const query = new URLSearchParams({ limit: String(limit), offset: String(offset) })
+  return request<ProgramSummary[]>(`/programs?${query}`, {}, token)
+}
+
+export function fetchProgram(token: string, id: number): Promise<Program> {
+  return request<Program>(`/programs/${id}`, {}, token)
+}
+
+export function createProgram(token: string, program: ProgramInput): Promise<Program> {
+  return request<Program>('/programs', json('POST', program), token)
+}
+
+export function deleteProgram(token: string, id: number): Promise<void> {
+  return request<void>(`/programs/${id}`, { method: 'DELETE' }, token)
+}
+
+/**
+ * Start a workout from one day of a program, on the given day (YYYY-MM-DD).
+ *
+ * The result is an ordinary workout, a copy of the day's plan with no link
+ * back to it: changing or deleting the program never touches it.
+ */
+export function startWorkout(
+  token: string,
+  programId: number,
+  dayId: number,
+  performedOn: string,
+): Promise<Workout> {
+  return request<Workout>(
+    `/programs/${programId}/days/${dayId}/workouts`,
+    json('POST', { performed_on: performedOn }),
+    token,
+  )
+}
