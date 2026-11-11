@@ -72,6 +72,16 @@ export function formatCounts(exercises: number, sets: number): string {
   return `${plural(exercises, 'exercise')} · ${plural(sets, 'set')}`
 }
 
+/** "1 day", "3 days", for a program in the list. */
+export function formatDayCount(days: number): string {
+  return plural(days, 'day')
+}
+
+/** One planned exercise as "3 × 8 × 60 kg": sets × reps × weight. */
+export function formatPlanned(sets: number, reps: number, weightKg: number): string {
+  return `${sets} × ${formatSet(reps, weightKg)}`
+}
+
 /** The text on one line, cut to at most max characters with an ellipsis. */
 export function shorten(text: string, max: number): string {
   const line = text.replace(/\s+/g, ' ').trim()
