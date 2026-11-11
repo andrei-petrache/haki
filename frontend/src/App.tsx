@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   ApiError,
   describeError,
@@ -9,6 +9,19 @@ import {
 } from './api'
 import type { User } from './api'
 import FoodsPage from './FoodsPage'
+import { I18nContext, useI18n } from './i18n/context'
+import type { I18n } from './i18n/context'
+import {
+  LOCALE_NAMES,
+  browserLanguages,
+  detectLocale,
+  loadLocaleChoice,
+  parseLocaleChoice,
+  resolveLocale,
+  saveLocaleChoice,
+  translator,
+} from './i18n/i18n'
+import type { Locale, LocaleChoice, MessageKey } from './i18n/i18n'
 import ProgramsPage from './ProgramsPage'
 import TodayPage from './TodayPage'
 import { loadWeightUnit, parseWeightUnit, saveWeightUnit } from './units'
@@ -20,17 +33,18 @@ const TOKEN_KEY = 'haki_token'
 
 type Tab = 'today' | 'foods' | 'workouts' | 'programs' | 'profile'
 
-const TABS: { id: Tab; label: string }[] = [
-  { id: 'today', label: 'Today' },
-  { id: 'foods', label: 'Foods' },
-  { id: 'workouts', label: 'Workouts' },
-  { id: 'programs', label: 'Programs' },
-  { id: 'profile', label: 'Profile' },
+const TABS: { id: Tab; label: MessageKey }[] = [
+  { id: 'today', label: 'nav.today' },
+  { id: 'foods', label: 'nav.foods' },
+  { id: 'workouts', label: 'nav.workouts' },
+  { id: 'programs', label: 'nav.programs' },
+  { id: 'profile', label: 'nav.profile' },
 ]
 
 type Mode = 'login' | 'signup'
 
 function AuthForm({ onLoggedIn }: { onLoggedIn: (token: string) => void }) {
+  const { t } = useI18n()
   const [mode, setMode] = useState<Mode>('login')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -47,7 +61,8 @@ function AuthForm({ onLoggedIn }: { onLoggedIn: (token: string) => void }) {
       const { access_token } = await login(email, password)
       onLoggedIn(access_token)
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Cannot reach the server')
+      // The API's own messages stay in English until it sends error codes
+      setError(err instanceof ApiError ? err.message : t('app.cannotReach'))
     } finally {
       setBusy(false)
     }
@@ -63,10 +78,10 @@ function AuthForm({ onLoggedIn }: { onLoggedIn: (token: string) => void }) {
         void handleSubmit()
       }}
     >
-      <h2>{isSignup ? 'Create your account' : 'Welcome back'}</h2>
+      <h2>{isSignup ? t('auth.signUpTitle') : t('auth.logInTitle')}</h2>
 
       <label>
-        Email
+        {t('auth.email')}
         <input
           type="email"
           value={email}
@@ -77,7 +92,7 @@ function AuthForm({ onLoggedIn }: { onLoggedIn: (token: string) => void }) {
       </label>
 
       <label>
-        Password
+        {t('auth.password')}
         <input
           type="password"
           value={password}
@@ -92,7 +107,7 @@ function AuthForm({ onLoggedIn }: { onLoggedIn: (token: string) => void }) {
       {error && <p className="error">{error}</p>}
 
       <button type="submit" disabled={busy}>
-        {busy ? 'Please wait…' : isSignup ? 'Sign up' : 'Log in'}
+        {busy ? t('auth.wait') : isSignup ? t('auth.signUp') : t('auth.logIn')}
       </button>
 
       <button
@@ -103,7 +118,7 @@ function AuthForm({ onLoggedIn }: { onLoggedIn: (token: string) => void }) {
           setError(null)
         }}
       >
-        {isSignup ? 'Already have an account? Log in' : 'New here? Create an account'}
+        {isSignup ? t('auth.toLogIn') : t('auth.toSignUp')}
       </button>
     </form>
   )
@@ -113,37 +128,61 @@ function Profile({
   user,
   weightUnit,
   onWeightUnitChange,
+  localeChoice,
+  browserLocale,
+  onLocaleChoiceChange,
 }: {
   user: User
   weightUnit: WeightUnit
   onWeightUnitChange: (unit: WeightUnit) => void
+  localeChoice: LocaleChoice
+  browserLocale: Locale
+  onLocaleChoiceChange: (choice: LocaleChoice) => void
 }) {
-  const memberSince = new Date(user.created_at).toLocaleDateString()
+  const { t, locale } = useI18n()
+  const memberSince = new Date(user.created_at).toLocaleDateString(locale)
 
   return (
     <section className="card">
-      <h2>Welcome aboard!</h2>
+      <h2>{t('profile.title')}</h2>
       <dl>
-        <dt>Email</dt>
+        <dt>{t('profile.email')}</dt>
         <dd>{user.email}</dd>
-        <dt>Member since</dt>
+        <dt>{t('profile.memberSince')}</dt>
         <dd>{memberSince}</dd>
-        <dt>Crew number</dt>
+        <dt>{t('profile.crewNumber')}</dt>
         <dd>#{user.id}</dd>
       </dl>
       <label className="date-field">
-        Weights in
+        {t('profile.weightsIn')}
         <select
           value={weightUnit}
           onChange={(event) => onWeightUnitChange(parseWeightUnit(event.target.value))}
         >
-          <option value="kg">Kilograms (kg)</option>
-          <option value="lb">Pounds (lb)</option>
+          <option value="kg">{t('profile.kilograms')}</option>
+          <option value="lb">{t('profile.pounds')}</option>
         </select>
       </label>
-      <p className="muted">
-        Saved on this device. Your weights are stored in kilograms whatever you choose here.
-      </p>
+      <p className="muted">{t('profile.unitNote')}</p>
+      <label className="date-field">
+        {t('profile.language')}
+        <select
+          value={localeChoice}
+          onChange={(event) => onLocaleChoiceChange(parseLocaleChoice(event.target.value))}
+        >
+          <option value="auto">
+            {t('profile.languageAuto', { language: LOCALE_NAMES[browserLocale] })}
+          </option>
+          {/* Each language in itself, so anyone can find their own */}
+          <option value="en" lang="en">
+            {LOCALE_NAMES.en}
+          </option>
+          <option value="ro" lang="ro">
+            {LOCALE_NAMES.ro}
+          </option>
+        </select>
+      </label>
+      <p className="muted">{t('profile.languageNote')}</p>
     </section>
   )
 }
@@ -157,6 +196,7 @@ function Header({
   onTabChange: (tab: Tab) => void
   onLogout: () => void
 }) {
+  const { t } = useI18n()
   return (
     <header className="app-header">
       <span className="brand">Haki</span>
@@ -169,12 +209,12 @@ function Header({
             aria-current={tab === id ? 'page' : undefined}
             onClick={() => onTabChange(id)}
           >
-            {label}
+            {t(label)}
           </button>
         ))}
       </nav>
       <button type="button" className="link" onClick={onLogout}>
-        Log out
+        {t('nav.logOut')}
       </button>
     </header>
   )
@@ -190,6 +230,12 @@ function App() {
   const [openWorkoutId, setOpenWorkoutId] = useState<number | null>(null)
   // Per device for now: accounts get a setting with the body weight work
   const [weightUnit, setWeightUnit] = useState<WeightUnit>(() => loadWeightUnit())
+  // An explicit choice in Profile, kept on this device; 'auto' follows the browser
+  const [localeChoice, setLocaleChoice] = useState<LocaleChoice>(() => loadLocaleChoice())
+  const browserLocale = detectLocale(browserLanguages())
+  const locale = resolveLocale(localeChoice, browserLanguages())
+  const i18n = useMemo<I18n>(() => ({ locale, t: translator(locale) }), [locale])
+  const { t } = i18n
   const [loadError, setLoadError] = useState<string | null>(null)
   // Bumped by "Try again", to re-run the effect that loads the profile
   const [loadAttempt, setLoadAttempt] = useState(0)
@@ -234,17 +280,25 @@ function App() {
     }
   }, [token, loadAttempt])
 
+  // Screen readers, hyphenation and the browser's own messages follow it
+  useEffect(() => {
+    document.documentElement.lang = locale
+  }, [locale])
+
   if (!token) {
     return (
-      <main className="container">
-        <h1>Haki</h1>
-        <p className="tagline">Train your Haki. Track your fuel.</p>
-        <AuthForm onLoggedIn={handleLoggedIn} />
-      </main>
+      <I18nContext.Provider value={i18n}>
+        <main className="container">
+          <h1>Haki</h1>
+          <p className="tagline">{t('app.tagline')}</p>
+          <AuthForm onLoggedIn={handleLoggedIn} />
+        </main>
+      </I18nContext.Provider>
     )
   }
 
   return (
+    <I18nContext.Provider value={i18n}>
     <main className="container">
       <Header
         tab={tab}
@@ -254,7 +308,7 @@ function App() {
         }}
         onLogout={handleLogout}
       />
-      {!user && !loadError && <p>Loading…</p>}
+      {!user && !loadError && <p>{t('app.loading')}</p>}
       {!user && loadError && (
         <section className="card">
           <p className="error">{loadError}</p>
@@ -265,7 +319,7 @@ function App() {
               setLoadAttempt((attempt) => attempt + 1)
             }}
           >
-            Try again
+            {t('app.tryAgain')}
           </button>
         </section>
       )}
@@ -294,9 +348,16 @@ function App() {
             saveWeightUnit(unit)
             setWeightUnit(unit)
           }}
+          localeChoice={localeChoice}
+          browserLocale={browserLocale}
+          onLocaleChoiceChange={(choice) => {
+            saveLocaleChoice(choice)
+            setLocaleChoice(choice)
+          }}
         />
       )}
     </main>
+    </I18nContext.Provider>
   )
 }
 

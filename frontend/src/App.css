@@ -98,15 +98,24 @@ p {
   margin-left: auto;
 }
 
-/* Phone: tabs get their own full-width row under brand and Log out */
+/* Phone: tabs get their own full-width row under brand and Log out. Tighter
+   than on a wide screen, so longer labels (Romanian "Antrenamente") still fit
+   at 390 px; if a label ever does not, the row wraps instead of pushing the
+   page sideways. */
 @media (max-width: 30rem) {
   .tabs {
     order: 1;
     flex-basis: 100%;
+    flex-wrap: wrap;
+    gap: 0.1rem;
   }
 
-  .tab {
-    flex: 1;
+  /* More specific than button.tab further down, whose padding would
+     otherwise win (same specificity, later in the file) */
+  .tabs button.tab {
+    flex: 1 1 auto;
+    padding-inline: 0.25rem;
+    font-size: 0.85rem;
   }
 }
 

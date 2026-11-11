@@ -18,6 +18,8 @@ export default defineConfig({
   timeout: 60_000,
   use: {
     baseURL: process.env.E2E_BASE_URL ?? 'http://frontend:8080',
+    // Fixed, so the app picks English; one file checks Romanian on its own
+    locale: 'en-US',
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
   },
