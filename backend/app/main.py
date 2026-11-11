@@ -1,4 +1,6 @@
 import logging
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from typing import Annotated
 
 from fastapi import Depends, FastAPI, Request, Response, status
@@ -7,10 +9,12 @@ from sqlalchemy.exc import OperationalError
 from sqlalchemy.exc import TimeoutError as PoolTimeoutError
 
 from app.auth import router as auth_router
+from app.config import settings
 from app.db import database_is_reachable
 from app.entries import router as entries_router
 from app.exercises import router as exercises_router
 from app.foods import router as foods_router
+from app.metrics import record_request, start_metrics_server
 from app.programs import router as programs_router
 from app.security import HashingBusy
 from app.summary import router as summary_router
@@ -23,7 +27,23 @@ logger = logging.getLogger(__name__)
 # Workouts came after it, so this is the next minor, not released yet.
 API_VERSION = "0.2.0.dev0"
 
-app = FastAPI(title="Haki API", version=API_VERSION)
+
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+    """Serve the metrics on their own port while the API runs (app/metrics.py)."""
+    server = None
+    if settings.metrics_port:
+        server = start_metrics_server(settings.metrics_port)
+    app.state.metrics_server = server
+    try:
+        yield
+    finally:
+        if server is not None:
+            server.shutdown()
+            server.server_close()
+
+
+app = FastAPI(title="Haki API", version=API_VERSION, lifespan=lifespan)
 app.include_router(auth_router)
 app.include_router(foods_router)
 app.include_router(entries_router)
@@ -31,6 +51,8 @@ app.include_router(summary_router)
 app.include_router(exercises_router)
 app.include_router(workouts_router)
 app.include_router(programs_router)
+# Outermost: it also counts responses from the exception handlers below
+app.middleware("http")(record_request)
 
 
 @app.exception_handler(OperationalError)
