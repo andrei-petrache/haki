@@ -14,6 +14,7 @@ import type { Current } from './history'
 import { withoutKeys } from './formErrors'
 import { useI18n } from './i18n/context'
 import type { WeightUnit } from './units'
+import CatalogExercisePicker from './CatalogExercisePicker'
 import { RestStart } from './RestTimer'
 import WeightInput from './WeightInput'
 import {
@@ -58,6 +59,8 @@ function ExerciseBlock({
   onRemove,
   unit,
   last,
+  token,
+  onPickFromCatalog,
 }: {
   index: number
   item: ExerciseFields
@@ -68,6 +71,9 @@ function ExerciseBlock({
   unit: WeightUnit
   /** What the history says about last time, ready to show; null for nothing */
   last: string | null
+  token: string
+  /** The row now uses this exercise, picked from the catalog */
+  onPickFromCatalog: (exercise: Exercise) => void
 }) {
   const { t } = useI18n()
 
@@ -114,6 +120,7 @@ function ExerciseBlock({
         </button>
       </div>
       <FieldError errors={errors} field={exerciseKey(index)} />
+      <CatalogExercisePicker token={token} own={catalog} onPick={onPickFromCatalog} />
       {last && <p className="muted last-time">{last}</p>}
 
       {item.sets.map((set, setIndex) => (
@@ -245,6 +252,16 @@ export default function WorkoutEditor({
     })
   }
 
+  /** A catalog pick: the user's copy joins the choices, and the row uses it. */
+  function pickFromCatalog(index: number, exercise: Exercise) {
+    setCatalog((current) =>
+      current && current.some((known) => known.id === exercise.id)
+        ? current
+        : [...(current ?? []), exercise].sort(byName),
+    )
+    if (fields) setExercise(index, { ...fields.exercises[index], exercise: String(exercise.id), newName: '' })
+  }
+
   function setExercise(index: number, item: ExerciseFields) {
     // The error of what changed goes away; the rest wait for the next Save
     if (fields) setErrors((old) => clearExerciseErrors(old, index, fields.exercises[index], item))
@@ -374,6 +391,8 @@ export default function WorkoutEditor({
           onRemove={() => removeExercise(index)}
           unit={weightUnit}
           last={lastText(item)}
+          token={token}
+          onPickFromCatalog={(exercise) => pickFromCatalog(index, exercise)}
         />
       ))}
       <FieldError errors={errors} field={EXERCISES_KEY} />

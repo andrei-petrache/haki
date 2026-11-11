@@ -93,3 +93,67 @@ test('a food from the catalog: search, add, add again, and a name taken by hand'
   await search.fill('zzzz')
   await expect(page.getByText('Nothing in the catalog matches "zzzz"')).toBeVisible()
 })
+
+test('an exercise from the catalog in the workout editor: new, again, and a name taken', async () => {
+  await tab('Workouts').click()
+  await page.getByRole('button', { name: 'New workout' }).click()
+  const blocks = page.locator('fieldset.exercise-block')
+
+  await blocks.nth(0).getByRole('button', { name: 'From the catalog' }).click()
+  await blocks.nth(0).getByLabel('Search the catalog').fill('bench press barbell medium')
+  await blocks.nth(0).getByRole('button', { name: 'Use Barbell Bench Press - Medium Grip', exact: true }).click()
+
+  await expect(blocks.nth(0).getByRole('status')).toHaveText(
+    'Added "Barbell Bench Press - Medium Grip" to your exercises.',
+  )
+  await expect(blocks.nth(0).locator('select').first().locator('option:checked')).toHaveText(
+    'Barbell Bench Press - Medium Grip',
+  )
+
+  // The same pick on a second row reuses the copy
+  await page.getByRole('button', { name: 'Add exercise' }).click()
+  await blocks.nth(1).getByRole('button', { name: 'From the catalog' }).click()
+  await blocks.nth(1).getByLabel('Search the catalog').fill('bench press barbell medium')
+  await blocks.nth(1).getByRole('button', { name: 'Use Barbell Bench Press - Medium Grip', exact: true }).click()
+  await expect(blocks.nth(1).getByRole('status')).toHaveText(
+    'Using "Barbell Bench Press - Medium Grip", already in your exercises.',
+  )
+
+  // One of the user's own, typed by hand after the editor opened: 409, and theirs is used
+  const { status } = await api(page, 'POST', '/exercises', { name: 'Dumbbell Bench Press' })
+  expect(status).toBe(201)
+  await blocks.nth(1).getByRole('button', { name: 'From the catalog' }).click()
+  await blocks.nth(1).getByLabel('Search the catalog').fill('dumbbell bench')
+  await blocks.nth(1).getByRole('button', { name: 'Use Dumbbell Bench Press', exact: true }).click()
+  await expect(blocks.nth(1).getByRole('status')).toHaveText(
+    'You already have an exercise called "Dumbbell Bench Press": using yours.',
+  )
+  await expect(blocks.nth(1).locator('select').first().locator('option:checked')).toHaveText(
+    'Dumbbell Bench Press',
+  )
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390)
+  await page.screenshot({ path: `${SHOTS}/18-catalog-exercises-phone.png`, fullPage: true })
+
+  const { body: exercises } = await api(page, 'GET', '/exercises')
+  const names = (exercises as { name: string }[]).map((exercise) => exercise.name).sort()
+  expect(names).toEqual(['Barbell Bench Press - Medium Grip', 'Dumbbell Bench Press'])
+  await page.getByRole('button', { name: 'Cancel' }).click()
+})
+
+test('an exercise from the catalog in the program editor', async () => {
+  await tab('Programs').click()
+  await page.getByRole('button', { name: 'New program' }).click()
+  const row = page.locator('.planned').first()
+
+  await row.getByRole('button', { name: 'From the catalog' }).click()
+  await row.getByLabel('Search the catalog').fill('bench press barbell medium')
+  await row.getByRole('button', { name: 'Use Barbell Bench Press - Medium Grip', exact: true }).click()
+
+  await expect(row.getByRole('status')).toHaveText(
+    'Using "Barbell Bench Press - Medium Grip", already in your exercises.',
+  )
+  await expect(row.locator('select').first().locator('option:checked')).toHaveText(
+    'Barbell Bench Press - Medium Grip',
+  )
+  await page.getByRole('button', { name: 'Cancel' }).click()
+})

@@ -24,6 +24,7 @@ import {
 } from './programForm'
 import type { DayFields, FormErrors, PlannedFields, ProgramFields } from './programForm'
 import type { WeightUnit } from './units'
+import CatalogExercisePicker from './CatalogExercisePicker'
 import WeightInput from './WeightInput'
 import { MAX_NAME_LENGTH, MAX_REPS, MAX_SETS, NEW_EXERCISE } from './workoutForm'
 
@@ -46,6 +47,8 @@ function PlannedRow({
   onChange,
   onRemove,
   unit,
+  token,
+  onPickFromCatalog,
 }: {
   day: number
   index: number
@@ -55,6 +58,8 @@ function PlannedRow({
   onChange: (item: PlannedFields) => void
   onRemove: () => void
   unit: WeightUnit
+  token: string
+  onPickFromCatalog: (exercise: Exercise) => void
 }) {
   const { t } = useI18n()
   const label = t('programs.plannedOf', { exercise: index + 1, day: day + 1 })
@@ -90,6 +95,7 @@ function PlannedRow({
         )}
       </div>
       <FieldError errors={errors} field={plannedExerciseKey(day, index)} />
+      <CatalogExercisePicker token={token} own={catalog} onPick={onPickFromCatalog} />
       <div className="planned-row">
         <label>
           {t('programs.sets')}
@@ -143,6 +149,8 @@ function DayBlock({
   onChange,
   onRemove,
   unit,
+  token,
+  onPickFromCatalog,
 }: {
   index: number
   day: DayFields
@@ -151,6 +159,8 @@ function DayBlock({
   onChange: (day: DayFields) => void
   onRemove: () => void
   unit: WeightUnit
+  token: string
+  onPickFromCatalog: (exerciseIndex: number, exercise: Exercise) => void
 }) {
   const { t } = useI18n()
 
@@ -206,6 +216,8 @@ function DayBlock({
             onChange({ ...day, exercises: day.exercises.filter((_, j) => j !== i) })
           }
           unit={unit}
+          token={token}
+          onPickFromCatalog={(exercise) => onPickFromCatalog(i, exercise)}
         />
       ))}
       <FieldError errors={errors} field={dayExercisesKey(index)} />
@@ -263,6 +275,23 @@ export default function ProgramEditor({
       cancelled = true
     }
   }, [token])
+
+  /** A catalog pick: the user's copy joins the choices, and the row uses it. */
+  function pickFromCatalog(dayIndex: number, exerciseIndex: number, exercise: Exercise) {
+    setCatalog((current) =>
+      current && current.some((known) => known.id === exercise.id)
+        ? current
+        : [...(current ?? []), exercise].sort(byName),
+    )
+    if (!fields) return
+    const day = fields.days[dayIndex]
+    setDay(dayIndex, {
+      ...day,
+      exercises: day.exercises.map((item, j) =>
+        j === exerciseIndex ? { ...item, exercise: String(exercise.id), newName: '' } : item,
+      ),
+    })
+  }
 
   function setDay(index: number, day: DayFields) {
     // The error of what changed goes away; the rest wait for the next Save
@@ -375,6 +404,10 @@ export default function ProgramEditor({
           onChange={(changed) => setDay(index, changed)}
           onRemove={() => removeDay(index)}
           unit={weightUnit}
+          token={token}
+          onPickFromCatalog={(exerciseIndex, exercise) =>
+            pickFromCatalog(index, exerciseIndex, exercise)
+          }
         />
       ))}
       <FieldError errors={errors} field={DAYS_KEY} />
