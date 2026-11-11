@@ -55,3 +55,17 @@ def test_copy_twice_on_postgresql(
     assert first.status_code == 201
     assert second.status_code == 200
     assert second.json() == first.json()
+
+
+def test_muscle_filter_on_postgresql(
+    pg_client: TestClient, headers: dict[str, str]
+) -> None:
+    response = pg_client.get(
+        "/catalog/exercises",
+        params={"muscle": "lower back", "limit": 100},
+        headers=headers,
+    )
+
+    found = response.json()
+    assert "Barbell Deadlift" in [item["name"] for item in found]
+    assert all("lower back" in item["primary_muscles"] for item in found)
