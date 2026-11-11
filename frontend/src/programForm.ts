@@ -27,7 +27,7 @@ export type PlannedFields = {
 }
 
 export type DayFields = {
-  position: number // the day's place in the week, 1 to MAX_DAYS
+  position: number // the day's place in the plan, 1 to MAX_DAYS
   name: string
   exercises: PlannedFields[]
 }
@@ -48,7 +48,7 @@ export function emptyPlanned(catalog: Exercise[]): PlannedFields {
   }
 }
 
-/** The first place in the week no day has taken yet, or null when all are. */
+/** The first place in the plan no day has taken yet, or null when all are. */
 export function nextFreePosition(days: DayFields[]): number | null {
   const taken = new Set(days.map((day) => day.position))
   for (let position = 1; position <= MAX_DAYS; position++) {
@@ -130,7 +130,7 @@ export function validateProgram(fields: ProgramFields): FormErrors {
     errors[DAYS_KEY] = `A program can have at most ${MAX_DAYS} days`
   }
 
-  // Two days on the same place in the week: the API answers 409, so say it
+  // Two days on the same place in the plan: the API answers 409, so say it
   // here, next to the later one
   const seen = new Set<number>()
   fields.days.forEach((day, d) => {

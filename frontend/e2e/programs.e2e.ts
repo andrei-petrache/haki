@@ -40,6 +40,11 @@ function dayBlock(index: number): Locator {
   return page.locator('fieldset.exercise-block').nth(index)
 }
 
+/** A day's place in the plan: its first select (a select's accessible name includes its chosen option). */
+function daySelect(day: Locator): Locator {
+  return day.locator('select').first()
+}
+
 /** Fill one planned exercise of a day: a catalog name or a new one, then the numbers. */
 async function plan(
   day: Locator,
@@ -122,8 +127,8 @@ test('creates a two-day program with new exercises', async () => {
 
   await page.getByRole('button', { name: 'Add day' }).click()
   const pull = dayBlock(1)
-  // The first free place in the week
-  await expect(pull.getByLabel('Day of the week')).toHaveValue('2')
+  // The first free place in the plan
+  await expect(daySelect(pull)).toHaveValue('2')
   await pull.getByLabel('Name', { exact: true }).fill('Pull')
   await plan(pull, 0, { create: 'E2E Row' }, '4', '10', '52.5')
   await page.screenshot({ path: `${SHOTS}/3-editor.png`, fullPage: true })
@@ -143,7 +148,7 @@ test('reuses a catalog exercise in a second program', async () => {
   await page.getByRole('button', { name: '‹ Back to programs' }).click()
   await page.getByRole('button', { name: 'New program' }).click()
   await page.getByLabel('Name', { exact: true }).first().fill('E2E Full body')
-  await dayBlock(0).getByLabel('Day of the week').selectOption('3')
+  await daySelect(dayBlock(0)).selectOption('3')
   await dayBlock(0).getByLabel('Name', { exact: true }).fill('Full')
   await plan(dayBlock(0), 0, { pick: 'E2E Bench' }, '5', '5', '70')
 

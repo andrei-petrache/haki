@@ -57,7 +57,7 @@ describe('new fields', () => {
     expect(newProgramFields([]).days[0].exercises[0].exercise).toBe(NEW_EXERCISE)
   })
 
-  it('puts a new day at the first free place in the week', () => {
+  it('puts a new day at the first free place in the plan', () => {
     const days = [day(1, planned('1')), day(2, planned('1')), day(4, planned('1'))]
 
     expect(nextFreePosition(days)).toBe(3)
@@ -111,7 +111,7 @@ describe('validateProgram', () => {
     )
   })
 
-  it('rejects two days on the same place in the week, next to the later one', () => {
+  it('rejects two days on the same place in the plan, next to the later one', () => {
     const errors = validateProgram(program(day(2, planned('1')), day(2, planned('2'))))
 
     expect(errors).toEqual({ [dayPositionKey(1)]: 'Another day is already day 2' })

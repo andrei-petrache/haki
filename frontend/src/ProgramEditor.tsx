@@ -157,7 +157,7 @@ function DayBlock({
       <legend className="muted">Day {index + 1}</legend>
       <div className="exercise-head">
         <label>
-          Day of the week
+          Day
           <select
             value={day.position}
             onChange={(event) => onChange({ ...day, position: Number(event.target.value) })}
