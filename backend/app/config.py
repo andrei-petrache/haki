@@ -23,6 +23,9 @@ class Settings(DatabaseSettings):
     password_hash_concurrency: int = Field(default=4, ge=1, le=64)
     # How long a login or signup waits for a free slot before getting a 503
     password_hash_wait_seconds: float = Field(default=2.0, ge=0, le=30)
+    # Prometheus metrics are served on this port, never on the API's (see
+    # app/metrics.py). 0 turns the metrics server off (most tests).
+    metrics_port: int = Field(default=9000, ge=0, le=65535)
 
     @field_validator("jwt_secret_key")
     @classmethod

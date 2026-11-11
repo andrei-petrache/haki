@@ -47,6 +47,8 @@ COPY app ./app
 USER 10001:10001
 
 EXPOSE 8000
+# Prometheus metrics, scraped from inside the cluster only (app/metrics.py)
+EXPOSE 9000
 
 # Migrations are not run here; they run as a separate one-off step
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

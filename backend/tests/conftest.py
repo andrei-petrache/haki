@@ -10,6 +10,8 @@ if "DB_HOST" not in os.environ:
         "DATABASE_URL", "postgresql+psycopg://test:test@localhost:5432/test"
     )
 os.environ.setdefault("JWT_SECRET_KEY", "test-secret-key-not-for-production")
+# No metrics server per test client; tests/test_metrics.py starts its own
+os.environ.setdefault("METRICS_PORT", "0")
 
 from collections.abc import Iterator  # noqa: E402
 from typing import Any  # noqa: E402
