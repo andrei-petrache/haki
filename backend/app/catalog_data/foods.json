@@ -1,0 +1,1384 @@
+{
+  "source": {
+    "key": "usda-fdc-sr-legacy",
+    "name": "USDA FoodData Central, SR Legacy",
+    "url": "https://fdc.nal.usda.gov/",
+    "license": "CC0-1.0",
+    "attribution": "U.S. Department of Agriculture, Agricultural Research Service. FoodData Central: SR Legacy, April 2018. fdc.nal.usda.gov.",
+    "attribution_required": false,
+    "share_alike": false,
+    "version": "2018-04"
+  },
+  "foods": [
+    {
+      "ref": "171077",
+      "name": "Chicken breast, skinless, raw",
+      "name_ro": "Piept de pui fără piele, crud",
+      "calories_per_100g": 120.0,
+      "protein_per_100g": 22.5,
+      "carbs_per_100g": 0.0,
+      "fat_per_100g": 2.62,
+      "source_description": "Chicken, broiler or fryers, breast, skinless, boneless, meat only, raw"
+    },
+    {
+      "ref": "171477",
+      "name": "Chicken breast, roasted",
+      "name_ro": "Piept de pui la cuptor",
+      "calories_per_100g": 165.0,
+      "protein_per_100g": 31.02,
+      "carbs_per_100g": 0.0,
+      "fat_per_100g": 3.57,
+      "source_description": "Chicken, broilers or fryers, breast, meat only, cooked, roasted"
+    },
+    {
+      "ref": "173627",
+      "name": "Chicken thigh, skinless, raw",
+      "name_ro": "Pulpă superioară de pui fără piele, crudă",
+      "calories_per_100g": 121.0,
+      "protein_per_100g": 19.66,
+      "carbs_per_100g": 0.0,
+      "fat_per_100g": 4.12,
+      "source_description": "Chicken, broilers or fryers, dark meat, thigh, meat only, raw"
+    },
+    {
+      "ref": "171060",
+      "name": "Chicken liver, raw",
+      "name_ro": "Ficat de pui, crud",
+      "calories_per_100g": 119.0,
+      "protein_per_100g": 16.92,
+      "carbs_per_100g": 0.73,
+      "fat_per_100g": 4.83,
+      "source_description": "Chicken, liver, all classes, raw"
+    },
+    {
+      "ref": "171098",
+      "name": "Turkey breast, raw",
+      "name_ro": "Piept de curcan, crud",
+      "calories_per_100g": 114.0,
+      "protein_per_100g": 23.66,
+      "carbs_per_100g": 0.14,
+      "fat_per_100g": 1.48,
+      "source_description": "Turkey, whole, breast, meat only, raw"
+    },
+    {
+      "ref": "168230",
+      "name": "Pork loin, lean, raw",
+      "name_ro": "Cotlet de porc, slab, crud",
+      "calories_per_100g": 143.0,
+      "protein_per_100g": 21.43,
+      "carbs_per_100g": 0.0,
+      "fat_per_100g": 5.66,
+      "source_description": "Pork, fresh, loin, whole, separable lean only, raw"
+    },
+    {
+      "ref": "168249",
+      "name": "Pork tenderloin, lean, raw",
+      "name_ro": "Mușchiuleț de porc, crud",
+      "calories_per_100g": 109.0,
+      "protein_per_100g": 20.95,
+      "carbs_per_100g": 0.0,
+      "fat_per_100g": 2.17,
+      "source_description": "Pork, fresh, loin, tenderloin, separable lean only, raw"
+    },
+    {
+      "ref": "167845",
+      "name": "Pork shoulder, lean, raw",
+      "name_ro": "Spată de porc, slabă, crudă",
+      "calories_per_100g": 148.0,
+      "protein_per_100g": 19.55,
+      "carbs_per_100g": 0.0,
+      "fat_per_100g": 7.14,
+      "source_description": "Pork, fresh, shoulder, whole, separable lean only, raw"
+    },
+    {
+      "ref": "167902",
+      "name": "Pork, ground, raw",
+      "name_ro": "Carne tocată de porc, crudă",
+      "calories_per_100g": 263.0,
+      "protein_per_100g": 16.88,
+      "carbs_per_100g": 0.0,
+      "fat_per_100g": 21.19,
+      "source_description": "Pork, fresh, ground, raw"
+    },
+    {
+      "ref": "167812",
+      "name": "Pork belly, raw",
+      "name_ro": "Piept de porc, crud",
+      "calories_per_100g": 518.0,
+      "protein_per_100g": 9.34,
+      "carbs_per_100g": 0.0,
+      "fat_per_100g": 53.01,
+      "source_description": "Pork, fresh, belly, raw"
+    },
+    {
+      "ref": "167811",
+      "name": "Pork backfat, fresh, raw",
+      "name_ro": "Slănină crudă, nesărată",
+      "calories_per_100g": 812.0,
+      "protein_per_100g": 2.92,
+      "carbs_per_100g": 0.0,
+      "fat_per_100g": 88.69,
+      "source_description": "Pork, fresh, backfat, raw"
+    },
+    {
+      "ref": "168277",
+      "name": "Bacon, cured, raw",
+      "name_ro": "Bacon afumat, crud",
+      "calories_per_100g": 393.0,
+      "protein_per_100g": 13.66,
+      "carbs_per_100g": 0.0,
+      "fat_per_100g": 37.13,
+      "source_description": "Pork, cured, bacon, unprepared"
+    },
+    {
+      "ref": "174030",
+      "name": "Beef, ground, 90% lean, raw",
+      "name_ro": "Carne tocată de vită, 90% slabă, crudă",
+      "calories_per_100g": 176.0,
+      "protein_per_100g": 20.0,
+      "carbs_per_100g": 0.0,
+      "fat_per_100g": 10.0,
+      "source_description": "Beef, ground, 90% lean meat / 10% fat, raw"
+    },
+    {
+      "ref": "174036",
+      "name": "Beef, ground, 80% lean, raw",
+      "name_ro": "Carne tocată de vită, 80% slabă, crudă",
+      "calories_per_100g": 254.0,
+      "protein_per_100g": 17.17,
+      "carbs_per_100g": 0.0,
+      "fat_per_100g": 20.0,
+      "source_description": "Beef, ground, 80% lean meat / 20% fat, raw"
+    },
+    {
+      "ref": "173125",
+      "name": "Beef round, lean, raw",
+      "name_ro": "Pulpă de vită, slabă, crudă",
+      "calories_per_100g": 126.0,
+      "protein_per_100g": 21.07,
+      "carbs_per_100g": 0.0,
+      "fat_per_100g": 3.95,
+      "source_description": "Beef, round, tip round, roast, separable lean only, trimmed to 0\" fat, all grades, raw"
+    },
+    {
+      "ref": "169451",
+      "name": "Beef liver, raw",
+      "name_ro": "Ficat de vită, crud",
+      "calories_per_100g": 135.0,
+      "protein_per_100g": 20.36,
+      "carbs_per_100g": 3.89,
+      "fat_per_100g": 3.63,
+      "source_description": "Beef, variety meats and by-products, liver, raw"
+    },
+    {
+      "ref": "170599",
+      "name": "Beef tripe, raw",
+      "name_ro": "Burtă de vită, crudă",
+      "calories_per_100g": 85.0,
+      "protein_per_100g": 12.07,
+      "carbs_per_100g": 0.0,
+      "fat_per_100g": 3.69,
+      "source_description": "Beef, variety meats and by-products, tripe, raw"
+    },
+    {
+      "ref": "171952",
+      "name": "Carp, raw",
+      "name_ro": "Crap, crud",
+      "calories_per_100g": 127.0,
+      "protein_per_100g": 17.83,
+      "carbs_per_100g": 0.0,
+      "fat_per_100g": 5.6,
+      "source_description": "Fish, carp, raw"
+    },
+    {
+      "ref": "173717",
+      "name": "Rainbow trout, farmed, raw",
+      "name_ro": "Păstrăv curcubeu de crescătorie, crud",
+      "calories_per_100g": 141.0,
+      "protein_per_100g": 19.94,
+      "carbs_per_100g": 0.0,
+      "fat_per_100g": 6.18,
+      "source_description": "Fish, trout, rainbow, farmed, raw"
+    },
+    {
+      "ref": "175167",
+      "name": "Atlantic salmon, farmed, raw",
+      "name_ro": "Somon de Atlantic de crescătorie, crud",
+      "calories_per_100g": 208.0,
+      "protein_per_100g": 20.42,
+      "carbs_per_100g": 0.0,
+      "fat_per_100g": 13.42,
+      "source_description": "Fish, salmon, Atlantic, farmed, raw"
+    },
+    {
+      "ref": "171986",
+      "name": "Tuna, light, canned in water, drained",
+      "name_ro": "Ton în apă, conservă, scurs",
+      "calories_per_100g": 116.0,
+      "protein_per_100g": 25.51,
+      "carbs_per_100g": 0.0,
+      "fat_per_100g": 0.82,
+      "source_description": "Fish, tuna, light, canned in water, without salt, drained solids"
+    },
+    {
+      "ref": "175119",
+      "name": "Atlantic mackerel, raw",
+      "name_ro": "Macrou, crud",
+      "calories_per_100g": 205.0,
+      "protein_per_100g": 18.6,
+      "carbs_per_100g": 0.0,
+      "fat_per_100g": 13.89,
+      "source_description": "Fish, mackerel, Atlantic, raw"
+    },
+    {
+      "ref": "175116",
+      "name": "Atlantic herring, raw",
+      "name_ro": "Hering, crud",
+      "calories_per_100g": 158.0,
+      "protein_per_100g": 17.96,
+      "carbs_per_100g": 0.0,
+      "fat_per_100g": 9.04,
+      "source_description": "Fish, herring, Atlantic, raw"
+    },
+    {
+      "ref": "171287",
+      "name": "Egg, whole, raw",
+      "name_ro": "Ou întreg, crud",
+      "calories_per_100g": 143.0,
+      "protein_per_100g": 12.56,
+      "carbs_per_100g": 0.72,
+      "fat_per_100g": 9.51,
+      "source_description": "Egg, whole, raw, fresh"
+    },
+    {
+      "ref": "172183",
+      "name": "Egg white, raw",
+      "name_ro": "Albuș de ou, crud",
+      "calories_per_100g": 52.0,
+      "protein_per_100g": 10.9,
+      "carbs_per_100g": 0.73,
+      "fat_per_100g": 0.17,
+      "source_description": "Egg, white, raw, fresh"
+    },
+    {
+      "ref": "173424",
+      "name": "Egg, whole, hard-boiled",
+      "name_ro": "Ou fiert tare",
+      "calories_per_100g": 155.0,
+      "protein_per_100g": 12.58,
+      "carbs_per_100g": 1.12,
+      "fat_per_100g": 10.61,
+      "source_description": "Egg, whole, cooked, hard-boiled"
+    },
+    {
+      "ref": "171265",
+      "name": "Milk, whole, 3.25% fat",
+      "name_ro": "Lapte integral, 3,25% grăsime",
+      "calories_per_100g": 61.0,
+      "protein_per_100g": 3.15,
+      "carbs_per_100g": 4.8,
+      "fat_per_100g": 3.25,
+      "source_description": "Milk, whole, 3.25% milkfat, with added vitamin D"
+    },
+    {
+      "ref": "171267",
+      "name": "Milk, 2% fat",
+      "name_ro": "Lapte, 2% grăsime",
+      "calories_per_100g": 50.0,
+      "protein_per_100g": 3.3,
+      "carbs_per_100g": 4.8,
+      "fat_per_100g": 1.98,
+      "source_description": "Milk, reduced fat, fluid, 2% milkfat, with added vitamin A and vitamin D"
+    },
+    {
+      "ref": "170872",
+      "name": "Milk, 1% fat",
+      "name_ro": "Lapte, 1% grăsime",
+      "calories_per_100g": 42.0,
+      "protein_per_100g": 3.37,
+      "carbs_per_100g": 4.99,
+      "fat_per_100g": 0.97,
+      "source_description": "Milk, lowfat, fluid, 1% milkfat, with added vitamin A and vitamin D"
+    },
+    {
+      "ref": "171269",
+      "name": "Milk, skim",
+      "name_ro": "Lapte degresat",
+      "calories_per_100g": 34.0,
+      "protein_per_100g": 3.37,
+      "carbs_per_100g": 4.96,
+      "fat_per_100g": 0.08,
+      "source_description": "Milk, nonfat, fluid, with added vitamin A and vitamin D (fat free or skim)"
+    },
+    {
+      "ref": "170874",
+      "name": "Buttermilk, cultured, low-fat",
+      "name_ro": "Lapte bătut, slab",
+      "calories_per_100g": 40.0,
+      "protein_per_100g": 3.31,
+      "carbs_per_100g": 4.79,
+      "fat_per_100g": 1.07,
+      "source_description": "Milk, buttermilk, fluid, cultured, lowfat"
+    },
+    {
+      "ref": "171284",
+      "name": "Yogurt, plain, whole milk",
+      "name_ro": "Iaurt simplu, din lapte integral",
+      "calories_per_100g": 61.0,
+      "protein_per_100g": 3.47,
+      "carbs_per_100g": 4.66,
+      "fat_per_100g": 3.25,
+      "source_description": "Yogurt, plain, whole milk"
+    },
+    {
+      "ref": "171304",
+      "name": "Greek yogurt, plain, whole milk",
+      "name_ro": "Iaurt grecesc simplu, integral",
+      "calories_per_100g": 97.0,
+      "protein_per_100g": 9.0,
+      "carbs_per_100g": 3.98,
+      "fat_per_100g": 5.0,
+      "source_description": "Yogurt, Greek, plain, whole milk"
+    },
+    {
+      "ref": "170894",
+      "name": "Greek yogurt, plain, nonfat",
+      "name_ro": "Iaurt grecesc simplu, degresat",
+      "calories_per_100g": 59.0,
+      "protein_per_100g": 10.19,
+      "carbs_per_100g": 3.6,
+      "fat_per_100g": 0.39,
+      "source_description": "Yogurt, Greek, plain, nonfat (Includes foods for USDA's Food Distribution Program)"
+    },
+    {
+      "ref": "171257",
+      "name": "Sour cream, about 19% fat",
+      "name_ro": "Smântână, circa 19% grăsime",
+      "calories_per_100g": 198.0,
+      "protein_per_100g": 2.44,
+      "carbs_per_100g": 4.63,
+      "fat_per_100g": 19.35,
+      "source_description": "Cream, sour, cultured"
+    },
+    {
+      "ref": "172182",
+      "name": "Cottage cheese, 2% fat",
+      "name_ro": "Brânză cottage, 2% grăsime",
+      "calories_per_100g": 81.0,
+      "protein_per_100g": 10.45,
+      "carbs_per_100g": 4.76,
+      "fat_per_100g": 2.27,
+      "source_description": "Cheese, cottage, lowfat, 2% milkfat"
+    },
+    {
+      "ref": "172179",
+      "name": "Cottage cheese, about 4% fat",
+      "name_ro": "Brânză cottage, circa 4% grăsime",
+      "calories_per_100g": 98.0,
+      "protein_per_100g": 11.12,
+      "carbs_per_100g": 3.38,
+      "fat_per_100g": 4.3,
+      "source_description": "Cheese, cottage, creamed, large or small curd"
+    },
+    {
+      "ref": "173420",
+      "name": "Feta cheese",
+      "name_ro": "Brânză feta",
+      "calories_per_100g": 265.0,
+      "protein_per_100g": 14.21,
+      "carbs_per_100g": 3.88,
+      "fat_per_100g": 21.49,
+      "source_description": "Cheese, feta"
+    },
+    {
+      "ref": "170845",
+      "name": "Mozzarella, whole milk",
+      "name_ro": "Mozzarella, din lapte integral",
+      "calories_per_100g": 299.0,
+      "protein_per_100g": 22.17,
+      "carbs_per_100g": 2.4,
+      "fat_per_100g": 22.14,
+      "source_description": "Cheese, mozzarella, whole milk"
+    },
+    {
+      "ref": "170848",
+      "name": "Parmesan",
+      "name_ro": "Parmezan",
+      "calories_per_100g": 392.0,
+      "protein_per_100g": 35.75,
+      "carbs_per_100g": 3.22,
+      "fat_per_100g": 25.0,
+      "source_description": "Cheese, parmesan, hard"
+    },
+    {
+      "ref": "170851",
+      "name": "Ricotta, whole milk",
+      "name_ro": "Ricotta, din lapte integral",
+      "calories_per_100g": 150.0,
+      "protein_per_100g": 7.54,
+      "carbs_per_100g": 7.27,
+      "fat_per_100g": 10.18,
+      "source_description": "Cheese, ricotta, whole milk"
+    },
+    {
+      "ref": "173418",
+      "name": "Cream cheese",
+      "name_ro": "Cremă de brânză",
+      "calories_per_100g": 350.0,
+      "protein_per_100g": 6.15,
+      "carbs_per_100g": 5.52,
+      "fat_per_100g": 34.44,
+      "source_description": "Cheese, cream"
+    },
+    {
+      "ref": "173430",
+      "name": "Butter, unsalted",
+      "name_ro": "Unt nesărat",
+      "calories_per_100g": 717.0,
+      "protein_per_100g": 0.85,
+      "carbs_per_100g": 0.06,
+      "fat_per_100g": 81.11,
+      "source_description": "Butter, without salt"
+    },
+    {
+      "ref": "171025",
+      "name": "Sunflower oil",
+      "name_ro": "Ulei de floarea-soarelui",
+      "calories_per_100g": 884.0,
+      "protein_per_100g": 0.0,
+      "carbs_per_100g": 0.0,
+      "fat_per_100g": 100.0,
+      "source_description": "Oil, sunflower, linoleic, (approx. 65%)"
+    },
+    {
+      "ref": "171413",
+      "name": "Olive oil",
+      "name_ro": "Ulei de măsline",
+      "calories_per_100g": 884.0,
+      "protein_per_100g": 0.0,
+      "carbs_per_100g": 0.0,
+      "fat_per_100g": 100.0,
+      "source_description": "Oil, olive, salad or cooking"
+    },
+    {
+      "ref": "168929",
+      "name": "Cornmeal, degermed, yellow",
+      "name_ro": "Mălai",
+      "calories_per_100g": 370.0,
+      "protein_per_100g": 7.11,
+      "carbs_per_100g": 79.45,
+      "fat_per_100g": 1.75,
+      "source_description": "Cornmeal, degermed, unenriched, yellow"
+    },
+    {
+      "ref": "169697",
+      "name": "Cornmeal, whole-grain, yellow",
+      "name_ro": "Mălai integral",
+      "calories_per_100g": 362.0,
+      "protein_per_100g": 8.12,
+      "carbs_per_100g": 76.89,
+      "fat_per_100g": 3.59,
+      "source_description": "Cornmeal, whole-grain, yellow"
+    },
+    {
+      "ref": "169761",
+      "name": "Wheat flour, white, all-purpose",
+      "name_ro": "Făină albă de grâu",
+      "calories_per_100g": 364.0,
+      "protein_per_100g": 10.33,
+      "carbs_per_100g": 76.31,
+      "fat_per_100g": 0.98,
+      "source_description": "Wheat flour, white, all-purpose, unenriched"
+    },
+    {
+      "ref": "168893",
+      "name": "Wheat flour, whole-grain",
+      "name_ro": "Făină integrală de grâu",
+      "calories_per_100g": 340.0,
+      "protein_per_100g": 13.21,
+      "carbs_per_100g": 71.97,
+      "fat_per_100g": 2.5,
+      "source_description": "Wheat flour, whole-grain (Includes foods for USDA's Food Distribution Program)"
+    },
+    {
+      "ref": "168933",
+      "name": "Semolina",
+      "name_ro": "Griș",
+      "calories_per_100g": 360.0,
+      "protein_per_100g": 12.68,
+      "carbs_per_100g": 72.83,
+      "fat_per_100g": 1.05,
+      "source_description": "Semolina, unenriched"
+    },
+    {
+      "ref": "174924",
+      "name": "Bread, white",
+      "name_ro": "Pâine albă",
+      "calories_per_100g": 266.0,
+      "protein_per_100g": 8.85,
+      "carbs_per_100g": 49.42,
+      "fat_per_100g": 3.33,
+      "source_description": "Bread, white, commercially prepared (includes soft bread crumbs)"
+    },
+    {
+      "ref": "172688",
+      "name": "Bread, whole-wheat",
+      "name_ro": "Pâine integrală",
+      "calories_per_100g": 252.0,
+      "protein_per_100g": 12.45,
+      "carbs_per_100g": 42.71,
+      "fat_per_100g": 3.5,
+      "source_description": "Bread, whole-wheat, commercially prepared"
+    },
+    {
+      "ref": "172684",
+      "name": "Bread, rye",
+      "name_ro": "Pâine de secară",
+      "calories_per_100g": 259.0,
+      "protein_per_100g": 8.5,
+      "carbs_per_100g": 48.3,
+      "fat_per_100g": 3.3,
+      "source_description": "Bread, rye"
+    },
+    {
+      "ref": "169756",
+      "name": "Rice, white, long-grain, raw",
+      "name_ro": "Orez alb cu bob lung, crud",
+      "calories_per_100g": 365.0,
+      "protein_per_100g": 7.13,
+      "carbs_per_100g": 79.95,
+      "fat_per_100g": 0.66,
+      "source_description": "Rice, white, long-grain, regular, raw, unenriched"
+    },
+    {
+      "ref": "169757",
+      "name": "Rice, white, long-grain, cooked",
+      "name_ro": "Orez alb cu bob lung, fiert",
+      "calories_per_100g": 130.0,
+      "protein_per_100g": 2.69,
+      "carbs_per_100g": 28.17,
+      "fat_per_100g": 0.28,
+      "source_description": "Rice, white, long-grain, regular, unenriched, cooked without salt"
+    },
+    {
+      "ref": "169703",
+      "name": "Rice, brown, long-grain, raw",
+      "name_ro": "Orez brun, crud",
+      "calories_per_100g": 367.0,
+      "protein_per_100g": 7.54,
+      "carbs_per_100g": 76.25,
+      "fat_per_100g": 3.2,
+      "source_description": "Rice, brown, long-grain, raw (Includes foods for USDA's Food Distribution Program)"
+    },
+    {
+      "ref": "169704",
+      "name": "Rice, brown, long-grain, cooked",
+      "name_ro": "Orez brun, fiert",
+      "calories_per_100g": 123.0,
+      "protein_per_100g": 2.74,
+      "carbs_per_100g": 25.58,
+      "fat_per_100g": 0.97,
+      "source_description": "Rice, brown, long-grain, cooked (Includes foods for USDA's Food Distribution Program)"
+    },
+    {
+      "ref": "173904",
+      "name": "Oats, rolled, dry",
+      "name_ro": "Fulgi de ovăz",
+      "calories_per_100g": 379.0,
+      "protein_per_100g": 13.15,
+      "carbs_per_100g": 67.7,
+      "fat_per_100g": 6.52,
+      "source_description": "Cereals, oats, regular and quick, not fortified, dry"
+    },
+    {
+      "ref": "168927",
+      "name": "Pasta, dry",
+      "name_ro": "Paste făinoase, crude",
+      "calories_per_100g": 371.0,
+      "protein_per_100g": 13.04,
+      "carbs_per_100g": 74.67,
+      "fat_per_100g": 1.51,
+      "source_description": "Pasta, dry, unenriched"
+    },
+    {
+      "ref": "168928",
+      "name": "Pasta, cooked",
+      "name_ro": "Paste făinoase, fierte",
+      "calories_per_100g": 158.0,
+      "protein_per_100g": 5.8,
+      "carbs_per_100g": 30.86,
+      "fat_per_100g": 0.93,
+      "source_description": "Pasta, cooked, unenriched, without added salt"
+    },
+    {
+      "ref": "170685",
+      "name": "Buckwheat groats, roasted, dry",
+      "name_ro": "Hrișcă, crudă",
+      "calories_per_100g": 346.0,
+      "protein_per_100g": 11.73,
+      "carbs_per_100g": 74.95,
+      "fat_per_100g": 2.71,
+      "source_description": "Buckwheat groats, roasted, dry"
+    },
+    {
+      "ref": "170686",
+      "name": "Buckwheat groats, roasted, cooked",
+      "name_ro": "Hrișcă, fiartă",
+      "calories_per_100g": 92.0,
+      "protein_per_100g": 3.38,
+      "carbs_per_100g": 19.94,
+      "fat_per_100g": 0.62,
+      "source_description": "Buckwheat groats, roasted, cooked"
+    },
+    {
+      "ref": "170688",
+      "name": "Bulgur, dry",
+      "name_ro": "Bulgur, crud",
+      "calories_per_100g": 342.0,
+      "protein_per_100g": 12.29,
+      "carbs_per_100g": 75.87,
+      "fat_per_100g": 1.33,
+      "source_description": "Bulgur, dry"
+    },
+    {
+      "ref": "169699",
+      "name": "Couscous, dry",
+      "name_ro": "Cuscus, crud",
+      "calories_per_100g": 376.0,
+      "protein_per_100g": 12.76,
+      "carbs_per_100g": 77.43,
+      "fat_per_100g": 0.64,
+      "source_description": "Couscous, dry"
+    },
+    {
+      "ref": "168874",
+      "name": "Quinoa, raw",
+      "name_ro": "Quinoa, crudă",
+      "calories_per_100g": 368.0,
+      "protein_per_100g": 14.12,
+      "carbs_per_100g": 64.16,
+      "fat_per_100g": 6.07,
+      "source_description": "Quinoa, uncooked"
+    },
+    {
+      "ref": "168917",
+      "name": "Quinoa, cooked",
+      "name_ro": "Quinoa, fiartă",
+      "calories_per_100g": 120.0,
+      "protein_per_100g": 4.4,
+      "carbs_per_100g": 21.3,
+      "fat_per_100g": 1.92,
+      "source_description": "Quinoa, cooked"
+    },
+    {
+      "ref": "170026",
+      "name": "Potatoes, with skin, raw",
+      "name_ro": "Cartofi cu coajă, cruzi",
+      "calories_per_100g": 77.0,
+      "protein_per_100g": 2.05,
+      "carbs_per_100g": 17.49,
+      "fat_per_100g": 0.09,
+      "source_description": "Potatoes, flesh and skin, raw"
+    },
+    {
+      "ref": "170440",
+      "name": "Potatoes, boiled, without skin",
+      "name_ro": "Cartofi fierți, fără coajă",
+      "calories_per_100g": 86.0,
+      "protein_per_100g": 1.71,
+      "carbs_per_100g": 20.01,
+      "fat_per_100g": 0.1,
+      "source_description": "Potatoes, boiled, cooked without skin, flesh, without salt"
+    },
+    {
+      "ref": "168482",
+      "name": "Sweet potato, raw",
+      "name_ro": "Cartof dulce, crud",
+      "calories_per_100g": 86.0,
+      "protein_per_100g": 1.57,
+      "carbs_per_100g": 20.12,
+      "fat_per_100g": 0.05,
+      "source_description": "Sweet potato, raw, unprepared (Includes foods for USDA's Food Distribution Program)"
+    },
+    {
+      "ref": "175202",
+      "name": "White beans, dry",
+      "name_ro": "Fasole albă boabe, uscată",
+      "calories_per_100g": 333.0,
+      "protein_per_100g": 23.36,
+      "carbs_per_100g": 60.27,
+      "fat_per_100g": 0.85,
+      "source_description": "Beans, white, mature seeds, raw"
+    },
+    {
+      "ref": "175203",
+      "name": "White beans, boiled",
+      "name_ro": "Fasole albă boabe, fiartă",
+      "calories_per_100g": 139.0,
+      "protein_per_100g": 9.73,
+      "carbs_per_100g": 25.09,
+      "fat_per_100g": 0.35,
+      "source_description": "Beans, white, mature seeds, cooked, boiled, without salt"
+    },
+    {
+      "ref": "173744",
+      "name": "Red kidney beans, dry",
+      "name_ro": "Fasole roșie boabe, uscată",
+      "calories_per_100g": 337.0,
+      "protein_per_100g": 22.53,
+      "carbs_per_100g": 61.29,
+      "fat_per_100g": 1.06,
+      "source_description": "Beans, kidney, red, mature seeds, raw"
+    },
+    {
+      "ref": "175194",
+      "name": "Red kidney beans, boiled",
+      "name_ro": "Fasole roșie boabe, fiartă",
+      "calories_per_100g": 127.0,
+      "protein_per_100g": 8.67,
+      "carbs_per_100g": 22.8,
+      "fat_per_100g": 0.5,
+      "source_description": "Beans, kidney, red, mature seeds, cooked, boiled, without salt"
+    },
+    {
+      "ref": "172420",
+      "name": "Lentils, dry",
+      "name_ro": "Linte, uscată",
+      "calories_per_100g": 352.0,
+      "protein_per_100g": 24.63,
+      "carbs_per_100g": 63.35,
+      "fat_per_100g": 1.06,
+      "source_description": "Lentils, raw"
+    },
+    {
+      "ref": "172421",
+      "name": "Lentils, boiled",
+      "name_ro": "Linte, fiartă",
+      "calories_per_100g": 116.0,
+      "protein_per_100g": 9.02,
+      "carbs_per_100g": 20.13,
+      "fat_per_100g": 0.38,
+      "source_description": "Lentils, mature seeds, cooked, boiled, without salt"
+    },
+    {
+      "ref": "173756",
+      "name": "Chickpeas, dry",
+      "name_ro": "Năut, uscat",
+      "calories_per_100g": 378.0,
+      "protein_per_100g": 20.47,
+      "carbs_per_100g": 62.95,
+      "fat_per_100g": 6.04,
+      "source_description": "Chickpeas (garbanzo beans, bengal gram), mature seeds, raw"
+    },
+    {
+      "ref": "173757",
+      "name": "Chickpeas, boiled",
+      "name_ro": "Năut, fiert",
+      "calories_per_100g": 164.0,
+      "protein_per_100g": 8.86,
+      "carbs_per_100g": 27.42,
+      "fat_per_100g": 2.59,
+      "source_description": "Chickpeas (garbanzo beans, bengal gram), mature seeds, cooked, boiled, without salt"
+    },
+    {
+      "ref": "170419",
+      "name": "Green peas, raw",
+      "name_ro": "Mazăre verde, crudă",
+      "calories_per_100g": 81.0,
+      "protein_per_100g": 5.42,
+      "carbs_per_100g": 14.45,
+      "fat_per_100g": 0.4,
+      "source_description": "Peas, green, raw"
+    },
+    {
+      "ref": "169961",
+      "name": "Green beans, raw",
+      "name_ro": "Fasole verde, crudă",
+      "calories_per_100g": 31.0,
+      "protein_per_100g": 1.83,
+      "carbs_per_100g": 6.97,
+      "fat_per_100g": 0.22,
+      "source_description": "Beans, snap, green, raw"
+    },
+    {
+      "ref": "169975",
+      "name": "Cabbage, raw",
+      "name_ro": "Varză albă, crudă",
+      "calories_per_100g": 25.0,
+      "protein_per_100g": 1.28,
+      "carbs_per_100g": 5.8,
+      "fat_per_100g": 0.1,
+      "source_description": "Cabbage, raw"
+    },
+    {
+      "ref": "169977",
+      "name": "Red cabbage, raw",
+      "name_ro": "Varză roșie, crudă",
+      "calories_per_100g": 31.0,
+      "protein_per_100g": 1.43,
+      "carbs_per_100g": 7.37,
+      "fat_per_100g": 0.16,
+      "source_description": "Cabbage, red, raw"
+    },
+    {
+      "ref": "169279",
+      "name": "Sauerkraut",
+      "name_ro": "Varză murată",
+      "calories_per_100g": 19.0,
+      "protein_per_100g": 0.91,
+      "carbs_per_100g": 4.28,
+      "fat_per_100g": 0.14,
+      "source_description": "Sauerkraut, canned, solids and liquids"
+    },
+    {
+      "ref": "170457",
+      "name": "Tomatoes, raw",
+      "name_ro": "Roșii, crude",
+      "calories_per_100g": 18.0,
+      "protein_per_100g": 0.88,
+      "carbs_per_100g": 3.89,
+      "fat_per_100g": 0.2,
+      "source_description": "Tomatoes, red, ripe, raw, year round average"
+    },
+    {
+      "ref": "168409",
+      "name": "Cucumber, with peel, raw",
+      "name_ro": "Castravete cu coajă, crud",
+      "calories_per_100g": 15.0,
+      "protein_per_100g": 0.65,
+      "carbs_per_100g": 3.63,
+      "fat_per_100g": 0.11,
+      "source_description": "Cucumber, with peel, raw"
+    },
+    {
+      "ref": "168558",
+      "name": "Pickled cucumbers",
+      "name_ro": "Castraveți murați",
+      "calories_per_100g": 12.0,
+      "protein_per_100g": 0.5,
+      "carbs_per_100g": 2.41,
+      "fat_per_100g": 0.3,
+      "source_description": "Pickles, cucumber, dill or kosher dill"
+    },
+    {
+      "ref": "170108",
+      "name": "Red bell pepper, raw",
+      "name_ro": "Ardei gras roșu, crud",
+      "calories_per_100g": 26.0,
+      "protein_per_100g": 0.99,
+      "carbs_per_100g": 6.03,
+      "fat_per_100g": 0.3,
+      "source_description": "Peppers, sweet, red, raw"
+    },
+    {
+      "ref": "170427",
+      "name": "Green bell pepper, raw",
+      "name_ro": "Ardei gras verde, crud",
+      "calories_per_100g": 20.0,
+      "protein_per_100g": 0.86,
+      "carbs_per_100g": 4.64,
+      "fat_per_100g": 0.17,
+      "source_description": "Peppers, sweet, green, raw"
+    },
+    {
+      "ref": "170000",
+      "name": "Onions, raw",
+      "name_ro": "Ceapă, crudă",
+      "calories_per_100g": 40.0,
+      "protein_per_100g": 1.1,
+      "carbs_per_100g": 9.34,
+      "fat_per_100g": 0.1,
+      "source_description": "Onions, raw"
+    },
+    {
+      "ref": "169230",
+      "name": "Garlic, raw",
+      "name_ro": "Usturoi, crud",
+      "calories_per_100g": 149.0,
+      "protein_per_100g": 6.36,
+      "carbs_per_100g": 33.06,
+      "fat_per_100g": 0.5,
+      "source_description": "Garlic, raw"
+    },
+    {
+      "ref": "170393",
+      "name": "Carrots, raw",
+      "name_ro": "Morcovi, cruzi",
+      "calories_per_100g": 41.0,
+      "protein_per_100g": 0.93,
+      "carbs_per_100g": 9.58,
+      "fat_per_100g": 0.24,
+      "source_description": "Carrots, raw"
+    },
+    {
+      "ref": "169145",
+      "name": "Beets, raw",
+      "name_ro": "Sfeclă roșie, crudă",
+      "calories_per_100g": 43.0,
+      "protein_per_100g": 1.61,
+      "carbs_per_100g": 9.56,
+      "fat_per_100g": 0.17,
+      "source_description": "Beets, raw"
+    },
+    {
+      "ref": "169228",
+      "name": "Eggplant, raw",
+      "name_ro": "Vinete, crude",
+      "calories_per_100g": 25.0,
+      "protein_per_100g": 0.98,
+      "carbs_per_100g": 5.88,
+      "fat_per_100g": 0.18,
+      "source_description": "Eggplant, raw"
+    },
+    {
+      "ref": "169291",
+      "name": "Zucchini, raw",
+      "name_ro": "Dovlecel, crud",
+      "calories_per_100g": 17.0,
+      "protein_per_100g": 1.21,
+      "carbs_per_100g": 3.11,
+      "fat_per_100g": 0.32,
+      "source_description": "Squash, summer, zucchini, includes skin, raw"
+    },
+    {
+      "ref": "168448",
+      "name": "Pumpkin, raw",
+      "name_ro": "Dovleac, crud",
+      "calories_per_100g": 26.0,
+      "protein_per_100g": 1.0,
+      "carbs_per_100g": 6.5,
+      "fat_per_100g": 0.1,
+      "source_description": "Pumpkin, raw"
+    },
+    {
+      "ref": "168462",
+      "name": "Spinach, raw",
+      "name_ro": "Spanac, crud",
+      "calories_per_100g": 23.0,
+      "protein_per_100g": 2.86,
+      "carbs_per_100g": 3.63,
+      "fat_per_100g": 0.39,
+      "source_description": "Spinach, raw"
+    },
+    {
+      "ref": "169249",
+      "name": "Lettuce, green leaf, raw",
+      "name_ro": "Salată verde, crudă",
+      "calories_per_100g": 15.0,
+      "protein_per_100g": 1.36,
+      "carbs_per_100g": 2.87,
+      "fat_per_100g": 0.15,
+      "source_description": "Lettuce, green leaf, raw"
+    },
+    {
+      "ref": "169986",
+      "name": "Cauliflower, raw",
+      "name_ro": "Conopidă, crudă",
+      "calories_per_100g": 25.0,
+      "protein_per_100g": 1.92,
+      "carbs_per_100g": 4.97,
+      "fat_per_100g": 0.28,
+      "source_description": "Cauliflower, raw"
+    },
+    {
+      "ref": "170379",
+      "name": "Broccoli, raw",
+      "name_ro": "Broccoli, crud",
+      "calories_per_100g": 34.0,
+      "protein_per_100g": 2.82,
+      "carbs_per_100g": 6.64,
+      "fat_per_100g": 0.37,
+      "source_description": "Broccoli, raw"
+    },
+    {
+      "ref": "169251",
+      "name": "White mushrooms, raw",
+      "name_ro": "Ciuperci champignon, crude",
+      "calories_per_100g": 22.0,
+      "protein_per_100g": 3.09,
+      "carbs_per_100g": 3.26,
+      "fat_per_100g": 0.34,
+      "source_description": "Mushrooms, white, raw"
+    },
+    {
+      "ref": "170400",
+      "name": "Celery root, raw",
+      "name_ro": "Țelină rădăcină, crudă",
+      "calories_per_100g": 42.0,
+      "protein_per_100g": 1.5,
+      "carbs_per_100g": 9.2,
+      "fat_per_100g": 0.3,
+      "source_description": "Celeriac, raw"
+    },
+    {
+      "ref": "170417",
+      "name": "Parsnips, raw",
+      "name_ro": "Păstârnac, crud",
+      "calories_per_100g": 75.0,
+      "protein_per_100g": 1.2,
+      "carbs_per_100g": 17.99,
+      "fat_per_100g": 0.3,
+      "source_description": "Parsnips, raw"
+    },
+    {
+      "ref": "169246",
+      "name": "Leeks, raw",
+      "name_ro": "Praz, crud",
+      "calories_per_100g": 61.0,
+      "protein_per_100g": 1.5,
+      "carbs_per_100g": 14.15,
+      "fat_per_100g": 0.3,
+      "source_description": "Leeks, (bulb and lower leaf-portion), raw"
+    },
+    {
+      "ref": "169276",
+      "name": "Radishes, raw",
+      "name_ro": "Ridichi, crude",
+      "calories_per_100g": 16.0,
+      "protein_per_100g": 0.68,
+      "carbs_per_100g": 3.4,
+      "fat_per_100g": 0.1,
+      "source_description": "Radishes, raw"
+    },
+    {
+      "ref": "169998",
+      "name": "Sweet corn, raw",
+      "name_ro": "Porumb dulce, crud",
+      "calories_per_100g": 86.0,
+      "protein_per_100g": 3.27,
+      "carbs_per_100g": 18.7,
+      "fat_per_100g": 1.35,
+      "source_description": "Corn, sweet, yellow, raw"
+    },
+    {
+      "ref": "170416",
+      "name": "Parsley, fresh",
+      "name_ro": "Pătrunjel verde",
+      "calories_per_100g": 36.0,
+      "protein_per_100g": 2.97,
+      "carbs_per_100g": 6.33,
+      "fat_per_100g": 0.79,
+      "source_description": "Parsley, fresh"
+    },
+    {
+      "ref": "172233",
+      "name": "Dill, fresh",
+      "name_ro": "Mărar verde",
+      "calories_per_100g": 43.0,
+      "protein_per_100g": 3.46,
+      "carbs_per_100g": 7.02,
+      "fat_per_100g": 1.12,
+      "source_description": "Dill weed, fresh"
+    },
+    {
+      "ref": "170459",
+      "name": "Tomato paste",
+      "name_ro": "Pastă de tomate",
+      "calories_per_100g": 82.0,
+      "protein_per_100g": 4.32,
+      "carbs_per_100g": 18.91,
+      "fat_per_100g": 0.47,
+      "source_description": "Tomato products, canned, paste, without salt added (Includes foods for USDA's Food Distribution Program)"
+    },
+    {
+      "ref": "170460",
+      "name": "Tomato puree",
+      "name_ro": "Piure de roșii",
+      "calories_per_100g": 38.0,
+      "protein_per_100g": 1.65,
+      "carbs_per_100g": 8.98,
+      "fat_per_100g": 0.21,
+      "source_description": "Tomato products, canned, puree, without salt added"
+    },
+    {
+      "ref": "173472",
+      "name": "Horseradish, prepared",
+      "name_ro": "Hrean preparat",
+      "calories_per_100g": 48.0,
+      "protein_per_100g": 1.18,
+      "carbs_per_100g": 11.29,
+      "fat_per_100g": 0.69,
+      "source_description": "Horseradish, prepared"
+    },
+    {
+      "ref": "171688",
+      "name": "Apples, with skin",
+      "name_ro": "Mere cu coajă",
+      "calories_per_100g": 52.0,
+      "protein_per_100g": 0.26,
+      "carbs_per_100g": 13.81,
+      "fat_per_100g": 0.17,
+      "source_description": "Apples, raw, with skin (Includes foods for USDA's Food Distribution Program)"
+    },
+    {
+      "ref": "169118",
+      "name": "Pears",
+      "name_ro": "Pere",
+      "calories_per_100g": 57.0,
+      "protein_per_100g": 0.36,
+      "carbs_per_100g": 15.23,
+      "fat_per_100g": 0.14,
+      "source_description": "Pears, raw"
+    },
+    {
+      "ref": "169949",
+      "name": "Plums",
+      "name_ro": "Prune",
+      "calories_per_100g": 46.0,
+      "protein_per_100g": 0.7,
+      "carbs_per_100g": 11.42,
+      "fat_per_100g": 0.28,
+      "source_description": "Plums, raw"
+    },
+    {
+      "ref": "168162",
+      "name": "Prunes, dried",
+      "name_ro": "Prune uscate",
+      "calories_per_100g": 240.0,
+      "protein_per_100g": 2.18,
+      "carbs_per_100g": 63.88,
+      "fat_per_100g": 0.38,
+      "source_description": "Plums, dried (prunes), uncooked"
+    },
+    {
+      "ref": "173954",
+      "name": "Sour cherries",
+      "name_ro": "Vișine",
+      "calories_per_100g": 50.0,
+      "protein_per_100g": 1.0,
+      "carbs_per_100g": 12.18,
+      "fat_per_100g": 0.3,
+      "source_description": "Cherries, sour, red, raw"
+    },
+    {
+      "ref": "171719",
+      "name": "Sweet cherries",
+      "name_ro": "Cireșe",
+      "calories_per_100g": 63.0,
+      "protein_per_100g": 1.06,
+      "carbs_per_100g": 16.01,
+      "fat_per_100g": 0.2,
+      "source_description": "Cherries, sweet, raw"
+    },
+    {
+      "ref": "171697",
+      "name": "Apricots",
+      "name_ro": "Caise",
+      "calories_per_100g": 48.0,
+      "protein_per_100g": 1.4,
+      "carbs_per_100g": 11.12,
+      "fat_per_100g": 0.39,
+      "source_description": "Apricots, raw"
+    },
+    {
+      "ref": "169928",
+      "name": "Peaches",
+      "name_ro": "Piersici",
+      "calories_per_100g": 39.0,
+      "protein_per_100g": 0.91,
+      "carbs_per_100g": 9.54,
+      "fat_per_100g": 0.25,
+      "source_description": "Peaches, yellow, raw"
+    },
+    {
+      "ref": "174683",
+      "name": "Grapes",
+      "name_ro": "Struguri",
+      "calories_per_100g": 69.0,
+      "protein_per_100g": 0.72,
+      "carbs_per_100g": 18.1,
+      "fat_per_100g": 0.16,
+      "source_description": "Grapes, red or green (European type, such as Thompson seedless), raw"
+    },
+    {
+      "ref": "167762",
+      "name": "Strawberries",
+      "name_ro": "Căpșuni",
+      "calories_per_100g": 32.0,
+      "protein_per_100g": 0.67,
+      "carbs_per_100g": 7.68,
+      "fat_per_100g": 0.3,
+      "source_description": "Strawberries, raw"
+    },
+    {
+      "ref": "167755",
+      "name": "Raspberries",
+      "name_ro": "Zmeură",
+      "calories_per_100g": 52.0,
+      "protein_per_100g": 1.2,
+      "carbs_per_100g": 11.94,
+      "fat_per_100g": 0.65,
+      "source_description": "Raspberries, raw"
+    },
+    {
+      "ref": "171711",
+      "name": "Blueberries",
+      "name_ro": "Afine",
+      "calories_per_100g": 57.0,
+      "protein_per_100g": 0.74,
+      "carbs_per_100g": 14.49,
+      "fat_per_100g": 0.33,
+      "source_description": "Blueberries, raw"
+    },
+    {
+      "ref": "167765",
+      "name": "Watermelon",
+      "name_ro": "Pepene roșu",
+      "calories_per_100g": 30.0,
+      "protein_per_100g": 0.61,
+      "carbs_per_100g": 7.55,
+      "fat_per_100g": 0.15,
+      "source_description": "Watermelon, raw"
+    },
+    {
+      "ref": "169092",
+      "name": "Cantaloupe melon",
+      "name_ro": "Pepene galben cantalup",
+      "calories_per_100g": 34.0,
+      "protein_per_100g": 0.84,
+      "carbs_per_100g": 8.16,
+      "fat_per_100g": 0.19,
+      "source_description": "Melons, cantaloupe, raw"
+    },
+    {
+      "ref": "168163",
+      "name": "Quinces",
+      "name_ro": "Gutui",
+      "calories_per_100g": 57.0,
+      "protein_per_100g": 0.4,
+      "carbs_per_100g": 15.3,
+      "fat_per_100g": 0.1,
+      "source_description": "Quinces, raw"
+    },
+    {
+      "ref": "173944",
+      "name": "Bananas",
+      "name_ro": "Banane",
+      "calories_per_100g": 89.0,
+      "protein_per_100g": 1.09,
+      "carbs_per_100g": 22.84,
+      "fat_per_100g": 0.33,
+      "source_description": "Bananas, raw"
+    },
+    {
+      "ref": "169097",
+      "name": "Oranges",
+      "name_ro": "Portocale",
+      "calories_per_100g": 47.0,
+      "protein_per_100g": 0.94,
+      "carbs_per_100g": 11.75,
+      "fat_per_100g": 0.12,
+      "source_description": "Oranges, raw, all commercial varieties"
+    },
+    {
+      "ref": "167746",
+      "name": "Lemons, without peel",
+      "name_ro": "Lămâi, fără coajă",
+      "calories_per_100g": 29.0,
+      "protein_per_100g": 1.1,
+      "carbs_per_100g": 9.32,
+      "fat_per_100g": 0.3,
+      "source_description": "Lemons, raw, without peel"
+    },
+    {
+      "ref": "168164",
+      "name": "Raisins, golden",
+      "name_ro": "Stafide aurii",
+      "calories_per_100g": 301.0,
+      "protein_per_100g": 3.28,
+      "carbs_per_100g": 80.02,
+      "fat_per_100g": 0.2,
+      "source_description": "Raisins, golden, seedless"
+    },
+    {
+      "ref": "170187",
+      "name": "Walnuts",
+      "name_ro": "Nuci",
+      "calories_per_100g": 654.0,
+      "protein_per_100g": 15.23,
+      "carbs_per_100g": 13.71,
+      "fat_per_100g": 65.21,
+      "source_description": "Nuts, walnuts, english"
+    },
+    {
+      "ref": "170581",
+      "name": "Hazelnuts",
+      "name_ro": "Alune de pădure",
+      "calories_per_100g": 628.0,
+      "protein_per_100g": 14.95,
+      "carbs_per_100g": 16.7,
+      "fat_per_100g": 60.75,
+      "source_description": "Nuts, hazelnuts or filberts"
+    },
+    {
+      "ref": "170567",
+      "name": "Almonds",
+      "name_ro": "Migdale",
+      "calories_per_100g": 579.0,
+      "protein_per_100g": 21.15,
+      "carbs_per_100g": 21.55,
+      "fat_per_100g": 49.93,
+      "source_description": "Nuts, almonds"
+    },
+    {
+      "ref": "170562",
+      "name": "Sunflower seeds, hulled",
+      "name_ro": "Semințe de floarea-soarelui decojite",
+      "calories_per_100g": 584.0,
+      "protein_per_100g": 20.78,
+      "carbs_per_100g": 20.0,
+      "fat_per_100g": 51.46,
+      "source_description": "Seeds, sunflower seed kernels, dried"
+    },
+    {
+      "ref": "170556",
+      "name": "Pumpkin seeds, hulled",
+      "name_ro": "Semințe de dovleac decojite",
+      "calories_per_100g": 559.0,
+      "protein_per_100g": 30.23,
+      "carbs_per_100g": 10.71,
+      "fat_per_100g": 49.05,
+      "source_description": "Seeds, pumpkin and squash seed kernels, dried"
+    },
+    {
+      "ref": "172470",
+      "name": "Peanut butter, smooth, unsalted",
+      "name_ro": "Unt de arahide, fin, nesărat",
+      "calories_per_100g": 598.0,
+      "protein_per_100g": 22.21,
+      "carbs_per_100g": 22.31,
+      "fat_per_100g": 51.36,
+      "source_description": "Peanut butter, smooth style, without salt"
+    },
+    {
+      "ref": "169640",
+      "name": "Honey",
+      "name_ro": "Miere",
+      "calories_per_100g": 304.0,
+      "protein_per_100g": 0.3,
+      "carbs_per_100g": 82.4,
+      "fat_per_100g": 0.0,
+      "source_description": "Honey"
+    },
+    {
+      "ref": "169655",
+      "name": "Sugar",
+      "name_ro": "Zahăr",
+      "calories_per_100g": 387.0,
+      "protein_per_100g": 0.0,
+      "carbs_per_100g": 99.98,
+      "fat_per_100g": 0.0,
+      "source_description": "Sugars, granulated"
+    },
+    {
+      "ref": "170273",
+      "name": "Dark chocolate, 70-85% cocoa",
+      "name_ro": "Ciocolată neagră, 70-85% cacao",
+      "calories_per_100g": 598.0,
+      "protein_per_100g": 7.79,
+      "carbs_per_100g": 45.9,
+      "fat_per_100g": 42.63,
+      "source_description": "Chocolate, dark, 70-85% cacao solids"
+    }
+  ]
+}

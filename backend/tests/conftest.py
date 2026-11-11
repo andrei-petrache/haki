@@ -18,7 +18,7 @@ from typing import Any  # noqa: E402
 
 import pytest  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402
-from sqlalchemy import create_engine, event  # noqa: E402
+from sqlalchemy import Engine, create_engine, event  # noqa: E402
 from sqlalchemy.orm import Session, sessionmaker  # noqa: E402
 from sqlalchemy.pool import StaticPool  # noqa: E402
 
@@ -28,8 +28,8 @@ from app.models import Base  # noqa: E402
 
 
 @pytest.fixture
-def client() -> Iterator[TestClient]:
-    """A test client backed by a fresh in-memory SQLite database per test."""
+def engine() -> Iterator[Engine]:
+    """A fresh in-memory SQLite database per test, with every table."""
     engine = create_engine(
         "sqlite://",
         connect_args={"check_same_thread": False},
@@ -44,6 +44,20 @@ def client() -> Iterator[TestClient]:
         cursor.close()
 
     Base.metadata.create_all(engine)
+    yield engine
+    engine.dispose()
+
+
+@pytest.fixture
+def session(engine: Engine) -> Iterator[Session]:
+    """A session on the test's database, for arranging and checking rows."""
+    with Session(engine, expire_on_commit=False) as session:
+        yield session
+
+
+@pytest.fixture
+def client(engine: Engine) -> Iterator[TestClient]:
+    """A test client backed by the test's in-memory SQLite database."""
     testing_session = sessionmaker(bind=engine, expire_on_commit=False)
 
     def override_get_session() -> Iterator[Session]:
@@ -54,7 +68,6 @@ def client() -> Iterator[TestClient]:
     with TestClient(app) as test_client:
         yield test_client
     app.dependency_overrides.clear()
-    engine.dispose()
 
 
 def register_and_login(client: TestClient, email: str) -> dict[str, str]:
