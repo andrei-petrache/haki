@@ -296,6 +296,15 @@ rule takes effect once merged. It refuses a pull request that:
 Comments stay free. `prod-guard` also runs `scripts/check-tag-pr.sh`, the
 scope of the tag bot's pull request (above), for the same reason.
 
+Both checks judge the pull request against `main` as its event saw it
+(`github.sha`), the commit the rules come from, not against the event's
+`pull_request.base.sha`, which can lag behind `main` (on #82 it still named
+the commit before #83, and the promotion's one commit was counted as two).
+If `main` moves between the event and the job's checkout, the job stops at
+its first check, **main moved since this event**. **To check a pull request
+again after `main` moved, close and reopen it** (or update its branch):
+**Re-run jobs** reuses the old event, so it stops the same way.
+
 Applied by hand, once, after the pull request that adds them is merged:
 
 ```bash
