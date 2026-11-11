@@ -21,7 +21,11 @@ export type FoodInput = {
   fat_per_100g: number
 }
 
-export type Food = FoodInput & { id: number }
+export type Food = FoodInput & {
+  id: number
+  // The catalog food this one was copied from; null when typed in by hand
+  catalog_food_id?: number | null
+}
 
 export type Nutrients = {
   calories: number
@@ -50,6 +54,8 @@ export type DailySummary = {
 export type Exercise = {
   id: number
   name: string
+  // The catalog exercise this one was copied from; null when typed in by hand
+  catalog_exercise_id?: number | null
 }
 
 export type WorkoutSet = {
@@ -122,11 +128,12 @@ export function setUnauthorizedHandler(handler: (() => void) | null): void {
   onUnauthorized = handler
 }
 
-async function request<T>(
+/** request(), but with the status too: for calls where 200 and 201 mean different things. */
+async function send<T>(
   path: string,
   options: RequestInit = {},
   token?: string,
-): Promise<T> {
+): Promise<{ status: number; body: T }> {
   const headers = new Headers(options.headers)
   headers.set('Content-Type', 'application/json')
   if (token) headers.set('Authorization', `Bearer ${token}`)
@@ -147,7 +154,15 @@ async function request<T>(
     }
     throw new ApiError(response.status, errorMessage(body))
   }
-  return body as T
+  return { status: response.status, body: body as T }
+}
+
+async function request<T>(
+  path: string,
+  options: RequestInit = {},
+  token?: string,
+): Promise<T> {
+  return (await send<T>(path, options, token)).body
 }
 
 function json(method: string, data: unknown): RequestInit {
@@ -339,4 +354,119 @@ export function startWorkout(
     json('POST', { performed_on: performedOn }),
     token,
   )
+}
+
+/** The catalog's languages: English names always, Romanian ones for most items. */
+export type CatalogLanguage = 'en' | 'ro'
+
+/** Where catalog items come from, and how to credit them. */
+export type CatalogSource = {
+  key: string
+  name: string
+  url: string
+  license: string
+  attribution: string
+  attribution_required: boolean // credit on screen required by the licence
+  share_alike: boolean
+  version: string
+}
+
+export type CatalogFood = {
+  id: number
+  name: string
+  name_ro: string | null
+  calories_per_100g: number
+  protein_per_100g: number
+  carbs_per_100g: number
+  fat_per_100g: number
+  source: CatalogSource
+}
+
+export type CatalogExercise = {
+  id: number
+  name: string
+  name_ro: string | null
+  category: string | null
+  equipment: string | null
+  level: string | null
+  force: string | null
+  mechanic: string | null
+  primary_muscles: string[]
+  secondary_muscles: string[]
+  source: CatalogSource
+}
+
+/** The API's default page size for catalog searches. */
+export const CATALOG_PAGE_SIZE = 20
+
+function catalogQuery(q: string, language: CatalogLanguage, limit: number, offset: number): string {
+  return new URLSearchParams({
+    q,
+    language,
+    limit: String(limit),
+    offset: String(offset),
+  }).toString()
+}
+
+/**
+ * Catalog foods matching every word of q in either name, ignoring case and
+ * diacritics ("branza" finds "Brânză feta"); all of them for an empty q.
+ * Ordered by the name in `language`.
+ */
+export function searchCatalogFoods(
+  token: string,
+  q: string,
+  language: CatalogLanguage,
+  limit: number = CATALOG_PAGE_SIZE,
+  offset: number = 0,
+): Promise<CatalogFood[]> {
+  return request<CatalogFood[]>(`/catalog/foods?${catalogQuery(q, language, limit, offset)}`, {}, token)
+}
+
+export function searchCatalogExercises(
+  token: string,
+  q: string,
+  language: CatalogLanguage,
+  limit: number = CATALOG_PAGE_SIZE,
+  offset: number = 0,
+): Promise<CatalogExercise[]> {
+  return request<CatalogExercise[]>(
+    `/catalog/exercises?${catalogQuery(q, language, limit, offset)}`,
+    {},
+    token,
+  )
+}
+
+export function fetchCatalogSources(token: string): Promise<CatalogSource[]> {
+  return request<CatalogSource[]>('/catalog/sources', {}, token)
+}
+
+/** A catalog item copied into the user's own list: new (201), or the copy they had (200). */
+export type CatalogCopy<T> = { item: T; created: boolean }
+
+/** Add a catalog food to the user's foods, named in `language`; 409 when a food of theirs has that name. */
+export async function copyCatalogFood(
+  token: string,
+  catalogFoodId: number,
+  language: CatalogLanguage,
+): Promise<CatalogCopy<Food>> {
+  const { status, body } = await send<Food>(
+    '/foods/from-catalog',
+    json('POST', { catalog_food_id: catalogFoodId, language }),
+    token,
+  )
+  return { item: body, created: status === 201 }
+}
+
+export async function copyCatalogExercise(
+  token: string,
+  catalogExerciseId: number,
+  language: CatalogLanguage,
+): Promise<CatalogCopy<Exercise>> {
+  const { status, body } = await send<Exercise>(
+    '/exercises/from-catalog',
+    json('POST', { catalog_exercise_id: catalogExerciseId, language }),
+    token,
+  )
+  return { item: body, created: status === 201 }
 }

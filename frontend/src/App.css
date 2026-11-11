@@ -641,3 +641,20 @@ textarea {
   color: white;
   background: var(--accent);
 }
+
+/* Credits: one block per catalog source */
+.credit-facts {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 0.2rem 0.75rem;
+  margin: 0;
+}
+
+.credit-facts dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.attribution {
+  font-size: 0.9rem;
+}

@@ -196,4 +196,12 @@ export const ro: Dictionary = {
   'history.lastTime': 'Ultima dată ({day}): {sets}',
   'history.record': 'Record nou',
   'history.recordScope': 'Cel mai bun set la acest exercițiu din ultimele {count} antrenamente',
+
+  'credits.open': 'Surse: de unde vine catalogul',
+  'credits.back': '‹ Înapoi la profil',
+  'credits.title': 'Surse',
+  'credits.intro': 'Alimentele și exercițiile pe care le poți adăuga din catalog vin din aceste surse deschise.',
+  'credits.license': 'Licență',
+  'credits.version': 'Versiune',
+  'credits.shareAlike': 'Modificările acestor date trebuie publicate sub aceeași licență.',
 }

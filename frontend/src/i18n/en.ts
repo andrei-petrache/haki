@@ -192,4 +192,12 @@ export const en = {
   'history.lastTime': 'Last time ({day}): {sets}',
   'history.record': 'New record',
   'history.recordScope': 'Your best set of this exercise in your last {count} workouts',
+
+  'credits.open': 'Credits: where the catalog comes from',
+  'credits.back': '‹ Back to profile',
+  'credits.title': 'Credits',
+  'credits.intro': 'The foods and exercises you can add from the catalog come from these open sources.',
+  'credits.license': 'Licence',
+  'credits.version': 'Version',
+  'credits.shareAlike': 'Changes to this data must be shared under the same licence.',
 } satisfies Record<string, string | Plural>
