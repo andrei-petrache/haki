@@ -116,3 +116,16 @@ export function recordPositions(workout: Workout, history: Workout[]): Set<strin
   }
   return positions
 }
+
+/**
+ * The set of a row being typed that would be a record: its best valid set,
+ * when it beats the best earlier set (null: never done before, no record).
+ * Sets still invalid are given as null and skipped. Returns its index, or
+ * null when none would be.
+ */
+export function liveRecordIndex(sets: (WorkoutSet | null)[], best: WorkoutSet | null): number | null {
+  if (!best) return null
+  const top = topSet(sets.filter((set): set is WorkoutSet => set !== null))
+  if (!top || !beats(top, best)) return null
+  return sets.findIndex((set) => set !== null && set.reps === top.reps && set.weight_kg === top.weight_kg)
+}

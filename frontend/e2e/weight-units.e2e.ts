@@ -161,7 +161,9 @@ test('a program planned in lb is stored in kg and starts a workout in lb', async
 
   await page.getByRole('button', { name: 'Start a workout from day 1, Heavy' }).click()
 
-  await expect(page.locator('.workout-exercise .sets li')).toHaveText(Array(3).fill('5 × 135 lb'))
+  // 61.235 kg beats every earlier set (27.669 kg by now): the first is marked once history loads
+  await expect(page.locator('.workout-exercise .sets li')).toHaveText(Array(3).fill(/^5 × 135 lb/))
+  await expect(page.locator('.record')).toHaveCount(1)
 })
 
 test('back to kg, the same weights show in kg', async () => {

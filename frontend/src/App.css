@@ -753,3 +753,7 @@ textarea {
   border: 1px dashed var(--border);
   border-radius: 8px;
 }
+
+.record-line {
+  margin: 0.2rem 0 0 1.5rem;
+}
