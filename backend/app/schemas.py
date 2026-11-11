@@ -89,6 +89,7 @@ class FoodResponse(FoodIn):
     id: int
     # The catalog food this one was copied from; null when typed in by hand
     catalog_food_id: int | None = None
+    favourite: bool = False
 
 
 class ExerciseIn(BaseModel):

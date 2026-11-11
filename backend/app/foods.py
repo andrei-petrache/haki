@@ -1,3 +1,4 @@
+from datetime import UTC, datetime
 from typing import Annotated
 
 from fastapi import APIRouter, HTTPException, Query, Response, status
@@ -40,9 +41,18 @@ def commit_or_conflict(session: Session, detail: str) -> None:
 
 
 @router.get("", response_model=list[FoodResponse])
-def list_foods(current_user: CurrentUser, session: SessionDep) -> list[Food]:
-    """Return the current user's foods, sorted by name."""
+def list_foods(
+    current_user: CurrentUser,
+    session: SessionDep,
+    favourite: Annotated[bool | None, Query()] = None,
+) -> list[Food]:
+    """Return the current user's foods, sorted by name; with favourite=true
+    only their favourites, with favourite=false only the others."""
     query = select(Food).where(Food.user_id == current_user.id).order_by(Food.name)
+    if favourite is True:
+        query = query.where(Food.favourited_at.is_not(None))
+    elif favourite is False:
+        query = query.where(Food.favourited_at.is_(None))
     return list(session.scalars(query))
 
 
@@ -165,4 +175,29 @@ def delete_food(
     session.delete(food)
     # meal_entries.food_id is ON DELETE RESTRICT, so the database refuses
     commit_or_conflict(session, "Food is used by meal entries")
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.put("/{food_id}/favourite", response_model=FoodResponse)
+def mark_favourite(
+    food_id: IdPath, current_user: CurrentUser, session: SessionDep
+) -> Food:
+    """Mark one of the current user's foods as a favourite. Idempotent: a
+    favourite stays one, with the time it was first marked."""
+    food = get_own_food(session, current_user, food_id)
+    if food.favourited_at is None:
+        food.favourited_at = datetime.now(UTC)
+        session.commit()
+    return food
+
+
+@router.delete("/{food_id}/favourite", status_code=status.HTTP_204_NO_CONTENT)
+def unmark_favourite(
+    food_id: IdPath, current_user: CurrentUser, session: SessionDep
+) -> Response:
+    """Stop one of the current user's foods being a favourite. Idempotent."""
+    food = get_own_food(session, current_user, food_id)
+    if food.favourited_at is not None:
+        food.favourited_at = None
+        session.commit()
     return Response(status_code=status.HTTP_204_NO_CONTENT)

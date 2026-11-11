@@ -29,7 +29,12 @@ def test_create_food_returns_it_with_id(
 
     assert response.status_code == 201
     body = response.json()
-    assert body == {**OATS, "id": body["id"], "catalog_food_id": None}
+    assert body == {
+        **OATS,
+        "id": body["id"],
+        "catalog_food_id": None,
+        "favourite": False,
+    }
 
 
 def test_list_foods_returns_own_foods_sorted_by_name(
@@ -56,7 +61,12 @@ def test_update_food_replaces_fields(
     response = client.put(f"/foods/{food['id']}", json=changes, headers=auth_headers)
 
     assert response.status_code == 200
-    assert response.json() == {**changes, "id": food["id"], "catalog_food_id": None}
+    assert response.json() == {
+        **changes,
+        "id": food["id"],
+        "catalog_food_id": None,
+        "favourite": False,
+    }
 
 
 def test_delete_food_removes_it(
@@ -249,6 +259,14 @@ def recent_names(
     return [food["name"] for food in response.json()]
 
 
+def favourite_names(
+    client: TestClient, headers: dict[str, str], favourite: bool
+) -> list[str]:
+    response = client.get("/foods", params={"favourite": favourite}, headers=headers)
+    assert response.status_code == 200
+    return [food["name"] for food in response.json()]
+
+
 def test_recent_foods_are_ordered_by_last_logged_each_once(
     client: TestClient, auth_headers: dict[str, str]
 ) -> None:
@@ -326,3 +344,111 @@ def test_recent_foods_rejects_invalid_limit(
 
 def test_recent_foods_requires_login(client: TestClient) -> None:
     assert client.get("/foods/recent").status_code == 401
+
+
+def test_mark_favourite_returns_the_food_marked(
+    client: TestClient, auth_headers: dict[str, str]
+) -> None:
+    food = create_food(client, auth_headers)
+
+    response = client.put(f"/foods/{food['id']}/favourite", headers=auth_headers)
+
+    assert response.status_code == 200
+    assert response.json() == {**food, "favourite": True}
+
+
+def test_new_foods_are_not_favourites(
+    client: TestClient, auth_headers: dict[str, str]
+) -> None:
+    food = create_food(client, auth_headers)
+
+    assert food["favourite"] is False
+
+
+def test_list_foods_filters_by_favourite(
+    client: TestClient, auth_headers: dict[str, str]
+) -> None:
+    for name in ("Rice", "Oats", "Eggs"):
+        food = create_food(client, auth_headers, name=name)
+        if name != "Eggs":
+            client.put(f"/foods/{food['id']}/favourite", headers=auth_headers)
+
+    favourites = favourite_names(client, auth_headers, True)
+    others = favourite_names(client, auth_headers, False)
+    everything = client.get("/foods", headers=auth_headers).json()
+
+    assert favourites == ["Oats", "Rice"]
+    assert others == ["Eggs"]
+    assert len(everything) == 3
+
+
+def test_mark_and_unmark_favourite_are_idempotent(
+    client: TestClient, auth_headers: dict[str, str]
+) -> None:
+    food_id = create_food(client, auth_headers)["id"]
+    path = f"/foods/{food_id}/favourite"
+
+    marked = [client.put(path, headers=auth_headers) for _ in range(2)]
+    favourites_after_marking = favourite_names(client, auth_headers, True)
+    unmarked = [client.delete(path, headers=auth_headers) for _ in range(2)]
+
+    assert [r.status_code for r in marked] == [200, 200]
+    assert favourites_after_marking == ["Oats"]
+    assert [r.status_code for r in unmarked] == [204, 204]
+    assert favourite_names(client, auth_headers, True) == []
+
+
+def test_editing_a_food_keeps_it_a_favourite(
+    client: TestClient, auth_headers: dict[str, str]
+) -> None:
+    food = create_food(client, auth_headers)
+    client.put(f"/foods/{food['id']}/favourite", headers=auth_headers)
+
+    response = client.put(
+        f"/foods/{food['id']}",
+        json={**OATS, "name": "Rolled oats"},
+        headers=auth_headers,
+    )
+
+    assert response.json()["favourite"] is True
+
+
+@pytest.mark.parametrize("method", ["put", "delete"])
+def test_favourite_of_another_users_food_is_404_and_unchanged(
+    client: TestClient,
+    auth_headers: dict[str, str],
+    other_auth_headers: dict[str, str],
+    method: str,
+) -> None:
+    food = create_food(client, auth_headers)
+    client.put(f"/foods/{food['id']}/favourite", headers=auth_headers)
+
+    response = client.request(
+        method, f"/foods/{food['id']}/favourite", headers=other_auth_headers
+    )
+
+    assert response.status_code == 404
+    assert favourite_names(client, auth_headers, True) == ["Oats"]
+    assert favourite_names(client, other_auth_headers, True) == []
+
+
+@pytest.mark.parametrize("method", ["put", "delete"])
+def test_favourite_of_unknown_food_is_404(
+    client: TestClient, auth_headers: dict[str, str], method: str
+) -> None:
+    response = client.request(method, "/foods/999/favourite", headers=auth_headers)
+
+    assert response.status_code == 404
+
+
+def test_list_foods_rejects_invalid_favourite_filter(
+    client: TestClient, auth_headers: dict[str, str]
+) -> None:
+    response = client.get("/foods", params={"favourite": "maybe"}, headers=auth_headers)
+
+    assert response.status_code == 422
+
+
+@pytest.mark.parametrize("method", ["put", "delete"])
+def test_favourite_requires_login(client: TestClient, method: str) -> None:
+    assert client.request(method, "/foods/1/favourite").status_code == 401
