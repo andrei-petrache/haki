@@ -1,0 +1,42 @@
+# The ArgoCD project for the platform's own tools: monitoring only, for now.
+# A whitelist like the others: only the monitoring namespace, and outside it
+# only that Namespace and the two read-only cluster roles, each by name.
+# Applied by hand, once (see k8s/README.md, "Monitoring"):
+#   kubectl apply -f k8s/argocd/project-platform.yaml
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: platform
+  namespace: argocd
+  # No finalizers: nothing here may delete resources in cascade
+spec:
+  description: Monitoring for staging and the platform, deployed from this repository only
+  sourceRepos:
+    - https://github.com/andrei-petrache/haki.git
+  destinations:
+    - server: https://kubernetes.default.svc
+      namespace: monitoring
+  clusterResourceWhitelist:
+    - group: ""
+      kind: Namespace
+      name: monitoring
+    - group: rbac.authorization.k8s.io
+      kind: ClusterRole
+      name: haki-monitoring-prometheus
+    - group: rbac.authorization.k8s.io
+      kind: ClusterRoleBinding
+      name: haki-monitoring-prometheus
+    - group: rbac.authorization.k8s.io
+      kind: ClusterRole
+      name: haki-monitoring-kube-state-metrics
+    - group: rbac.authorization.k8s.io
+      kind: ClusterRoleBinding
+      name: haki-monitoring-kube-state-metrics
+  # No Secret and no PersistentVolumeClaim, as in the other projects
+  namespaceResourceWhitelist:
+    - { group: "", kind: ConfigMap }
+    - { group: "", kind: Service }
+    - { group: "", kind: ServiceAccount }
+    - { group: "", kind: Pod }
+    - { group: apps, kind: Deployment }
+    - { group: apps, kind: ReplicaSet }

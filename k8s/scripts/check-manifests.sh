@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Checks k8s/platform, k8s/argocd and every overlay in k8s/overlays: each
+# Checks k8s/platform, k8s/argocd, every overlay in k8s/overlays and
+# k8s/monitoring: each
 # overlay builds with kustomize, every resource matches the API schemas of the
 # cluster's Kubernetes version (taken from the node image in
 # k8s/kind-config.yaml) or of its custom resource, each ArgoCD project allows
@@ -91,13 +92,29 @@ for pair in haki:haki-staging haki-prod:haki; do
     || fail "AppProject $name: Secret, PersistentVolumeClaim and wildcards must not be whitelisted"
   echo "AppProject $name: $repo -> $ns"
 done
+# The platform project (monitoring): its one namespace, and outside it only
+# that Namespace and the two monitoring cluster roles with their bindings,
+# each by name
+monitoring_cluster="/Namespace/monitoring,rbac.authorization.k8s.io/ClusterRole/haki-monitoring-kube-state-metrics,rbac.authorization.k8s.io/ClusterRole/haki-monitoring-prometheus,rbac.authorization.k8s.io/ClusterRoleBinding/haki-monitoring-kube-state-metrics,rbac.authorization.k8s.io/ClusterRoleBinding/haki-monitoring-prometheus"
+[[ "$(project platform '[.spec.sourceRepos | join(","),
+    (.spec.destinations | map(.server + " " + .namespace) | join(","))] | join(" | ")')" \
+  == "$repo | https://kubernetes.default.svc monitoring" ]] \
+  || fail "AppProject platform: only $repo, and only the monitoring namespace"
+[[ "$(project platform '.spec.clusterResourceWhitelist
+    | map(.group + "/" + .kind + "/" + (.name // "")) | sort | join(",")')" == "$monitoring_cluster" ]] \
+  || fail "AppProject platform: cluster-scoped, only Namespace monitoring and the two monitoring roles, by name"
+[[ "$(project platform '[.spec.namespaceResourceWhitelist[]
+    | select(.kind == "Secret" or .kind == "PersistentVolumeClaim"
+      or (.kind | test("^[*]$")) or (.group | test("^[*]$")))] | length')" == 0 ]] \
+  || fail "AppProject platform: Secret, PersistentVolumeClaim and wildcards must not be whitelisted"
+echo "AppProject platform: $repo -> monitoring"
 [[ "$(yq -N 'select(.metadata.finalizers) | .metadata.name' <<<"$argocd")" == "" ]] \
   || fail "k8s/argocd: no AppProject or Application may carry finalizers"
 [[ "$(project default '(.spec.sourceRepos | length) + (.spec.destinations | length)')" == 0 ]] \
   || fail "AppProject default must allow no repository and no destination"
 [[ "$(yq -N 'select(.kind == "Application") | .metadata.name' <<<"$argocd" | sort | tr '\n' ' ')" \
-  == "haki-apps haki-prod haki-staging " ]] \
-  || fail "k8s/argocd: the only Applications are haki-staging, haki-prod and haki-apps"
+  == "haki-apps haki-prod haki-staging monitoring " ]] \
+  || fail "k8s/argocd: the only Applications are haki-staging, haki-prod, haki-apps and monitoring"
 # haki-prod itself (k8s/argocd/haki-prod.yaml) is checked by prod-guard,
 # from main's copy of scripts/check-prod-app.sh, never from a pull request's
 
@@ -119,6 +136,19 @@ done
 [[ "$(yq -N '.spec.syncPolicy.retry.limit' <<<"$app")" == 0 ]] \
   || fail "Application haki-staging: retry.limit must be 0 (each retry runs the migration again)"
 echo "Application haki-staging: main:k8s/overlays/staging -> haki-staging, sync options $sync_options"
+
+# The monitoring Application: main of this repository, k8s/monitoring, the
+# platform project, into monitoring
+app="$(yq -N 'select(.kind == "Application" and .metadata.name == "monitoring")' <<<"$argocd")"
+[[ "$(yq -N '[.spec.project, .spec.source.repoURL, .spec.source.targetRevision,
+    .spec.source.path, .spec.destination.server, .spec.destination.namespace] | join(" ")' <<<"$app")" \
+  == "platform $repo main k8s/monitoring https://kubernetes.default.svc monitoring" ]] \
+  || fail "Application monitoring: project, source or destination changed"
+for option in Replace=true Force=true ServerSideApply=true CreateNamespace=true; do
+  [[ ",$(yq -N '.spec.syncPolicy.syncOptions // [] | join(",")' <<<"$app")," != *,$option,* ]] \
+    || fail "Application monitoring: sync option $option is not allowed"
+done
+echo "Application monitoring: main:k8s/monitoring -> monitoring"
 
 # haki-apps (app of apps): Applications only, into argocd only, and only the
 # file haki-prod.yaml of main; it never prunes, so haki-prod stays even if
@@ -284,3 +314,35 @@ EOF
   echo "Backend URL: $backend_url"
   echo "Images: $(tr '\n' ' ' <<<"$images")"
 done
+
+# Monitoring: deployed by ArgoCD into its own namespace. Nothing reachable
+# from outside the cluster, nothing that holds secrets or a volume, strict
+# limits on every container, images by digest, and roles that only read.
+# test("^[*]$"), not == "*": in yq, == "*" is a wildcard that matches anything
+echo "== k8s/monitoring (Kubernetes $k8s_version)"
+rendered="$(kustomize build k8s/monitoring)"
+validate <<<"$rendered"
+[[ "$(yq -N 'select(.metadata.namespace != null and .metadata.namespace != "monitoring")
+  | .kind + "/" + .metadata.name' <<<"$rendered")" == "" ]] \
+  || fail "k8s/monitoring: every namespaced resource belongs in monitoring"
+[[ "$(yq -N 'select(.metadata.namespace == null) | .kind + "/" + .metadata.name' <<<"$rendered" \
+  | sort | tr '\n' ',')" == "ClusterRole/haki-monitoring-kube-state-metrics,ClusterRole/haki-monitoring-prometheus,ClusterRoleBinding/haki-monitoring-kube-state-metrics,ClusterRoleBinding/haki-monitoring-prometheus,Namespace/monitoring," ]] \
+  || fail "k8s/monitoring: cluster-scoped, only the Namespace and the two roles the platform project allows"
+[[ "$(yq -N 'select(.kind == "Secret" or .kind == "PersistentVolumeClaim" or .kind == "Ingress"
+  or .kind == "Gateway" or .kind == "HTTPRoute") | .kind + "/" + .metadata.name' <<<"$rendered")" == "" ]] \
+  || fail "k8s/monitoring: no Secret, PersistentVolumeClaim, Ingress, Gateway or HTTPRoute"
+[[ "$(yq -N 'select(.kind == "Service" and .spec.type != "ClusterIP") | .metadata.name' <<<"$rendered")" == "" ]] \
+  || fail "k8s/monitoring: Services are ClusterIP only (no NodePort, no LoadBalancer)"
+[[ "$(yq -N '.. | select(has("containers")) | .containers[]
+  | select(.resources.limits.cpu == null or .resources.limits.memory == null
+    or .resources.requests.cpu == null or .resources.requests.memory == null) | .name' <<<"$rendered")" == "" ]] \
+  || fail "k8s/monitoring: every container needs CPU and memory requests and limits"
+[[ "$(yq -N '.. | select(has("containers")) | .containers[] | .image
+  | select(test("@sha256:[0-9a-f]{64}$") | not)' <<<"$rendered")" == "" ]] \
+  || fail "k8s/monitoring: every image must be pinned by digest"
+[[ "$(yq -N 'select(.kind == "ClusterRole") | .rules[]
+  | select((.verbs - ["get", "list", "watch"] | length) > 0
+    or (.resources | any_c(. == "secrets" or test("^[*]$") or . == "nodes/proxy")))
+  | .resources | join(",")' <<<"$rendered")" == "" ]] \
+  || fail "k8s/monitoring: cluster roles only get, list and watch, never secrets, nodes/proxy or *"
+echo "Monitoring: $(yq -N 'select(.kind == "Deployment") | .metadata.name' <<<"$rendered" | tr '\n' ' ')"

@@ -1,0 +1,21 @@
+# Monitoring for staging and the platform: Prometheus and kube-state-metrics.
+# Its own namespace, deployed by the ArgoCD Application monitoring
+# (k8s/argocd/monitoring.yaml), never by hand. Prod is not scraped yet.
+# Nothing here is reachable from outside the cluster: Services are ClusterIP
+# and there is no Gateway or HTTPRoute; open it with kubectl port-forward
+# (k8s/README.md, "Monitoring").
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: monitoring
+
+resources:
+  - namespace.yaml
+  - prometheus.yaml
+  - kube-state-metrics.yaml
+
+configMapGenerator:
+  # Hash-named: a change to the configuration restarts Prometheus with it
+  - name: prometheus-config
+    files:
+      - prometheus.yml=prometheus/prometheus.yml
