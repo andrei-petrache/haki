@@ -2,8 +2,9 @@ import { useEffect, useState } from 'react'
 import { PROGRAMS_PAGE_SIZE, deleteProgram, describeError, fetchProgram, fetchPrograms } from './api'
 import type { Program, ProgramSummary } from './api'
 import { formatDayCount, formatPlanned } from './format'
+import ProgramEditor from './ProgramEditor'
 
-type View = { kind: 'list' } | { kind: 'detail'; id: number }
+type View = { kind: 'list' } | { kind: 'detail'; id: number } | { kind: 'new' }
 
 /**
  * The programs, by name, a page at a time.
@@ -12,7 +13,15 @@ type View = { kind: 'list' } | { kind: 'detail'; id: number }
  * from the first page instead of keeping pages whose offsets have shifted
  * (a new name can land anywhere in the order).
  */
-function ProgramList({ token, onOpen }: { token: string; onOpen: (id: number) => void }) {
+function ProgramList({
+  token,
+  onOpen,
+  onNew,
+}: {
+  token: string
+  onOpen: (id: number) => void
+  onNew: () => void
+}) {
   const [programs, setPrograms] = useState<ProgramSummary[] | null>(null)
   // A full page means there may be more; an empty next page then just ends it
   const [hasMore, setHasMore] = useState(false)
@@ -55,6 +64,9 @@ function ProgramList({ token, onOpen }: { token: string; onOpen: (id: number) =>
     <section className="card">
       <div className="card-head">
         <h2>Your programs</h2>
+        <button type="button" onClick={onNew}>
+          New program
+        </button>
       </div>
       {error && <p className="error">{error}</p>}
       {programs === null && !error && <p className="muted">Loading…</p>}
@@ -163,13 +175,21 @@ function ProgramDetail({ token, id, onBack }: { token: string; id: number; onBac
 export default function ProgramsPage({ token }: { token: string }) {
   const [view, setView] = useState<View>({ kind: 'list' })
   const showList = () => setView({ kind: 'list' })
+  const showDetail = (id: number) => setView({ kind: 'detail', id })
 
   return (
     <div className="page">
       {view.kind === 'list' && (
-        <ProgramList token={token} onOpen={(id) => setView({ kind: 'detail', id })} />
+        <ProgramList
+          token={token}
+          onOpen={showDetail}
+          onNew={() => setView({ kind: 'new' })}
+        />
       )}
       {view.kind === 'detail' && <ProgramDetail token={token} id={view.id} onBack={showList} />}
+      {view.kind === 'new' && (
+        <ProgramEditor token={token} onSaved={showDetail} onCancel={showList} />
+      )}
     </div>
   )
 }

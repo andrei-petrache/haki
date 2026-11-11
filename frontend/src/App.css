@@ -502,3 +502,29 @@ textarea {
 .add-exercise {
   align-self: flex-start;
 }
+
+/* Program editor: one planned exercise is a choice, then sets, reps, weight */
+
+.planned {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--border);
+}
+
+.planned-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) auto;
+  align-items: end;
+  gap: 0.5rem;
+}
+
+.planned-row input {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.planned-row .icon {
+  margin-bottom: 0.2rem;
+}
