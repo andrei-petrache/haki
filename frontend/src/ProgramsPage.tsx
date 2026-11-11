@@ -277,7 +277,12 @@ export default function ProgramsPage({
         />
       )}
       {view.kind === 'new' && (
-        <ProgramEditor token={token} onSaved={showDetail} onCancel={showList} />
+        <ProgramEditor
+          token={token}
+          onSaved={showDetail}
+          onCancel={showList}
+          weightUnit={weightUnit}
+        />
       )}
     </div>
   )

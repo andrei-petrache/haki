@@ -151,3 +151,18 @@ export function saveWeightUnit(
     // Storage full or blocked: the choice still holds until the page reloads
   }
 }
+
+/**
+ * The kilograms to send for a weight field that may have been filled from a
+ * saved weight (savedKg; null or undefined for a new row): fieldToKg, with
+ * the text that saved weight was shown as.
+ */
+export function weightToSend(
+  text: string,
+  unit: WeightUnit,
+  savedKg: number | null | undefined,
+): number {
+  return savedKg == null
+    ? fieldToKg(text, unit)
+    : fieldToKg(text, unit, savedKg, weightFieldText(savedKg, unit))
+}

@@ -6,6 +6,8 @@ import type { Exercise, Workout, WorkoutInput } from './api'
 import { localDateString, shiftDate } from './format'
 import { firstChangedRow, withoutKeys, withoutRowsFrom } from './formErrors'
 import type { FormErrors } from './formErrors'
+import { weightError, weightFieldText, weightToSend } from './units'
+import type { WeightUnit } from './units'
 
 export type { FormErrors } from './formErrors'
 
@@ -16,13 +18,20 @@ export const MAX_SETS = 50
 export const MAX_NAME_LENGTH = 100
 export const MAX_NOTE_LENGTH = 500
 export const MAX_REPS = 1000
-export const MAX_WEIGHT_KG = 1000
+// One limit for the whole app, kept with the unit conversion
+export { MAX_WEIGHT_KG } from './units'
 
 /** The select's value for "type a new exercise name". */
 export const NEW_EXERCISE = 'new'
 
 // Form inputs hold text; convert to numbers only on submit
-export type SetFields = { reps: string; weight: string }
+export type SetFields = {
+  reps: string
+  weight: string // in the chosen unit
+  // The kilograms the row was filled with, when editing a saved workout:
+  // sent back unchanged unless the weight is edited (see weightToSend)
+  savedKg?: number | null
+}
 
 export type ExerciseFields = {
   exercise: string // an exercise id, '' (not chosen yet) or NEW_EXERCISE
@@ -53,18 +62,19 @@ export function newWorkoutFields(today: string, catalog: Exercise[]): WorkoutFie
   return { performedOn: today, note: '', exercises: [emptyExercise(catalog)] }
 }
 
-/** The editor prefilled with a saved workout. */
-export function workoutToFields(workout: Workout): WorkoutFields {
+/** The editor prefilled with a saved workout, its weights shown in the unit. */
+export function workoutToFields(workout: Workout, unit: WeightUnit = 'kg'): WorkoutFields {
   return {
     performedOn: workout.performed_on,
     note: workout.note ?? '',
     exercises: workout.exercises.map((item) => ({
       exercise: String(item.exercise_id),
       newName: '',
-      // String(), not formatWeight(): a number input rejects "22,5"
+      // Plain text, not formatWeight(): a number input rejects "22,5"
       sets: item.sets.map((set) => ({
         reps: String(set.reps),
-        weight: String(set.weight_kg),
+        weight: weightFieldText(set.weight_kg, unit),
+        savedKg: set.weight_kg,
       })),
     })),
   }
@@ -95,19 +105,14 @@ function parseNumber(text: string): number | null {
 }
 
 /** What is wrong with one set row (reps and weight), or null if nothing is. */
-export function setError(set: SetFields): string | null {
+export function setError(set: SetFields, unit: WeightUnit = 'kg'): string | null {
   const reps = parseNumber(set.reps)
-  const weight = parseNumber(set.weight)
   if (reps === null) return 'Enter the reps'
   if (!Number.isInteger(reps) || reps < 1 || reps > MAX_REPS) {
     return `Reps must be a whole number from 1 to ${MAX_REPS}`
   }
-  // Blank is not bodyweight: Number('') would silently turn it into 0
-  if (weight === null) return 'Enter the weight (0 for bodyweight)'
-  if (!Number.isFinite(weight) || weight < 0 || weight > MAX_WEIGHT_KG) {
-    return `Weight must be from 0 to ${MAX_WEIGHT_KG} kg`
-  }
-  return null
+  // Blank is not bodyweight; the limit is checked in kg, as the API does
+  return weightError(set.weight, unit)
 }
 
 /**
@@ -135,6 +140,7 @@ export function dateError(day: string, today: string = localDateString()): strin
 export function validateWorkout(
   fields: WorkoutFields,
   today: string = localDateString(),
+  unit: WeightUnit = 'kg',
 ): FormErrors {
   const errors: FormErrors = {}
 
@@ -159,7 +165,7 @@ export function validateWorkout(
       errors[setsKey(index)] = `An exercise can have at most ${MAX_SETS} sets`
     }
     item.sets.forEach((set, setIndex) => {
-      const error = setError(set)
+      const error = setError(set, unit)
       if (error) errors[setKey(index, setIndex)] = error
     })
   })
@@ -233,7 +239,11 @@ export function exerciseIdOf(item: ExerciseChoice, catalog: Exercise[]): number 
  * Call it on valid fields only, once every name from exercisesToCreate is in
  * the catalog.
  */
-export function toWorkoutInput(fields: WorkoutFields, catalog: Exercise[]): WorkoutInput {
+export function toWorkoutInput(
+  fields: WorkoutFields,
+  catalog: Exercise[],
+  unit: WeightUnit = 'kg',
+): WorkoutInput {
   return {
     performed_on: fields.performedOn,
     // A blank note is no note
@@ -242,7 +252,7 @@ export function toWorkoutInput(fields: WorkoutFields, catalog: Exercise[]): Work
       exercise_id: exerciseIdOf(item, catalog),
       sets: item.sets.map((set) => ({
         reps: Number(set.reps),
-        weight_kg: Number(set.weight),
+        weight_kg: weightToSend(set.weight, unit, set.savedKg),
       })),
     })),
   }

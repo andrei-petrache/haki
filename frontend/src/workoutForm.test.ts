@@ -66,7 +66,7 @@ describe('new and prefilled fields', () => {
     expect(fields).toEqual({
       performedOn: '2026-11-01',
       note: '',
-      exercises: [block('2', [['8', '22.5']])],
+      exercises: [{ ...block('2', [['8', '22.5']]), sets: [{ reps: '8', weight: '22.5', savedKg: 22.5 }] }],
     })
   })
 })
@@ -332,6 +332,61 @@ describe('clearing errors as the user edits', () => {
       [exerciseKey(0)]: 'Choose an exercise',
       [setKey(0, 0)]: 'Enter the reps',
       [setKey(0, 1)]: 'Enter the weight (0 for bodyweight)',
+    })
+  })
+})
+
+describe('weights in pounds', () => {
+  const saved: Workout = {
+    id: 7,
+    performed_on: '2026-11-01',
+    note: null,
+    exercises: [
+      {
+        exercise_id: 1,
+        exercise_name: 'Bench press',
+        sets: [
+          { reps: 8, weight_kg: 60 },
+          { reps: 12, weight_kg: 0 },
+        ],
+      },
+    ],
+  }
+
+  it('prefills a saved workout in lb, keeping the kilograms it came with', () => {
+    const fields = workoutToFields(saved, 'lb')
+
+    expect(fields.exercises[0].sets).toEqual([
+      { reps: '8', weight: '132.28', savedKg: 60 },
+      { reps: '12', weight: '0', savedKg: 0 },
+    ])
+  })
+
+  it('sends the saved kilograms back unchanged when nothing was edited', () => {
+    const input = toWorkoutInput(workoutToFields(saved, 'lb'), CATALOG, 'lb')
+
+    // 132.28 lb alone would be 60.001 kg
+    expect(input.exercises[0].sets).toEqual([
+      { reps: 8, weight_kg: 60 },
+      { reps: 12, weight_kg: 0 },
+    ])
+  })
+
+  it('converts an edited weight, and a new set, from lb', () => {
+    const fields = workoutToFields(saved, 'lb')
+    const sets = [{ ...fields.exercises[0].sets[0], weight: '135' }, { reps: '5', weight: '61' }]
+    const edited = { ...fields, exercises: [{ ...fields.exercises[0], sets }] }
+
+    expect(toWorkoutInput(edited, CATALOG, 'lb').exercises[0].sets).toEqual([
+      { reps: 8, weight_kg: 61.235 },
+      { reps: 5, weight_kg: 27.669 },
+    ])
+  })
+
+  it('checks the limit in lb, and accepts 61 lb', () => {
+    expect(validateWorkout(workout(block('1', [['5', '61'], ['5', '2204.62']])), '2026-11-02', 'lb')).toEqual({})
+    expect(validateWorkout(workout(block('1', [['5', '2205']])), '2026-11-02', 'lb')).toEqual({
+      [setKey(0, 0)]: 'Weight must be from 0 to 2204.62 lb',
     })
   })
 })

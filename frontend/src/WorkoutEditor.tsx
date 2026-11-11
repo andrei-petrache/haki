@@ -10,6 +10,8 @@ import {
 import type { Exercise, Workout } from './api'
 import { localDateString } from './format'
 import { withoutKeys } from './formErrors'
+import type { WeightUnit } from './units'
+import WeightInput from './WeightInput'
 import {
   DATE_KEY,
   EXERCISES_KEY,
@@ -18,7 +20,6 @@ import {
   MAX_NOTE_LENGTH,
   MAX_REPS,
   MAX_SETS,
-  MAX_WEIGHT_KG,
   NEW_EXERCISE,
   NOTE_KEY,
   clearExerciseErrors,
@@ -51,6 +52,7 @@ function ExerciseBlock({
   errors,
   onChange,
   onRemove,
+  unit,
 }: {
   index: number
   item: ExerciseFields
@@ -58,6 +60,7 @@ function ExerciseBlock({
   errors: FormErrors
   onChange: (item: ExerciseFields) => void
   onRemove: () => void
+  unit: WeightUnit
 }) {
   function setSet(setIndex: number, change: Partial<SetFields>) {
     onChange({
@@ -121,19 +124,12 @@ function ExerciseBlock({
                 onChange={(event) => setSet(setIndex, { reps: event.target.value })}
               />
             </label>
-            <label>
-              Weight (kg)
-              <input
-                type="number"
-                inputMode="decimal"
-                min={0}
-                max={MAX_WEIGHT_KG}
-                // "any": with the default step of 1 the browser rejects 22.5
-                step="any"
-                value={set.weight}
-                onChange={(event) => setSet(setIndex, { weight: event.target.value })}
-              />
-            </label>
+            <WeightInput
+              value={set.weight}
+              unit={unit}
+              of={`set ${setIndex + 1} of exercise ${index + 1}`}
+              onChange={(weight) => setSet(setIndex, { weight })}
+            />
             <button
               type="button"
               className="icon"
@@ -172,15 +168,17 @@ export default function WorkoutEditor({
   initial,
   onSaved,
   onCancel,
+  weightUnit,
 }: {
   token: string
   initial: Workout | null
   onSaved: (id: number) => void
   onCancel: () => void
+  weightUnit: WeightUnit
 }) {
   const [catalog, setCatalog] = useState<Exercise[] | null>(null)
   const [fields, setFields] = useState<WorkoutFields | null>(() =>
-    initial ? workoutToFields(initial) : null,
+    initial ? workoutToFields(initial, weightUnit) : null,
   )
   const [errors, setErrors] = useState<FormErrors>({})
   const [saveError, setSaveError] = useState<string | null>(null)
@@ -231,7 +229,7 @@ export default function WorkoutEditor({
   async function handleSave(current: WorkoutFields, loaded: Exercise[]) {
     if (saving.current) return
     let known = loaded
-    const found = validateWorkout(current)
+    const found = validateWorkout(current, undefined, weightUnit)
     setErrors(found)
     setSaveError(null)
     if (Object.keys(found).length > 0) return
@@ -255,7 +253,7 @@ export default function WorkoutEditor({
           return
         }
       }
-      const input = toWorkoutInput(current, known)
+      const input = toWorkoutInput(current, known, weightUnit)
       const saved = initial
         ? await updateWorkout(token, initial.id, input)
         : await createWorkout(token, input)
@@ -332,6 +330,7 @@ export default function WorkoutEditor({
           errors={errors}
           onChange={(changed) => setExercise(index, changed)}
           onRemove={() => removeExercise(index)}
+          unit={weightUnit}
         />
       ))}
       <FieldError errors={errors} field={EXERCISES_KEY} />

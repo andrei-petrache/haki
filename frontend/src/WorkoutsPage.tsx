@@ -249,6 +249,7 @@ export default function WorkoutsPage({
           initial={null}
           onSaved={showDetail}
           onCancel={showList}
+          weightUnit={weightUnit}
         />
       )}
       {view.kind === 'edit' && (
@@ -257,6 +258,7 @@ export default function WorkoutsPage({
           initial={view.workout}
           onSaved={showDetail}
           onCancel={() => showDetail(view.workout.id)}
+          weightUnit={weightUnit}
         />
       )}
     </div>
