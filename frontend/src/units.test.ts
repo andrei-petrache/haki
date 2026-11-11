@@ -15,6 +15,7 @@ import {
   weightError,
   weightFieldText,
   weightStep,
+  weightToSend,
 } from './units'
 import { MAX_WEIGHT_KG as WORKOUT_MAX_WEIGHT_KG } from './workoutForm'
 
@@ -191,5 +192,18 @@ describe('the unit kept on this device', () => {
     expect(loadWeightUnit(refusing)).toBe('kg')
     expect(() => saveWeightUnit('lb', refusing)).not.toThrow()
     expect(() => saveWeightUnit('lb', null)).not.toThrow()
+  })
+})
+
+describe('weightToSend', () => {
+  it('sends a saved weight unchanged while its field shows what it was filled with', () => {
+    expect(weightToSend('132.28', 'lb', 60)).toBe(60)
+    expect(weightToSend('60', 'kg', 60)).toBe(60)
+  })
+
+  it('converts a changed field, or a new row', () => {
+    expect(weightToSend('135', 'lb', 60)).toBe(61.235)
+    expect(weightToSend('135', 'lb', null)).toBe(61.235)
+    expect(weightToSend('135', 'lb', undefined)).toBe(61.235)
   })
 })

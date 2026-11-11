@@ -480,7 +480,7 @@ textarea {
 /* Set number, reps, weight, remove: the inputs share what is left */
 .set-row {
   display: grid;
-  grid-template-columns: 1.5rem minmax(0, 1fr) minmax(0, 1fr) auto;
+  grid-template-columns: 1.5rem minmax(0, 2fr) minmax(0, 3fr) auto;
   align-items: end;
   gap: 0.5rem;
 }
@@ -515,7 +515,7 @@ textarea {
 
 .planned-row {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr)) auto;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 2fr) minmax(0, 3fr) auto;
   align-items: end;
   gap: 0.5rem;
 }
@@ -526,5 +526,27 @@ textarea {
 }
 
 .planned-row .icon {
+  margin-bottom: 0.2rem;
+}
+
+/* A weight field and its − / + buttons, sharing one grid cell */
+.weight-input {
+  display: flex;
+  align-items: end;
+  gap: 0.3rem;
+  min-width: 0;
+}
+
+.weight-input label {
+  flex: 1;
+  min-width: 0;
+}
+
+.weight-input input {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.weight-input .icon {
   margin-bottom: 0.2rem;
 }

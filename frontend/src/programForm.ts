@@ -14,6 +14,8 @@ import {
 } from './workoutForm'
 import { firstChangedRow, withoutKeys, withoutRowsFrom } from './formErrors'
 import type { FormErrors } from './formErrors'
+import { weightToSend } from './units'
+import type { WeightUnit } from './units'
 
 export type { FormErrors } from './formErrors'
 
@@ -21,7 +23,7 @@ export type { FormErrors } from './formErrors'
 export const MAX_DAYS = 7
 export const MAX_EXERCISES_PER_DAY = 20
 
-/** One planned exercise: `sets` sets of `reps` at `weight` kg, all as typed. */
+/** One planned exercise: `sets` sets of `reps` at `weight` (in the chosen unit), all as typed. */
 export type PlannedFields = {
   exercise: string // an exercise id, '' (not chosen yet) or NEW_EXERCISE
   newName: string // used only when exercise is NEW_EXERCISE
@@ -109,18 +111,18 @@ function nameError(name: string, what: string): string | null {
 }
 
 /** What is wrong with a planned exercise's numbers, or null if nothing is. */
-function valuesError(item: PlannedFields): string | null {
+function valuesError(item: PlannedFields, unit: WeightUnit): string | null {
   const sets = item.sets.trim() === '' ? null : Number(item.sets)
   if (sets === null) return 'Enter the sets'
   if (!Number.isInteger(sets) || sets < 1 || sets > MAX_SETS) {
     return `Sets must be a whole number from 1 to ${MAX_SETS}`
   }
   // Reps and weight follow the same rules as a logged set
-  return setError({ reps: item.reps, weight: item.weight })
+  return setError({ reps: item.reps, weight: item.weight }, unit)
 }
 
 /** Everything the API would reject, found before sending. Empty means valid. */
-export function validateProgram(fields: ProgramFields): FormErrors {
+export function validateProgram(fields: ProgramFields, unit: WeightUnit = 'kg'): FormErrors {
   const errors: FormErrors = {}
 
   const name = nameError(fields.name, 'a name for the program')
@@ -154,7 +156,7 @@ export function validateProgram(fields: ProgramFields): FormErrors {
     day.exercises.forEach((item, e) => {
       const choice = choiceError(item)
       if (choice) errors[plannedExerciseKey(d, e)] = choice
-      const values = valuesError(item)
+      const values = valuesError(item, unit)
       if (values) errors[plannedValuesKey(d, e)] = values
     })
   })
@@ -180,7 +182,11 @@ export function programExercisesToCreate(
  * is in the catalog. Days go in the order shown; the API returns them by
  * position.
  */
-export function toProgramInput(fields: ProgramFields, catalog: Exercise[]): ProgramInput {
+export function toProgramInput(
+  fields: ProgramFields,
+  catalog: Exercise[],
+  unit: WeightUnit = 'kg',
+): ProgramInput {
   return {
     name: fields.name.trim(),
     days: fields.days.map((day) => ({
@@ -190,7 +196,8 @@ export function toProgramInput(fields: ProgramFields, catalog: Exercise[]): Prog
         exercise_id: exerciseIdOf(item, catalog),
         sets: Number(item.sets),
         reps: Number(item.reps),
-        weight_kg: Number(item.weight),
+        // A new program only: no saved weight to keep
+        weight_kg: weightToSend(item.weight, unit, null),
       })),
     })),
   }

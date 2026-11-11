@@ -22,7 +22,9 @@ import {
   validateProgram,
 } from './programForm'
 import type { DayFields, FormErrors, PlannedFields, ProgramFields } from './programForm'
-import { MAX_NAME_LENGTH, MAX_REPS, MAX_SETS, MAX_WEIGHT_KG, NEW_EXERCISE } from './workoutForm'
+import type { WeightUnit } from './units'
+import WeightInput from './WeightInput'
+import { MAX_NAME_LENGTH, MAX_REPS, MAX_SETS, NEW_EXERCISE } from './workoutForm'
 
 const POSITIONS = Array.from({ length: MAX_DAYS }, (_, i) => i + 1)
 
@@ -42,6 +44,7 @@ function PlannedRow({
   errors,
   onChange,
   onRemove,
+  unit,
 }: {
   day: number
   index: number
@@ -50,6 +53,7 @@ function PlannedRow({
   errors: FormErrors
   onChange: (item: PlannedFields) => void
   onRemove: () => void
+  unit: WeightUnit
 }) {
   const label = `exercise ${index + 1} of day ${day + 1}`
   return (
@@ -109,19 +113,12 @@ function PlannedRow({
             onChange={(event) => onChange({ ...item, reps: event.target.value })}
           />
         </label>
-        <label>
-          Weight (kg)
-          <input
-            type="number"
-            inputMode="decimal"
-            min={0}
-            max={MAX_WEIGHT_KG}
-            // "any": with the default step of 1 the browser rejects 22.5
-            step="any"
-            value={item.weight}
-            onChange={(event) => onChange({ ...item, weight: event.target.value })}
-          />
-        </label>
+        <WeightInput
+          value={item.weight}
+          unit={unit}
+          of={label}
+          onChange={(weight) => onChange({ ...item, weight })}
+        />
         <button
           type="button"
           className="icon"
@@ -143,6 +140,7 @@ function DayBlock({
   errors,
   onChange,
   onRemove,
+  unit,
 }: {
   index: number
   day: DayFields
@@ -150,6 +148,7 @@ function DayBlock({
   errors: FormErrors
   onChange: (day: DayFields) => void
   onRemove: () => void
+  unit: WeightUnit
 }) {
   function setPlanned(i: number, item: PlannedFields) {
     onChange({ ...day, exercises: day.exercises.map((old, j) => (j === i ? item : old)) })
@@ -202,6 +201,7 @@ function DayBlock({
           onRemove={() =>
             onChange({ ...day, exercises: day.exercises.filter((_, j) => j !== i) })
           }
+          unit={unit}
         />
       ))}
       <FieldError errors={errors} field={dayExercisesKey(index)} />
@@ -227,10 +227,12 @@ export default function ProgramEditor({
   token,
   onSaved,
   onCancel,
+  weightUnit,
 }: {
   token: string
   onSaved: (id: number) => void
   onCancel: () => void
+  weightUnit: WeightUnit
 }) {
   const [catalog, setCatalog] = useState<Exercise[] | null>(null)
   const [fields, setFields] = useState<ProgramFields | null>(null)
@@ -276,7 +278,7 @@ export default function ProgramEditor({
   async function handleSave(current: ProgramFields, loaded: Exercise[]) {
     if (saving.current) return
     let known = loaded
-    const found = validateProgram(current)
+    const found = validateProgram(current, weightUnit)
     setErrors(found)
     setSaveError(null)
     if (Object.keys(found).length > 0) return
@@ -300,7 +302,7 @@ export default function ProgramEditor({
           return
         }
       }
-      const saved = await createProgram(token, toProgramInput(current, known))
+      const saved = await createProgram(token, toProgramInput(current, known, weightUnit))
       onSaved(saved.id)
     } catch (err) {
       if (err instanceof ApiError && err.status === 409) {
@@ -367,6 +369,7 @@ export default function ProgramEditor({
           errors={errors}
           onChange={(changed) => setDay(index, changed)}
           onRemove={() => removeDay(index)}
+          unit={weightUnit}
         />
       ))}
       <FieldError errors={errors} field={DAYS_KEY} />

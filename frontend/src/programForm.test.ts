@@ -287,3 +287,21 @@ describe('clearing errors as the user edits', () => {
     })
   })
 })
+
+describe('weights in pounds', () => {
+  it('converts planned weights from lb to kg, to the gram', () => {
+    const fields = program(day(1, planned('1', '3', '5', '135'), planned('2', '3', '10', '0')))
+
+    expect(toProgramInput(fields, CATALOG, 'lb').days[0].exercises).toEqual([
+      { exercise_id: 1, sets: 3, reps: 5, weight_kg: 61.235 },
+      { exercise_id: 2, sets: 3, reps: 10, weight_kg: 0 },
+    ])
+  })
+
+  it('checks the limit in lb, and accepts 61 lb', () => {
+    expect(validateProgram(program(day(1, planned('1', '3', '5', '61'))), 'lb')).toEqual({})
+    expect(validateProgram(program(day(1, planned('1', '3', '5', '2205'))), 'lb')).toEqual({
+      [plannedValuesKey(0, 0)]: 'Weight must be from 0 to 2204.62 lb',
+    })
+  })
+})
