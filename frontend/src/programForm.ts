@@ -12,6 +12,10 @@ import {
   newExerciseNames,
   setError,
 } from './workoutForm'
+import { firstChangedRow, withoutKeys, withoutRowsFrom } from './formErrors'
+import type { FormErrors } from './formErrors'
+
+export type { FormErrors } from './formErrors'
 
 // Must match the limits in backend/app/schemas.py
 export const MAX_DAYS = 7
@@ -68,11 +72,8 @@ export function newProgramFields(catalog: Exercise[]): ProgramFields {
   return { name: '', days: [newDay([], catalog) as DayFields] }
 }
 
-/**
- * Validation errors, keyed by where they belong in the form (see the *Key
- * functions), so each one can be shown next to its field or row.
- */
-export type FormErrors = Record<string, string>
+// Validation errors are keyed by where they belong in the form (see the
+// *Key functions), so each one can be shown next to its field or row.
 
 export const NAME_KEY = 'name'
 export const DAYS_KEY = 'days'
@@ -193,4 +194,53 @@ export function toProgramInput(fields: ProgramFields, catalog: Exercise[]): Prog
       })),
     })),
   }
+}
+
+/**
+ * The errors without any day's position error. Positions depend on each
+ * other (two days on one place): moving or removing one day can fix another.
+ */
+function withoutPositionErrors(errors: FormErrors): FormErrors {
+  return withoutKeys(errors, ...Object.keys(errors).filter((key) => /^day\.\d+\.position$/.test(key)))
+}
+
+/**
+ * The errors left once day index changed from before to after: each field
+ * the user changed loses its error, the others keep theirs until the next
+ * Save. An exercise added or removed also clears the day's "exercises" error,
+ * and a removed one the errors of the exercises after it, which moved up.
+ */
+export function clearDayErrors(
+  errors: FormErrors,
+  index: number,
+  before: DayFields,
+  after: DayFields,
+): FormErrors {
+  let left = errors
+  if (after.name !== before.name) left = withoutKeys(left, dayNameKey(index))
+  if (after.position !== before.position) left = withoutPositionErrors(left)
+  if (after.exercises.length !== before.exercises.length) {
+    left = withoutKeys(left, dayExercisesKey(index))
+    return withoutRowsFrom(
+      left,
+      `day.${index}.exercise`,
+      firstChangedRow(before.exercises, after.exercises),
+    )
+  }
+  before.exercises.forEach((item, e) => {
+    const changed = after.exercises[e]
+    if (changed === item) return
+    if (changed.exercise !== item.exercise || changed.newName !== item.newName) {
+      left = withoutKeys(left, plannedExerciseKey(index, e))
+    }
+    if (changed.sets !== item.sets || changed.reps !== item.reps || changed.weight !== item.weight) {
+      left = withoutKeys(left, plannedValuesKey(index, e))
+    }
+  })
+  return left
+}
+
+/** The errors left once day index is removed (the days after it move up). */
+export function clearRemovedDay(errors: FormErrors, index: number): FormErrors {
+  return withoutPositionErrors(withoutRowsFrom(withoutKeys(errors, DAYS_KEY), 'day', index))
 }

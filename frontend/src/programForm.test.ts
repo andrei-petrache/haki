@@ -3,6 +3,8 @@ import type { Exercise } from './api'
 import {
   DAYS_KEY,
   NAME_KEY,
+  clearDayErrors,
+  clearRemovedDay,
   dayExercisesKey,
   dayNameKey,
   dayPositionKey,
@@ -224,5 +226,64 @@ describe('toProgramInput', () => {
     expect(() => toProgramInput(program(day(1, newPlanned('Dips'))), CATALOG)).toThrow(
       'Exercise not created: Dips',
     )
+  })
+})
+
+describe('clearing errors as the user edits', () => {
+  const first = day(1, planned(''), planned('1', ''))
+  const second = { ...day(1, planned('1')), name: '' }
+  const errors = {
+    [NAME_KEY]: 'Enter a name for the program',
+    [plannedExerciseKey(0, 0)]: 'Choose an exercise',
+    [plannedValuesKey(0, 1)]: 'Enter the sets',
+    [dayPositionKey(1)]: 'Another day is already day 1',
+    [dayNameKey(1)]: 'Enter a name for the day',
+  }
+
+  it('drops the error of the field that changed, and only that one', () => {
+    const exercises = first.exercises.map((item, i) => (i === 1 ? { ...item, sets: '3' } : item))
+
+    expect(clearDayErrors(errors, 0, first, { ...first, exercises })).toEqual({
+      [NAME_KEY]: 'Enter a name for the program',
+      [plannedExerciseKey(0, 0)]: 'Choose an exercise',
+      [dayPositionKey(1)]: 'Another day is already day 1',
+      [dayNameKey(1)]: 'Enter a name for the day',
+    })
+  })
+
+  it('drops the exercise choice error, not the values one, when the exercise changes', () => {
+    const exercises = first.exercises.map((item, i) => (i === 0 ? { ...item, exercise: '2' } : item))
+
+    const left = clearDayErrors(errors, 0, first, { ...first, exercises })
+
+    expect(left).not.toHaveProperty(plannedExerciseKey(0, 0))
+    expect(left).toHaveProperty(plannedValuesKey(0, 1))
+  })
+
+  it('drops every position error when any day moves, since one move can fix another day', () => {
+    const left = clearDayErrors(errors, 0, first, { ...first, position: 3 })
+
+    expect(left).not.toHaveProperty(dayPositionKey(1))
+    expect(left).toHaveProperty(dayNameKey(1))
+  })
+
+  it('drops the day name error when the name changes', () => {
+    expect(clearDayErrors(errors, 1, second, { ...second, name: 'Pull' })).not.toHaveProperty(
+      dayNameKey(1),
+    )
+  })
+
+  it('drops the errors of a removed exercise and of those after it', () => {
+    const left = clearDayErrors(errors, 0, first, { ...first, exercises: [first.exercises[1]] })
+
+    expect(left).not.toHaveProperty(plannedExerciseKey(0, 0))
+    expect(left).not.toHaveProperty(plannedValuesKey(0, 1))
+    expect(left).toHaveProperty(dayNameKey(1))
+  })
+
+  it('drops the errors of a removed day, of the days after it, and all position errors', () => {
+    expect(clearRemovedDay({ ...errors, [DAYS_KEY]: 'x' }, 0)).toEqual({
+      [NAME_KEY]: 'Enter a name for the program',
+    })
   })
 })

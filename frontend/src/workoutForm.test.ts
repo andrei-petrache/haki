@@ -5,6 +5,8 @@ import {
   EXERCISES_KEY,
   NEW_EXERCISE,
   NOTE_KEY,
+  clearExerciseErrors,
+  clearRemovedExercise,
   emptyExercise,
   exerciseKey,
   exercisesToCreate,
@@ -271,5 +273,65 @@ describe('toWorkoutInput', () => {
     expect(() => toWorkoutInput(workout(newBlock('Deadlift')), CATALOG)).toThrow(
       'Exercise not created: Deadlift',
     )
+  })
+})
+
+describe('clearing errors as the user edits', () => {
+  const before = block('', [['', '60'], ['8', ''], ['8', '60']])
+  const errors = {
+    [EXERCISES_KEY]: 'A workout can have at most 50 exercises',
+    [exerciseKey(0)]: 'Choose an exercise',
+    [setKey(0, 0)]: 'Enter the reps',
+    [setKey(0, 1)]: 'Enter the weight (0 for bodyweight)',
+    [exerciseKey(1)]: 'Choose an exercise',
+  }
+
+  it('drops the error of the field that changed, and only that one', () => {
+    const after = { ...before, sets: before.sets.map((set, i) => (i === 0 ? { ...set, reps: '5' } : set)) }
+
+    expect(clearExerciseErrors(errors, 0, before, after)).toEqual({
+      [EXERCISES_KEY]: 'A workout can have at most 50 exercises',
+      [exerciseKey(0)]: 'Choose an exercise',
+      [setKey(0, 1)]: 'Enter the weight (0 for bodyweight)',
+      [exerciseKey(1)]: 'Choose an exercise',
+    })
+  })
+
+  it('drops the exercise error when another exercise or a new name is chosen', () => {
+    expect(clearExerciseErrors(errors, 0, before, { ...before, exercise: '2' })).not.toHaveProperty(
+      exerciseKey(0),
+    )
+    expect(clearExerciseErrors(errors, 0, before, { ...before, newName: 'D' })).not.toHaveProperty(
+      exerciseKey(0),
+    )
+  })
+
+  it('drops the errors of a removed set and of the sets after it', () => {
+    const after = { ...before, sets: [before.sets[1], before.sets[2]] }
+
+    const left = clearExerciseErrors({ ...errors, [setsKey(0)]: 'x' }, 0, before, after)
+
+    expect(left).not.toHaveProperty(setKey(0, 0))
+    expect(left).not.toHaveProperty(setKey(0, 1))
+    expect(left).not.toHaveProperty(setsKey(0))
+    expect(left).toHaveProperty(exerciseKey(0))
+  })
+
+  it('keeps the set errors when a set is added at the end', () => {
+    const after = { ...before, sets: [...before.sets, { reps: '', weight: '' }] }
+
+    const left = clearExerciseErrors({ ...errors, [setsKey(0)]: 'Add at least one set' }, 0, before, after)
+
+    expect(left).not.toHaveProperty(setsKey(0))
+    expect(left).toHaveProperty(setKey(0, 0))
+    expect(left).toHaveProperty(setKey(0, 1))
+  })
+
+  it('drops the errors of a removed exercise and of those after it', () => {
+    expect(clearRemovedExercise(errors, 1)).toEqual({
+      [exerciseKey(0)]: 'Choose an exercise',
+      [setKey(0, 0)]: 'Enter the reps',
+      [setKey(0, 1)]: 'Enter the weight (0 for bodyweight)',
+    })
   })
 })
