@@ -274,11 +274,12 @@ function App() {
       )}
       {user && tab === 'foods' && <FoodsPage token={token} />}
       {user && tab === 'workouts' && (
-        <WorkoutsPage token={token} openWorkoutId={openWorkoutId} />
+        <WorkoutsPage token={token} weightUnit={weightUnit} openWorkoutId={openWorkoutId} />
       )}
       {user && tab === 'programs' && (
         <ProgramsPage
           token={token}
+          weightUnit={weightUnit}
           onWorkoutStarted={(workoutId) => {
             setOpenWorkoutId(workoutId)
             setTab('workouts')

@@ -2,8 +2,6 @@
  * Weight units in the UI. The API always stores kilograms: conversion
  * happens only here, when a weight is shown or typed. No React, no fetch.
  */
-import { formatWeight } from './format'
-
 export const WEIGHT_UNITS = ['kg', 'lb'] as const
 export type WeightUnit = (typeof WEIGHT_UNITS)[number]
 
@@ -87,11 +85,6 @@ export function weightError(text: string, unit: WeightUnit): string | null {
     return `Weight must be from 0 to ${maxWeightIn(unit)} ${unit}`
   }
   return null
-}
-
-/** A weight for display in the unit, e.g. "60 kg" or "132.28 lb". */
-export function formatWeightIn(kg: number, unit: WeightUnit): string {
-  return `${formatWeight(kgToUnit(kg, unit))} ${unit}`
 }
 
 /** A unit read back from storage; anything unknown (or nothing) is the default. */

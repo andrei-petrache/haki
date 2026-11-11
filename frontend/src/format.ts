@@ -1,3 +1,6 @@
+import { kgToUnit } from './units'
+import type { WeightUnit } from './units'
+
 /**
  * The local calendar day as YYYY-MM-DD.
  *
@@ -56,11 +59,14 @@ export function formatWeight(kg: number): string {
   return weightFormat.format(kg)
 }
 
-/** One set as "8 × 60 kg"; weight 0 means a bodyweight set. */
-export function formatSet(reps: number, weightKg: number): string {
-  return weightKg === 0
-    ? `${reps} × bodyweight`
-    : `${reps} × ${formatWeight(weightKg)} kg`
+/** A weight stored in kilograms, shown in the unit: "60 kg" or "132.28 lb". */
+export function formatWeightIn(kg: number, unit: WeightUnit): string {
+  return `${formatWeight(kgToUnit(kg, unit))} ${unit}`
+}
+
+/** One set as "8 × 60 kg" (or in lb); weight 0 means a bodyweight set. */
+export function formatSet(reps: number, weightKg: number, unit: WeightUnit = 'kg'): string {
+  return weightKg === 0 ? `${reps} × bodyweight` : `${reps} × ${formatWeightIn(weightKg, unit)}`
 }
 
 function plural(count: number, word: string): string {
@@ -78,8 +84,13 @@ export function formatDayCount(days: number): string {
 }
 
 /** One planned exercise as "3 × 8 × 60 kg": sets × reps × weight. */
-export function formatPlanned(sets: number, reps: number, weightKg: number): string {
-  return `${sets} × ${formatSet(reps, weightKg)}`
+export function formatPlanned(
+  sets: number,
+  reps: number,
+  weightKg: number,
+  unit: WeightUnit = 'kg',
+): string {
+  return `${sets} × ${formatSet(reps, weightKg, unit)}`
 }
 
 /** The text on one line, cut to at most max characters with an ellipsis. */

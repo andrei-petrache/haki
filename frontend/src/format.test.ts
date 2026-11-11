@@ -5,6 +5,7 @@ import {
   formatPlanned,
   formatSet,
   formatWeight,
+  formatWeightIn,
   parseDay,
   shorten,
 } from './format'
@@ -85,5 +86,24 @@ describe('formatPlanned', () => {
   it('writes sets × reps × weight, or bodyweight for 0 kg', () => {
     expect(formatPlanned(3, 8, 60)).toBe('3 × 8 × 60 kg')
     expect(formatPlanned(3, 10, 0)).toBe('3 × 10 × bodyweight')
+  })
+})
+
+describe('weights in the chosen unit', () => {
+  it('shows a weight stored in kg as kg or lb, with up to 2 decimals', () => {
+    expect(formatWeightIn(60, 'kg')).toBe('60 kg')
+    expect(formatWeightIn(60, 'lb')).toMatch(/^132[.,]28 lb$/)
+    expect(formatWeightIn(27.669, 'lb')).toBe('61 lb')
+  })
+
+  it('shows sets and planned exercises in lb, bodyweight staying bodyweight', () => {
+    expect(formatSet(5, 61.235, 'lb')).toBe('5 × 135 lb')
+    expect(formatSet(10, 0, 'lb')).toBe('10 × bodyweight')
+    expect(formatPlanned(3, 5, 61.235, 'lb')).toBe('3 × 5 × 135 lb')
+  })
+
+  it('stays in kg when no unit is given', () => {
+    expect(formatSet(8, 60)).toBe('8 × 60 kg')
+    expect(formatPlanned(3, 8, 60)).toBe('3 × 8 × 60 kg')
   })
 })
