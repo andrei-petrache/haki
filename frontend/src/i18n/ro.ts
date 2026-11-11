@@ -185,4 +185,12 @@ export const ro: Dictionary = {
   'api.unavailable': 'Serviciul nu e disponibil acum, încearcă din nou în câteva clipe.',
   'api.invalidInput': 'Date invalide',
   'api.unknown': 'Ceva n-a mers',
+
+  'rest.title': 'Cronometru de pauză',
+  'rest.left': 'Pauză {time}',
+  'rest.over': 'Gata pauza',
+  'rest.stop': 'Oprește',
+  'rest.dismiss': 'OK',
+  'rest.startLabel': 'Pauză',
+  'rest.startPreset': 'Pornește o pauză de {time}',
 }

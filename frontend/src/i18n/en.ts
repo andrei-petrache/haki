@@ -181,4 +181,12 @@ export const en = {
   'api.unavailable': 'Service temporarily unavailable, try again in a moment.',
   'api.invalidInput': 'Invalid input',
   'api.unknown': 'Something went wrong',
+
+  'rest.title': 'Rest timer',
+  'rest.left': 'Rest {time}',
+  'rest.over': 'Rest over',
+  'rest.stop': 'Stop',
+  'rest.dismiss': 'OK',
+  'rest.startLabel': 'Rest',
+  'rest.startPreset': 'Start a {time} rest',
 } satisfies Record<string, string | Plural>

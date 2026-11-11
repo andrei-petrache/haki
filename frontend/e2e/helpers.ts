@@ -9,14 +9,33 @@ import type { Page } from '@playwright/test'
 
 export const SHOTS = `${process.env.E2E_OUT ?? '/tmp/haki-e2e'}/screenshots`
 
-/** Sign up a new account and land logged in. One per file: signup is rate limited. */
+/**
+ * A POST to sign-up or login, waiting out Nginx's rate limit (5 a minute
+ * per address, then one every 12 s) instead of failing: with several files,
+ * each signing up its own account, a run can hit it.
+ */
+async function postAuth(page: Page, path: string, data: unknown) {
+  for (let attempt = 0; ; attempt++) {
+    const response = await page.request.post(`/api${path}`, { data })
+    if (response.status() !== 429 || attempt === 5) return response
+    await new Promise((resolve) => setTimeout(resolve, 13_000))
+  }
+}
+
+/**
+ * A new account, logged in. Through the API, not the form (language.e2e.ts
+ * signs up through the form); one per file, the files run one after another.
+ */
 export async function signUp(page: Page): Promise<void> {
   const email = `e2e-${Date.now()}-${randomBytes(3).toString('hex')}@example.com`
+  const password = randomBytes(16).toString('hex')
   await page.goto('/')
-  await page.getByRole('button', { name: 'New here? Create an account' }).click()
-  await page.getByLabel('Email').fill(email)
-  await page.getByLabel('Password').fill(randomBytes(16).toString('hex'))
-  await page.getByRole('button', { name: 'Sign up' }).click()
+  expect((await postAuth(page, '/auth/signup', { email, password })).status()).toBe(201)
+  const login = await postAuth(page, '/auth/login', { email, password })
+  expect(login.status()).toBe(200)
+  const { access_token } = (await login.json()) as { access_token: string }
+  await page.evaluate((value) => localStorage.setItem('haki_token', value), access_token)
+  await page.reload()
   await expect(page.getByRole('button', { name: 'Log out' })).toBeVisible()
 }
 
