@@ -467,6 +467,29 @@ ruleset's "Require branches to be up to date before merging", GitHub also
 refuses to merge it until it is updated, and the update reruns the
 `manifests` check against the pin, which fails.
 
+## Catalog import (staging)
+
+`overlays/staging/catalog-import-job.yaml` loads the food and exercise
+catalog from the data files in the backend image (`python -m
+app.catalog_import`). ArgoCD runs it as a PostSync hook after every full
+sync: once the migration has run and the backend is healthy. A failed import
+marks the sync as failed but does not hold back the backend; the app works
+without the catalog. It upserts under an advisory lock in one transaction,
+never deletes, and changes nothing on a second run. It writes only the
+`catalog_*` tables and gets only the database settings.
+
+It runs the migration's image, not the backend's, so its code always matches
+the schema the migration applied, during a rollback pin too. Exit code 2
+(bad data files) fails the Job at once; other failures are retried 3 times.
+Read the last run with:
+
+```bash
+kubectl -n haki-staging logs job/haki-catalog-import
+```
+
+Prod does not have it: `check-manifests.sh` refuses it in `overlays/prod`
+until Andrei approves the catalog for prod, at a promotion with a dump first.
+
 ## Monitoring
 
 Prometheus and kube-state-metrics for staging and the platform, in their own
