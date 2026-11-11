@@ -11,6 +11,8 @@ import type { User } from './api'
 import FoodsPage from './FoodsPage'
 import ProgramsPage from './ProgramsPage'
 import TodayPage from './TodayPage'
+import { loadWeightUnit, parseWeightUnit, saveWeightUnit } from './units'
+import type { WeightUnit } from './units'
 import WorkoutsPage from './WorkoutsPage'
 import './App.css'
 
@@ -107,7 +109,15 @@ function AuthForm({ onLoggedIn }: { onLoggedIn: (token: string) => void }) {
   )
 }
 
-function Profile({ user }: { user: User }) {
+function Profile({
+  user,
+  weightUnit,
+  onWeightUnitChange,
+}: {
+  user: User
+  weightUnit: WeightUnit
+  onWeightUnitChange: (unit: WeightUnit) => void
+}) {
   const memberSince = new Date(user.created_at).toLocaleDateString()
 
   return (
@@ -121,6 +131,19 @@ function Profile({ user }: { user: User }) {
         <dt>Crew number</dt>
         <dd>#{user.id}</dd>
       </dl>
+      <label className="date-field">
+        Weights in
+        <select
+          value={weightUnit}
+          onChange={(event) => onWeightUnitChange(parseWeightUnit(event.target.value))}
+        >
+          <option value="kg">Kilograms (kg)</option>
+          <option value="lb">Pounds (lb)</option>
+        </select>
+      </label>
+      <p className="muted">
+        Saved on this device. Your weights are stored in kilograms whatever you choose here.
+      </p>
     </section>
   )
 }
@@ -165,6 +188,8 @@ function App() {
   const [tab, setTab] = useState<Tab>('today')
   // A workout to open when the Workouts tab shows, e.g. one just started
   const [openWorkoutId, setOpenWorkoutId] = useState<number | null>(null)
+  // Per device for now: accounts get a setting with the body weight work
+  const [weightUnit, setWeightUnit] = useState<WeightUnit>(() => loadWeightUnit())
   const [loadError, setLoadError] = useState<string | null>(null)
   // Bumped by "Try again", to re-run the effect that loads the profile
   const [loadAttempt, setLoadAttempt] = useState(0)
@@ -260,7 +285,16 @@ function App() {
           }}
         />
       )}
-      {user && tab === 'profile' && <Profile user={user} />}
+      {user && tab === 'profile' && (
+        <Profile
+          user={user}
+          weightUnit={weightUnit}
+          onWeightUnitChange={(unit) => {
+            saveWeightUnit(unit)
+            setWeightUnit(unit)
+          }}
+        />
+      )}
     </main>
   )
 }

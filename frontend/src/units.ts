@@ -122,3 +122,39 @@ export function stepWeight(text: string, unit: WeightUnit, direction: -1 | 1): s
   const next = roundTo(current + direction * weightStep(unit), 2)
   return String(Math.min(Math.max(next, 0), maxWeightIn(unit)))
 }
+
+/** Where the unit is kept: on this device only, until accounts have a setting. */
+export const WEIGHT_UNIT_KEY = 'haki_weight_unit'
+
+type UnitStorage = Pick<Storage, 'getItem' | 'setItem'>
+
+/** The browser's storage, or null where there is none or it is refused. */
+function browserStorage(): UnitStorage | null {
+  try {
+    return typeof localStorage === 'undefined' ? null : localStorage
+  } catch {
+    // Some browsers throw on access when site data is blocked
+    return null
+  }
+}
+
+/** The unit chosen on this device, or the default when none is saved or readable. */
+export function loadWeightUnit(storage: UnitStorage | null = browserStorage()): WeightUnit {
+  try {
+    return parseWeightUnit(storage?.getItem(WEIGHT_UNIT_KEY) ?? null)
+  } catch {
+    return DEFAULT_WEIGHT_UNIT
+  }
+}
+
+/** Keep the unit on this device. Not being able to is no error: it lasts this visit. */
+export function saveWeightUnit(
+  unit: WeightUnit,
+  storage: UnitStorage | null = browserStorage(),
+): void {
+  try {
+    storage?.setItem(WEIGHT_UNIT_KEY, unit)
+  } catch {
+    // Storage full or blocked: the choice still holds until the page reloads
+  }
+}
