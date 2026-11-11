@@ -121,3 +121,21 @@ test('the workout view marks a new record, and none the first time', async () =>
   await expect(sets.first()).toHaveText('8 × 60 kg')
   await expect(page.locator('.record')).toHaveCount(0)
 })
+
+test('the editor shows a record while typing, and takes it back', async () => {
+  await tab('Today').click()
+  await tab('Workouts').click()
+  await page.getByRole('button', { name: 'New workout' }).click()
+  const block = page.locator('fieldset.exercise-block').first()
+  await block.locator('select').first().selectOption({ label: 'E2E Bench' })
+
+  // The best so far is 5 x 70 kg
+  await block.getByLabel('Reps').fill('5')
+  await block.getByLabel('Weight (kg)').fill('72.5')
+  await expect(block.locator('.record')).toHaveText('New record')
+  await page.screenshot({ path: `${SHOTS}/19-live-record-phone.png`, fullPage: true })
+
+  await block.getByLabel('Weight (kg)').fill('65')
+  await expect(block.locator('.record')).toHaveCount(0)
+  await page.getByRole('button', { name: 'Cancel' }).click()
+})

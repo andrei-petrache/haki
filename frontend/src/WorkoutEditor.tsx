@@ -9,10 +9,11 @@ import {
 } from './api'
 import type { Exercise, Workout } from './api'
 import { formatDay, formatSet, localDateString } from './format'
-import { lastTime, loadHistory } from './history'
+import { bestBefore, lastTime, liveRecordIndex, loadHistory } from './history'
 import type { Current } from './history'
 import { withoutKeys } from './formErrors'
 import { useI18n } from './i18n/context'
+import { weightToSend } from './units'
 import type { WeightUnit } from './units'
 import CatalogExercisePicker from './CatalogExercisePicker'
 import { RestStart } from './RestTimer'
@@ -34,6 +35,7 @@ import {
   exerciseKey,
   exercisesToCreate,
   newWorkoutFields,
+  setError,
   setKey,
   setsKey,
   toWorkoutInput,
@@ -59,6 +61,7 @@ function ExerciseBlock({
   onRemove,
   unit,
   last,
+  record,
   token,
   onPickFromCatalog,
 }: {
@@ -71,6 +74,8 @@ function ExerciseBlock({
   unit: WeightUnit
   /** What the history says about last time, ready to show; null for nothing */
   last: string | null
+  /** The set that would be a new record, as typed so far; null for none */
+  record: number | null
   token: string
   /** The row now uses this exercise, picked from the catalog */
   onPickFromCatalog: (exercise: Exercise) => void
@@ -159,6 +164,11 @@ function ExerciseBlock({
             </button>
           </div>
           <FieldError errors={errors} field={setKey(index, setIndex)} />
+          {record === setIndex && (
+            <p className="record-line">
+              <span className="record">{t('history.record')}</span>
+            </p>
+          )}
         </div>
       ))}
       <FieldError errors={errors} field={setsKey(index)} />
@@ -260,6 +270,18 @@ export default function WorkoutEditor({
         : [...(current ?? []), exercise].sort(byName),
     )
     if (fields) setExercise(index, { ...fields.exercises[index], exercise: String(exercise.id), newName: '' })
+  }
+
+  /** Which set of a row, as typed, would beat the history's best: live, while typing. */
+  function recordIndex(item: ExerciseFields): number | null {
+    const exerciseId = Number(item.exercise)
+    if (!history || !Number.isInteger(exerciseId) || exerciseId < 1) return null
+    const typed = item.sets.map((set) =>
+      setError(set, weightUnit) === null
+        ? { reps: Number(set.reps), weight_kg: weightToSend(set.weight, weightUnit, set.savedKg) }
+        : null,
+    )
+    return liveRecordIndex(typed, bestBefore(history, exerciseId, current))
   }
 
   function setExercise(index: number, item: ExerciseFields) {
@@ -391,6 +413,7 @@ export default function WorkoutEditor({
           onRemove={() => removeExercise(index)}
           unit={weightUnit}
           last={lastText(item)}
+          record={recordIndex(item)}
           token={token}
           onPickFromCatalog={(exercise) => pickFromCatalog(index, exercise)}
         />
