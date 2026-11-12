@@ -10,8 +10,13 @@ import type { MessageKey } from './i18n/i18n'
 type FoodFields = Record<keyof FoodInput, string>
 type NutrientKey = Exclude<keyof FoodInput, 'name'>
 
+// The backend's MAX_CALORIES_PER_100G (app/schemas.py). Pure fat is about
+// 900, but USDA rounds per food: lard is 902, and a copy of it from the
+// catalog must stay editable (the browser blocks a submit over max).
+const MAX_CALORIES_PER_100G = 950
+
 const NUTRIENT_FIELDS: { key: NutrientKey; label: MessageKey; max: number }[] = [
-  { key: 'calories_per_100g', label: 'foods.calories', max: 900 },
+  { key: 'calories_per_100g', label: 'foods.calories', max: MAX_CALORIES_PER_100G },
   { key: 'protein_per_100g', label: 'foods.protein', max: 100 },
   { key: 'carbs_per_100g', label: 'foods.carbs', max: 100 },
   { key: 'fat_per_100g', label: 'foods.fat', max: 100 },
