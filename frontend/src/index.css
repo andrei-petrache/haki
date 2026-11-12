@@ -1,12 +1,45 @@
+/*
+ * Design tokens, direction A ("Noapte"): dark, big numerals, the Haki red
+ * only on actions, records and errors. Components use these variables and
+ * nothing else, so a light theme is one more block of values here.
+ * Text contrast is at least 4.5:1 on every surface (checked in
+ * src/theme.test.ts).
+ */
 :root {
-  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  color-scheme: dark;
+
+  --ground: #0e0e0f;
+  --surface: #19191b;
+  --raised: #232326;
+  --line: #2e2e32;
+  --nav-bg: #141415;
+
+  --text: #f3f0ea;
+  --muted: #a9a49c;
+  /* The red as text or icon, and as a fill under white text */
+  --accent-text: #ff7366;
+  --accent-fill: #c93a2e;
+  --accent-fill-hover: #b3332a;
+  --on-accent: #ffffff;
+  --focus: #ff7366;
+
+  --radius-card: 20px;
+  --radius-field: 14px;
+  --radius-chip: 22px;
+  --radius-cell: 10px;
+
+  --font-text: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  /* Numerals and the wordmark only: Latin-only text, see design/README.md */
+  --font-num: 'Space Grotesk', Inter, system-ui, sans-serif;
+
+  /* Older names, kept so every rule reads the same tokens */
+  --accent: var(--accent-text);
+  --accent-hover: var(--accent-fill-hover);
+  --card-bg: var(--surface);
+  --border: var(--line);
+
+  font-family: var(--font-text);
   line-height: 1.5;
-  color-scheme: light dark;
-  --accent: #c0392b;
-  --accent-hover: #a93226;
-  --muted: #888;
-  --card-bg: rgba(127, 127, 127, 0.08);
-  --border: rgba(127, 127, 127, 0.3);
 }
 
 body {
@@ -15,8 +48,16 @@ body {
   display: grid;
   /* Top-aligned, so the header stays put when switching tabs */
   place-items: start center;
-  background: Canvas;
-  color: CanvasText;
+  background: var(--ground);
+  color: var(--text);
+}
+
+/* Phone: what scrolls into view (focus, links) stops above the bottom
+   navigation instead of under it (App.css, .tabs) */
+@media (max-width: 30rem) {
+  html {
+    scroll-padding-bottom: calc(76px + env(safe-area-inset-bottom));
+  }
 }
 
 /* Full width, so pages of different widths don't move the header */

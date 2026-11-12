@@ -1,9 +1,14 @@
+/// <reference types="vitest/config" />
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
+  test: {
+    // Vitest empties CSS by default; theme.test.ts reads the tokens of index.css
+    css: { include: [/index\.css/] },
+  },
   server: {
     proxy: {
       // Forward /api/* to the FastAPI backend, stripping the /api prefix.
