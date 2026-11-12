@@ -54,7 +54,7 @@ export const en = {
   'password.same': 'The new password is the same as the current one.',
   'password.wrongCurrent': 'The current password is wrong.',
   'password.changed':
-    'Password changed. Devices already signed in stay signed in until their session ends.',
+    'Password changed. Your other devices are signed out and need the new password.',
   'profile.languageAuto': 'Same as the browser ({language})',
   'profile.languageNote':
     'Saved on this device. Some messages from the server may still be in English.',

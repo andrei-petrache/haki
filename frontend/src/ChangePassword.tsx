@@ -5,11 +5,17 @@ import { PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH, passwordChangeError } from '.
 
 /**
  * Change the password from Profile: the current one, then the new one
- * twice. Folded away until asked for. Other devices stay signed in until
- * their session ends (tokens carry no password version yet), and the
- * message says so.
+ * twice. Folded away until asked for. The server signs out every device
+ * and answers with a new token; this one carries on with it (onNewToken),
+ * the others go to login on their next call.
  */
-export default function ChangePassword({ token }: { token: string }) {
+export default function ChangePassword({
+  token,
+  onNewToken,
+}: {
+  token: string
+  onNewToken: (token: string) => void
+}) {
   const { t } = useI18n()
   const [open, setOpen] = useState(false)
   const [current, setCurrent] = useState('')
@@ -36,9 +42,11 @@ export default function ChangePassword({ token }: { token: string }) {
     setError(null)
     setBusy(true)
     try {
-      await changePassword(token, current, next)
+      const { access_token } = await changePassword(token, current, next)
       close()
       setDone(true)
+      // The old token is refused from now on
+      onNewToken(access_token)
     } catch (err) {
       setError(
         err instanceof ApiError && err.status === 403

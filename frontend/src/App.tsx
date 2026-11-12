@@ -146,6 +146,7 @@ function Profile({
   localeChoice,
   browserLocale,
   onLocaleChoiceChange,
+  onNewToken,
 }: {
   token: string
   user: User
@@ -154,6 +155,7 @@ function Profile({
   localeChoice: LocaleChoice
   browserLocale: Locale
   onLocaleChoiceChange: (choice: LocaleChoice) => void
+  onNewToken: (token: string) => void
 }) {
   const { t, locale } = useI18n()
   const [showCredits, setShowCredits] = useState(false)
@@ -202,7 +204,7 @@ function Profile({
         </select>
       </label>
       <p className="muted">{t('profile.languageNote')}</p>
-      <ChangePassword token={token} />
+      <ChangePassword token={token} onNewToken={onNewToken} />
       <button type="button" className="link" onClick={() => setShowCredits(true)}>
         {t('credits.open')}
       </button>
@@ -380,6 +382,7 @@ function App() {
           }}
           localeChoice={localeChoice}
           browserLocale={browserLocale}
+          onNewToken={handleLoggedIn}
           onLocaleChoiceChange={(choice) => {
             saveLocaleChoice(choice)
             setLocaleChoice(choice)
