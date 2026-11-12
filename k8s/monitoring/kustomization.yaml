@@ -34,3 +34,4 @@ configMapGenerator:
       - grafana/dashboards/backend.json
       - grafana/dashboards/pods.json
       - grafana/dashboards/database.json
+      - grafana/dashboards/alerts.json
