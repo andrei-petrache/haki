@@ -753,7 +753,8 @@ update, and change nothing. Turning them on, in this order:
 3. One Monday batch of Dependabot pull requests in dry run, its logs read.
 4. The variables, one kind at a time.
 
-The checks: `python3 -m unittest discover -s scripts -p 'test_check_automerge.py'`.
+The checks: `python3 -m unittest discover -s scripts -p 'test_check_automerge.py'`
+(CI runs them in the job `manifests`).
 Not seen yet: the commit that update-branch makes as the tag bot is assumed
 to be authored by `haki-tag-bot[bot]`, committed by `web-flow`, verified,
 with two parents. If it is not, the check refuses the pull request and
