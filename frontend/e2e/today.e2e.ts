@@ -195,3 +195,43 @@ test('quick add: kcal without a food, a default name, and deleting it', async ()
   const { body } = await api(page, 'GET', `/entries?date=${day}`)
   expect((body as { quick?: boolean }[]).filter((entry) => entry.quick)).toHaveLength(1)
 })
+
+async function box(locator: Locator) {
+  const found = await locator.boundingBox()
+  expect(found).not.toBeNull()
+  return found!
+}
+
+test('long food names keep their room: Your foods on a phone, the entry form on a desktop', async () => {
+  const name = 'Greek yogurt, plain, whole milk'
+  expect((await api(page, 'POST', '/foods', {
+    name,
+    calories_per_100g: 97,
+    protein_per_100g: 9,
+    carbs_per_100g: 4,
+    fat_per_100g: 5,
+  })).status).toBe(201)
+
+  // Your foods at 390 px: the name gets most of the row, the buttons wrap under it
+  await page.getByRole('navigation').getByRole('button', { name: 'Foods', exact: true }).click()
+  const row = page.locator('.food-list li', { hasText: name })
+  const nameBox = await box(row.locator('.grow'))
+  const rowBox = await box(row)
+  expect(nameBox.width).toBeGreaterThan(rowBox.width * 0.75)
+  const editBox = await box(row.getByRole('button', { name: 'Edit' }))
+  expect(editBox.y).toBeGreaterThanOrEqual(nameBox.y + nameBox.height - 1)
+  const lineHeight = await row.locator('.grow strong').evaluate((el) => parseFloat(getComputedStyle(el).lineHeight) || 24)
+  expect((await box(row.locator('.grow strong'))).height).toBeLessThanOrEqual(lineHeight * 2 + 1)
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390)
+  await page.screenshot({ path: `${SHOTS}/26-your-foods-phone.png`, fullPage: true })
+
+  // Today on a desktop, that food chosen: Add stays inside its card
+  await page.setViewportSize({ width: 1280, height: 900 })
+  await page.getByRole('navigation').getByRole('button', { name: 'Today', exact: true }).click()
+  await form().locator('.food-field select').selectOption({ label: name })
+  const card = await box(form())
+  const add = await box(form().getByRole('button', { name: 'Add', exact: true }))
+  expect(add.x + add.width).toBeLessThanOrEqual(card.x + card.width)
+  await page.screenshot({ path: `${SHOTS}/27-today-desktop.png`, fullPage: true })
+  await page.setViewportSize({ width: 390, height: 844 })
+})
