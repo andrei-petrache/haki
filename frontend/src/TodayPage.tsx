@@ -11,6 +11,7 @@ import {
   setCalorieTarget,
 } from './api'
 import type { DailySummary, Food, MealEntry, MealType } from './api'
+import { foodPicks } from './foodPicks'
 import { formatDecimal, formatKcal, localDateString, shiftDate } from './format'
 import { useI18n } from './i18n/context'
 import type { MessageKey } from './i18n/i18n'
@@ -220,25 +221,28 @@ function SummaryCard({
 }
 
 /**
- * One tap per recently logged food: picks it in the form and moves on to
- * the grams, the only field that usually changes.
+ * One tap per food (a favourite, or one logged recently): picks it in the
+ * form and moves on to the grams, the only field that usually changes.
  */
-function RecentPicks({
-  recent,
+function PickRow({
+  label,
+  groupLabel,
+  foods,
   foodId,
   onPick,
 }: {
-  recent: Food[]
+  label: string
+  groupLabel: string
+  foods: Food[]
   foodId: string
   onPick: (food: Food) => void
 }) {
-  const { t } = useI18n()
-  if (recent.length === 0) return null
+  if (foods.length === 0) return null
 
   return (
-    <div className="quick-picks" role="group" aria-label={t('today.recentFoods')}>
-      <span className="muted">{t('today.recent')}</span>
-      {recent.map((food) => (
+    <div className="quick-picks" role="group" aria-label={groupLabel}>
+      <span className="muted">{label}</span>
+      {foods.map((food) => (
         <button
           key={food.id}
           type="button"
@@ -269,6 +273,11 @@ function AddEntryForm({
   const { t } = useI18n()
   const [foodId, setFoodId] = useState(String(foods[0].id))
   const gramsRef = useRef<HTMLInputElement>(null)
+  const picks = foodPicks(foods, recent)
+  function pick(food: Food) {
+    setFoodId(String(food.id))
+    gramsRef.current?.focus()
+  }
   const [grams, setGrams] = useState('')
   const [mealType, setMealType] = useState<MealType>('breakfast')
   const [error, setError] = useState<string | null>(null)
@@ -303,13 +312,19 @@ function AddEntryForm({
       }}
     >
       <h2>{t('today.addTitle')}</h2>
-      <RecentPicks
-        recent={recent}
+      <PickRow
+        label={t('today.favourites')}
+        groupLabel={t('today.favouriteFoods')}
+        foods={picks.favourites}
         foodId={foodId}
-        onPick={(food) => {
-          setFoodId(String(food.id))
-          gramsRef.current?.focus()
-        }}
+        onPick={pick}
+      />
+      <PickRow
+        label={t('today.recent')}
+        groupLabel={t('today.recentFoods')}
+        foods={picks.recent}
+        foodId={foodId}
+        onPick={pick}
       />
       <div className="entry-fields">
         <label className="food-field">

@@ -62,6 +62,7 @@ export const en = {
   'foods.none': 'No foods yet. Add the first one above.',
   'foods.row': '{kcal} kcal · P {protein} · C {carbs} · F {fat} per 100 g',
   'foods.deleteConfirm': 'Delete "{name}"?',
+  'foods.favourite': 'Favourite: {name}',
 
   'today.previousDay': 'Previous day',
   'today.nextDay': 'Next day',
@@ -81,6 +82,8 @@ export const en = {
   'today.addTitle': 'Add to this day',
   'today.food': 'Food',
   'today.recent': 'Recent:',
+  'today.favourites': 'Favourites:',
+  'today.favouriteFoods': 'Favourite foods',
   'today.recentFoods': 'Recent foods',
   'today.grams': 'Grams',
   'today.meal': 'Meal',

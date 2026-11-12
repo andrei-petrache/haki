@@ -62,6 +62,7 @@ export const ro: Dictionary = {
   'foods.none': 'Niciun aliment încă. Adaugă-l pe primul mai sus.',
   'foods.row': '{kcal} kcal · P {protein} · C {carbs} · G {fat} la 100 g',
   'foods.deleteConfirm': 'Ștergi „{name}”?',
+  'foods.favourite': 'Favorit: {name}',
 
   'today.previousDay': 'Ziua de dinainte',
   'today.nextDay': 'Ziua următoare',
@@ -81,6 +82,8 @@ export const ro: Dictionary = {
   'today.addTitle': 'Adaugă în ziua asta',
   'today.food': 'Aliment',
   'today.recent': 'Recente:',
+  'today.favourites': 'Favorite:',
+  'today.favouriteFoods': 'Alimente favorite',
   'today.recentFoods': 'Alimente recente',
   'today.grams': 'Grame',
   'today.meal': 'Masa',
