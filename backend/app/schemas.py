@@ -84,9 +84,21 @@ class FoodIn(BaseModel):
     fat_per_100g: float = Field(ge=0, le=100)
 
 
-class FoodResponse(FoodIn):
+# Response models repeat the fields with plain types instead of inheriting
+# from the input models: input bounds belong to input. A response that
+# re-checked them would fail with a 500 on a row an older or newer version
+# accepted, e.g. a 902 kcal food after a rollback to a version that capped
+# calories at 900.
+
+
+class FoodResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
+    name: str
+    calories_per_100g: float
+    protein_per_100g: float
+    carbs_per_100g: float
+    fat_per_100g: float
     id: int
     # The catalog food this one was copied from; null when typed in by hand
     catalog_food_id: int | None = None
@@ -97,9 +109,10 @@ class ExerciseIn(BaseModel):
     name: ExerciseName
 
 
-class ExerciseResponse(ExerciseIn):
+class ExerciseResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
+    name: str
     id: int
     # The catalog exercise this one was copied from; null when typed in by hand
     catalog_exercise_id: int | None = None
