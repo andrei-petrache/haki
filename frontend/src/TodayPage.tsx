@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import {
   MEAL_TYPES,
+  copyMeal,
   createEntry,
   deleteEntry,
   describeError,
@@ -11,8 +12,9 @@ import {
   setCalorieTarget,
 } from './api'
 import type { DailySummary, Food, MealEntry, MealType } from './api'
+import { defaultCopyDay } from './copyTarget'
 import { foodPicks } from './foodPicks'
-import { formatDecimal, formatKcal, localDateString, shiftDate } from './format'
+import { formatDay, formatDecimal, formatKcal, localDateString, shiftDate } from './format'
 import { useI18n } from './i18n/context'
 import type { MessageKey } from './i18n/i18n'
 
@@ -373,16 +375,113 @@ function AddEntryForm({
   )
 }
 
+/**
+ * Copy one meal of the shown day to another meal or day, then say what
+ * was copied where.
+ */
+function CopyMealForm({
+  token,
+  day,
+  meal,
+  onCopied,
+  onClose,
+}: {
+  token: string
+  day: string
+  meal: MealType
+  onCopied: (message: string) => void
+  onClose: () => void
+}) {
+  const { t } = useI18n()
+  const [toDay, setToDay] = useState(() => defaultCopyDay(day, localDateString()))
+  const [toMeal, setToMeal] = useState<MealType>(meal)
+  const [error, setError] = useState<string | null>(null)
+  const [busy, setBusy] = useState(false)
+  const same = toDay === day && toMeal === meal
+
+  async function handleSubmit() {
+    setError(null)
+    setBusy(true)
+    try {
+      const copied = await copyMeal(token, {
+        from_day: day,
+        from_meal: meal,
+        to_day: toDay,
+        to_meal: toMeal,
+      })
+      const where = { meal: t(MEAL_LABELS[toMeal]), day: formatDay(toDay) }
+      onCopied(
+        copied.length === 0
+          ? t('today.nothingToCopy')
+          : t('today.copied', { count: copied.length, ...where }),
+      )
+    } catch (err) {
+      setError(describeError(err))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <form
+      className="copy-form"
+      aria-label={t('today.copyTitle', { meal: t(MEAL_LABELS[meal]) })}
+      onSubmit={(event) => {
+        event.preventDefault()
+        void handleSubmit()
+      }}
+    >
+      <label>
+        {t('today.copyToDay')}
+        <input
+          type="date"
+          required
+          value={toDay}
+          // Clearing the field gives an empty string: keep the last day
+          onChange={(event) => event.target.value && setToDay(event.target.value)}
+        />
+      </label>
+      <label>
+        {t('today.copyToMeal')}
+        <select value={toMeal} onChange={(event) => setToMeal(event.target.value as MealType)}>
+          {MEAL_TYPES.map((option) => (
+            <option key={option} value={option}>
+              {t(MEAL_LABELS[option])}
+            </option>
+          ))}
+        </select>
+      </label>
+      <div className="actions">
+        <button type="submit" disabled={busy || same}>
+          {busy ? t('today.copying') : t('today.copy')}
+        </button>
+        <button type="button" className="link" onClick={onClose}>
+          {t('common.cancel')}
+        </button>
+      </div>
+      {same && <p className="muted">{t('today.copySame')}</p>}
+      {error && <p className="error">{error}</p>}
+    </form>
+  )
+}
+
 function EntryList({
+  token,
+  day,
   data,
   deletingId,
   onDelete,
+  onCopied,
 }: {
+  token: string
+  day: string
   data: DayData
   deletingId: number | null
   onDelete: (entry: MealEntry) => void
+  onCopied: (message: string) => void
 }) {
   const { t } = useI18n()
+  const [copying, setCopying] = useState<MealType | null>(null)
   if (data.entries.length === 0) {
     return <p className="muted empty">{t('today.nothing')}</p>
   }
@@ -400,6 +499,27 @@ function EntryList({
                 {formatKcal(data.summary.meals[meal].calories)} kcal
               </span>
             </h3>
+            {copying === meal ? (
+              <CopyMealForm
+                token={token}
+                day={day}
+                meal={meal}
+                onCopied={(message) => {
+                  setCopying(null)
+                  onCopied(message)
+                }}
+                onClose={() => setCopying(null)}
+              />
+            ) : (
+              <button
+                type="button"
+                className="link"
+                aria-label={t('today.copyTitle', { meal: t(MEAL_LABELS[meal]) })}
+                onClick={() => setCopying(meal)}
+              >
+                {t('today.copyOpen')}
+              </button>
+            )}
             <ul className="rows">
               {entries.map((entry) => (
                 <li key={entry.id}>
@@ -441,6 +561,8 @@ export default function TodayPage({
   const [data, setData] = useState<DayData | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [deletingId, setDeletingId] = useState<number | null>(null)
+  // What the last copy did; cleared when the shown day changes
+  const [notice, setNotice] = useState<string | null>(null)
   // Bumped after every change, to re-run the effect that loads the day
   const [version, setVersion] = useState(0)
   const reload = () => setVersion((v) => v + 1)
@@ -515,7 +637,14 @@ export default function TodayPage({
 
   return (
     <div className="page">
-      <DayPicker day={day} onChange={setDay} />
+      <DayPicker
+        day={day}
+        onChange={(next) => {
+          setNotice(null)
+          setDay(next)
+        }}
+      />
+      {notice && <p role="status">{notice}</p>}
       {error && <p className="error">{error}</p>}
       {!current && !error && <p className="muted">{t('app.loading')}</p>}
 
@@ -547,9 +676,16 @@ export default function TodayPage({
 
       {current && (
         <EntryList
+          token={token}
+          day={day}
           data={current}
           deletingId={deletingId}
           onDelete={(entry) => void handleDelete(entry)}
+          onCopied={(message) => {
+            setNotice(message)
+            // The shown day changes when copied onto it; recents either way
+            reload()
+          }}
         />
       )}
     </div>

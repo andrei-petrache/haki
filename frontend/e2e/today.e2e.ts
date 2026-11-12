@@ -117,3 +117,41 @@ test('a starred food comes first on Today, once, and unstarring removes it', asy
   await expect(picks().getByRole('button')).toHaveText(['Milk', 'Oats'])
   await expect(page.getByRole('group', { name: 'Favourite foods' })).toHaveCount(0)
 })
+
+test('copy a meal: to tomorrow by default, or to another meal of the same day', async () => {
+  const day = await page.getByLabel('Day', { exact: true }).inputValue()
+  const breakfast = page.locator('section.meal', { has: page.getByRole('heading', { name: /^Breakfast/ }) })
+  const rows = await breakfast.locator('li').count()
+  expect(rows).toBeGreaterThan(0)
+
+  await page.getByRole('button', { name: 'Copy Breakfast to another day or meal' }).click()
+  const copyForm = page.getByRole('form', { name: 'Copy Breakfast to another day or meal' })
+  const toDay = copyForm.getByLabel('To day')
+  const tomorrow = await toDay.inputValue()
+  expect(tomorrow > day).toBe(true)
+
+  // Onto itself is not offered: the server would refuse it (422)
+  await toDay.fill(day)
+  await expect(copyForm.getByRole('button', { name: 'Copy', exact: true })).toBeDisabled()
+  await expect(copyForm).toContainText('Choose another day or meal.')
+
+  await copyForm.locator('select').selectOption({ label: 'Lunch' })
+  await copyForm.getByRole('button', { name: 'Copy', exact: true }).click()
+  await expect(page.getByRole('status')).toContainText(`Copied ${rows} items to Lunch`)
+  const lunch = page.locator('section.meal', { has: page.getByRole('heading', { name: /^Lunch/ }) })
+  await expect(lunch.locator('li')).toHaveCount(rows)
+  await expect(breakfast.locator('li')).toHaveCount(rows)
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390)
+  await page.screenshot({ path: `${SHOTS}/23-copy-meal-phone.png`, fullPage: true })
+
+  // The default target, tomorrow: the copy is there, not on the shown day
+  await page.getByRole('button', { name: 'Copy Lunch to another day or meal' }).click()
+  await page
+    .getByRole('form', { name: 'Copy Lunch to another day or meal' })
+    .getByRole('button', { name: 'Copy', exact: true })
+    .click()
+  await expect(page.getByRole('status')).toContainText(`Copied ${rows} items to Lunch`)
+  await expect(lunch.locator('li')).toHaveCount(rows)
+  const { body } = await api(page, 'GET', `/entries?date=${tomorrow}`)
+  expect((body as { meal_type: string }[]).filter((entry) => entry.meal_type === 'lunch')).toHaveLength(rows)
+})

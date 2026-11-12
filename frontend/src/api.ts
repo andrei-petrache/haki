@@ -238,6 +238,17 @@ export function createEntry(token: string, entry: MealEntryInput): Promise<MealE
   return request<MealEntry>('/entries', json('POST', entry), token)
 }
 
+export type MealCopy = { from_day: string; from_meal: MealType; to_day: string; to_meal: MealType }
+
+/**
+ * Copy every entry of one meal to another meal or day, in one request.
+ * Returns the new entries: none when the meal was empty. Copying onto the
+ * same meal and day is refused (422).
+ */
+export function copyMeal(token: string, copy: MealCopy): Promise<MealEntry[]> {
+  return request<MealEntry[]>('/entries/copy', json('POST', copy), token)
+}
+
 export function deleteEntry(token: string, id: number): Promise<void> {
   return request<void>(`/entries/${id}`, { method: 'DELETE' }, token)
 }
