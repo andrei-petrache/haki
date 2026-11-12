@@ -1,11 +1,11 @@
 import json
+import re
 import shutil
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
 import pytest
-from pydantic import ValidationError
 from sqlalchemy import create_engine, func, select
 from sqlalchemy.orm import Session
 
@@ -16,9 +16,12 @@ from app.catalog_import import (
     EXIT_DATABASE,
     EXIT_OK,
     NAME_MAX,
+    BadData,
+    check_files,
     import_catalog,
     load_files,
     main,
+    read_data_file,
 )
 from app.catalog_search import normalize, query_words, search_text
 from app.models import (
@@ -251,12 +254,131 @@ def test_a_bad_file_writes_nothing(
 ) -> None:
     edit("foods.json", change)
 
-    with pytest.raises(ValidationError, match=message):
+    with pytest.raises(BadData, match=message):
         import_catalog(session, data_dir)
 
     assert count(session, CatalogSource) == 0
     assert count(session, CatalogFood) == 0
     assert count(session, CatalogExercise) == 0
+
+
+# Batches and the streamed read
+
+
+def test_small_batches_import_the_same_as_one_batch(session: Session) -> None:
+    foods, exercises = load_files(DATA_DIR)
+
+    counts = import_catalog(session, batch_size=7)
+
+    assert counts["catalog_foods"].inserted == len(foods.foods)
+    assert counts["catalog_exercises"].inserted == len(exercises.exercises)
+    names = set(session.scalars(select(CatalogFood.name)))
+    assert names == {food.name for food in foods.foods}
+
+
+def test_small_batches_update_only_what_changed(
+    session: Session, data_dir: Path, edit: EditFile
+) -> None:
+    import_catalog(session, data_dir, batch_size=7)
+
+    def change(data: dict[str, Any]) -> None:
+        data["foods"][0].update(protein_per_100g=23.1)  # first batch
+        data["foods"][-1].update(name_ro="Ultimul aliment")  # last batch
+
+    edit("foods.json", change)
+    last_ref = load_files(data_dir)[0].foods[-1].ref
+
+    counts = import_catalog(session, data_dir, batch_size=7)
+
+    assert counts["catalog_foods"].updated == 2
+    assert counts["catalog_foods"].inserted == 0
+    total = len(load_files(data_dir)[0].foods)
+    assert counts["catalog_foods"].unchanged == total - 2
+    assert catalog_food(session, "171077").protein_per_100g == 23.1
+    assert catalog_food(session, last_ref).name_ro == "Ultimul aliment"
+
+
+def test_a_duplicate_in_a_later_batch_writes_nothing(
+    session: Session, data_dir: Path, edit: EditFile
+) -> None:
+    edit("foods.json", lambda d: d["foods"][-1].update(ref=d["foods"][0]["ref"]))
+
+    with pytest.raises(BadData, match="duplicate refs: 171077"):
+        import_catalog(session, data_dir, batch_size=2)
+
+    assert count(session, CatalogSource) == 0
+
+
+def test_a_bad_item_in_the_last_batch_writes_nothing(
+    session: Session, data_dir: Path, edit: EditFile
+) -> None:
+    # The first pass validates the whole file before the second one writes
+    edit("exercises.json", lambda d: d["exercises"][-1].update(level=""))
+
+    with pytest.raises(BadData, match=r"exercises.json: exercises\[\d+\]"):
+        import_catalog(session, data_dir, batch_size=2)
+
+    assert count(session, CatalogSource) == 0
+    assert count(session, CatalogFood) == 0
+
+
+def test_tiny_read_chunks_split_values_and_numbers(
+    session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # Chunks of 3 characters cut through strings, objects and numbers
+    monkeypatch.setattr(catalog_import, "READ_CHUNK", 3)
+    foods, _ = load_files(DATA_DIR)
+
+    import_catalog(session)
+
+    chicken = catalog_food(session, "171077")
+    expected = next(food for food in foods.foods if food.ref == "171077")
+    assert chicken.calories_per_100g == expected.calories_per_100g
+    assert chicken.name_ro == expected.name_ro
+
+
+def test_the_stream_yields_the_source_then_each_item(tmp_path: Path) -> None:
+    path = tmp_path / "foods.json"
+    path.write_text('{"source": {"key": "s"}, "foods": [{"a": 1}, 2.5, [3]]}')
+
+    assert list(read_data_file(path, "foods")) == [{"key": "s"}, {"a": 1}, 2.5, [3]]
+
+
+@pytest.mark.parametrize(
+    ("content", "message"),
+    [
+        ("", "expected '{', found 'the end'"),
+        ('{"foods": [], "source": {}}', "expected the key 'source', found 'foods'"),
+        ('{"source": {}, "food": []}', "expected the key 'foods', found 'food'"),
+        ('{"source": {}}', "expected ',', found '}'"),
+        ('{"source": {}, "foods": []}', "'foods' is empty"),
+        ('{"source": {}, "foods": [{"a": 1},]}', "Expecting value"),
+        ('{"source": {}, "foods": [{"a": 1}', "expected ']', found 'the end'"),
+        ('{"source": {}, "foods": [1], "x": 2}', "expected '}', found ','"),
+        ('{"source": {}, "foods": [1]} []', "more data after the end"),
+        ('{"source": {}, "foods": [{"a": tru}]}', "Expecting"),
+    ],
+)
+def test_a_malformed_file_is_bad_data(
+    tmp_path: Path, content: str, message: str
+) -> None:
+    path = tmp_path / "foods.json"
+    path.write_text(content)
+
+    pattern = f"^foods\\.json: .*{re.escape(message)}.* at character \\d+$"
+    with pytest.raises(BadData, match=pattern):
+        list(read_data_file(path, "foods"))
+
+
+def test_check_files_counts_the_items() -> None:
+    foods, exercises = load_files(DATA_DIR)
+
+    totals = check_files(DATA_DIR, batch_size=5)
+
+    assert totals == {
+        "foods.json": len(foods.foods),
+        "exercises.json": len(exercises.exercises),
+    }
 
 
 # Lengths: the columns hold 100 characters per name, 250 of search text
@@ -291,7 +413,7 @@ def test_a_longer_name_is_rejected_not_cut(
 ) -> None:
     edit("foods.json", lambda d: d["foods"][0].update({field: "x" * 101}))
 
-    with pytest.raises(ValidationError, match="at most 100 characters"):
+    with pytest.raises(BadData, match="at most 100 characters"):
         import_catalog(session, data_dir)
 
     assert count(session, CatalogFood) == 0
@@ -307,7 +429,7 @@ def test_a_search_text_too_long_after_normalizing_is_rejected(
         lambda d: d["exercises"][0].update(name=ligatures, name_ro=ligatures),
     )
 
-    with pytest.raises(ValidationError, match="at most 250"):
+    with pytest.raises(BadData, match="at most 250"):
         import_catalog(session, data_dir)
 
     assert count(session, CatalogExercise) == 0
