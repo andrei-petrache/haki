@@ -54,7 +54,20 @@ class UserResponse(BaseModel):
     id: int
     email: str
     daily_calorie_target: int | None
+    # A plain string, not the Literal of the input: a response must not fail
+    # on a language that another version of the app accepted
+    language: str | None = None
     created_at: datetime
+
+
+# The app's languages; null means "follow the browser"
+AppLanguage = Literal["en", "ro"]
+
+
+class AccountSettingsIn(BaseModel):
+    """Required field: clients send null explicitly to follow the browser."""
+
+    language: AppLanguage | None
 
 
 class CalorieTargetIn(BaseModel):
@@ -239,6 +252,24 @@ class WorkoutSetResponse(BaseModel):
 
     reps: int
     weight_kg: float
+
+
+class LastSession(BaseModel):
+    """An exercise's sets in the user's latest earlier workout with it."""
+
+    workout_id: int
+    performed_on: date
+    # Every block of the exercise in that workout, in the order logged
+    sets: list[WorkoutSetResponse]
+
+
+class BestSet(BaseModel):
+    """The user's best set of an exercise, and where it was first done."""
+
+    reps: int
+    weight_kg: float
+    performed_on: date
+    workout_id: int
 
 
 class WorkoutExerciseResponse(BaseModel):

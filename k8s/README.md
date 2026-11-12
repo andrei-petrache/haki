@@ -753,7 +753,8 @@ update, and change nothing. Turning them on, in this order:
 3. One Monday batch of Dependabot pull requests in dry run, its logs read.
 4. The variables, one kind at a time.
 
-The checks: `python3 -m unittest discover -s scripts -p 'test_check_automerge.py'`.
+The checks: `python3 -m unittest discover -s scripts -p 'test_check_automerge.py'`
+(CI runs them in the job `manifests`).
 Not seen yet: the commit that update-branch makes as the tag bot is assumed
 to be authored by `haki-tag-bot[bot]`, committed by `web-flow`, verified,
 with two parents. If it is not, the check refuses the pull request and
@@ -783,6 +784,18 @@ expanded there) and nothing is printed but the archive's header. Stop if
 `pg_dump` fails or the file is empty. The dump holds every user's data: keep
 it out of the repository and delete it once it is no longer needed.
 Restoring is a decision of its own, not part of a deploy.
+
+Retention and deletions (the policy since 12 November 2026; it is
+implemented with the scheduled backups):
+
+- A dump is kept at most 30 days. Deleting one is Andrei's call.
+- Deleting an account is immediate and permanent. A restore must not bring
+  a deleted account back: it re-applies every deletion made after the
+  dump, from a log of deleted accounts with no personal data (the user's
+  id, its `created_at`, the time of the deletion).
+- The log is applied before any traffic reaches the restored database,
+  and deletes a row only where id and `created_at` both match: a restore
+  sets the id sequence back, so an id can be given out again.
 
 ### Moving a cluster from before Kustomize
 

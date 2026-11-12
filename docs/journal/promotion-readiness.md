@@ -96,6 +96,54 @@ knows neither `f187f906dc7d` nor `ef6cd72f7e99`. Plus the check above.
   #148 (copy a meal) and a pull request that streams the catalog import
   in batches of 1,000 (same command and exit codes).
 
+### Later on 12 November: a third migration, quick add (#168)
+
+Checked about 15:55 UTC. Prod unchanged: `2817619`, images `4957cfc`,
+Synced and Healthy. `scripts/check-promotion.sh 2817619 0f83942 main`
+passes (exit 0): images `4957cfc` -> `f420599`, and it lists three new
+migrations, which one `alembic upgrade head` applies in order:
+
+| Revision | From | What | Expand-only |
+| --- | --- | --- | --- |
+| `f187f906dc7d` | #118 | `pg_trgm`, the three catalog tables, two nullable links | yes |
+| `ef6cd72f7e99` | #147 | nullable `foods.favourited_at` | yes |
+| `e188c28f2378` | #168 | new table `quick_entries` (FK to `users` ON DELETE CASCADE, two check constraints, index on `user_id, eaten_on`) | yes |
+
+- `e188c28f2378` revises `ef6cd72f7e99`. On staging it ran at 15:49 UTC
+  (images `f420599`): `Running upgrade ef6cd72f7e99 -> e188c28f2378`, the
+  Job done in 6 s; the table has its constraints and index, 0 rows.
+- The previous image never reads `quick_entries`: after a rollback pin to
+  `4957cfc`, quick entries are only missing from its lists and totals. A
+  nullable `meal_entries.food_id` was rejected for that reason (the old code
+  reads every entry's food).
+- The rollback pin stays as above: backend and frontend on `4957cfc`, the
+  migration image on the promoted tag. The pre-rollback check for foods
+  above 900 kcal still applies: #157 removed the bound from the response
+  models, but only for images after it; `4957cfc` keeps it.
+
+What the promoted SHA must include, or wait for:
+
+- **#170, the cap of 100 entries per meal**: copy meal (#148) is in `main`
+  since 12 November, and without the cap copying a meal back and forth
+  doubles a user's rows on every request (514,229 rows after 27 requests in
+  review). Promote no SHA that has #148 but not #170.
+- **Frontend's quick add UI with the backend's quick add** (review F5):
+  `main`'s backend returns quick entries in `GET /entries`, and `main`'s
+  frontend would delete one through `DELETE /entries/{id}` with the quick
+  entry's id, which is another row's id space. Promote a SHA that has
+  frontend's foods and fast logging bundle (with the quick add UI) too.
+- Coming, each a migration of its own, expand-only as announced:
+  `8a95f327ef75` (nullable `users.language`), then `db5eae5df170` (nullable
+  `users.password_changed_at`, with change-password signing out older
+  tokens). Run `check-promotion.sh` on the SHA staging runs and dump prod
+  before the merge.
+- **Delete account** (`DELETE /auth/me`, no migration) deletes a user and
+  every row of theirs. It goes to staging like any change, but it reaches
+  prod only with Andrei's explicit OK: a promotion from a SHA that contains
+  it needs that OK in addition to the approval in the Environment `prod`.
+- Change password and delete account land only after the Nginx rate limit
+  for `PUT /api/auth/me/password` and `DELETE /api/auth/me` is in `main`.
+
 ## Where prod and main are
 
 | | Revision | Images (backend, frontend, migrate) |
