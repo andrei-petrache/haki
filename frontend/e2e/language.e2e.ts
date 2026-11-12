@@ -118,7 +118,7 @@ test('Foods and Today in Romanian fit a phone', async () => {
 
   await tab('Azi').click()
   await expect(page.getByText('kcal mâncate')).toBeVisible()
-  await expect(page.getByRole('button', { name: 'Mergi la Alimente' })).toBeVisible()
+  await expect(page.getByPlaceholder('Caută un aliment')).toBeVisible()
   await expect(page.getByRole('button', { name: 'Ziua de dinainte' })).toBeVisible()
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390)
   await page.screenshot({ path: `${SHOTS}/10-ro-today-phone.png`, fullPage: true })

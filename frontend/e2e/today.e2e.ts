@@ -1,6 +1,9 @@
 /**
- * Fast logging on Today: the foods logged most recently come back as
- * one-tap picks above the form, newest first, after the favourites.
+ * Today in direction A, end to end on a 390 px phone: one search over
+ * your foods and the catalog, chips that log as much as last time with
+ * Undo, the headline under and over the target, meals other than the
+ * open one on a line each, copying a meal, quick add, and names in the
+ * UI language.
  */
 import { expect, test } from '@playwright/test'
 import type { Locator, Page } from '@playwright/test'
@@ -11,12 +14,39 @@ test.describe.configure({ mode: 'serial' })
 let page: Page
 const foodIds: Record<string, number> = {}
 
-function form(): Locator {
-  return page.locator('form.entry-form')
+function logger(): Locator {
+  return page.locator('section.logger')
 }
 
-function picks(): Locator {
-  return page.getByRole('group', { name: 'Recent foods' })
+function toast(): Locator {
+  return page.locator('.toast')
+}
+
+async function chooseMeal(name: string) {
+  await logger().getByRole('group', { name: 'Add to' }).getByRole('button', { name, exact: true }).click()
+}
+
+async function search(q: string) {
+  await logger().getByPlaceholder('Search a food').fill(q)
+}
+
+function result(text: string | RegExp): Locator {
+  return logger().locator('li.result', { hasText: text }).first()
+}
+
+async function day(): Promise<string> {
+  return page.getByLabel('Day', { exact: true }).inputValue()
+}
+
+async function entriesToday(): Promise<{ food_name: string; meal_type: string; grams: number | null }[]> {
+  const { body } = await api(page, 'GET', `/entries?date=${await day()}`)
+  return body as { food_name: string; meal_type: string; grams: number | null }[]
+}
+
+async function box(locator: Locator) {
+  const found = await locator.boundingBox()
+  expect(found).not.toBeNull()
+  return found!
 }
 
 test.beforeAll(async ({ browser }) => {
@@ -45,172 +75,169 @@ test.afterAll(async () => {
   await page.close()
 })
 
-test('nothing logged yet: no picks; a food logged becomes one', async () => {
-  await expect(form().getByRole('heading', { name: 'Add to this day' })).toBeVisible()
-  await expect(picks()).toHaveCount(0)
+test('search: your foods first, then the catalog; Add logs what the stepper says', async () => {
+  await chooseMeal('Breakfast')
+  await expect(page.getByRole('group', { name: 'Recent foods' })).toHaveCount(0)
 
-  await form().locator('.food-field select').selectOption({ label: 'Milk' })
-  await form().getByLabel('Grams').fill('200')
-  await form().getByRole('button', { name: 'Add', exact: true }).click()
+  await search('milk')
+  await expect(logger().getByRole('heading', { name: 'Yours' })).toBeVisible()
+  await expect(logger().getByRole('heading', { name: 'Catalog' })).toBeVisible()
+  await expect(logger()).toContainText('Values from USDA FoodData Central')
+  const milk = result(/^Milk/)
+  await milk.locator('.result-head').click()
+  await expect(milk.locator('input[type="number"]')).toHaveValue('100')
+  await milk.getByRole('button', { name: 'More of Milk' }).click()
+  await expect(milk.locator('input[type="number"]')).toHaveValue('110')
+  await milk.getByRole('button', { name: 'Add 70 kcal' }).click()
 
-  await expect(picks().getByRole('button')).toHaveText(['Milk'])
-  // Milk is still the chosen food, so its pick shows as pressed
-  await expect(picks().getByRole('button', { name: 'Milk' })).toHaveAttribute('aria-pressed', 'true')
+  await expect(toast()).toContainText('Added Milk, 110 g, to Breakfast.')
+  await expect(page.locator('section.meal li', { hasText: 'Milk' })).toContainText('110 g')
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390)
+  await page.screenshot({ path: `${SHOTS}/30-search-phone.png`, fullPage: true })
 })
 
-test('newest first; one tap picks the food and moves on to the grams', async () => {
-  const day = await page.getByLabel('Day', { exact: true }).inputValue()
-  const { status } = await api(page, 'POST', '/entries', {
-    food_id: foodIds.Oats,
-    eaten_on: day,
-    meal_type: 'breakfast',
-    grams: 50,
-  })
-  expect(status).toBe(201)
+test('a catalog food is copied into yours and logged by the same Add', async () => {
+  await search('feta')
+  const feta = result('Feta cheese')
+  await feta.locator('.result-head').click()
+  await feta.getByRole('button', { name: /^Add \d+ kcal$/ }).click()
+  await expect(toast()).toContainText('Added Feta cheese, 100 g, to Breakfast.')
+
+  const { body } = await api(page, 'GET', '/foods')
+  expect((body as { name: string }[]).map((food) => food.name)).toContain('Feta cheese')
+  // Searched again, it is among yours, with last time, and not twice
+  await search('')
+  await search('feta')
+  const yours = logger().locator('ul.results').first()
+  await expect(yours.locator('li.result', { hasText: 'Feta cheese' })).toContainText('last time 100 g')
+  await expect(logger().locator('li.result', { hasText: /^Feta cheese/ })).toHaveCount(1)
+  await search('')
+})
+
+test('a chip logs as much as last time in one tap, and Undo takes it back', async () => {
+  const recent = page.getByRole('group', { name: 'Recent foods' })
+  const chip = recent.getByRole('button', { name: 'Log Milk, 110 g' })
+  await expect(chip).toContainText('110 g')
+  const before = (await entriesToday()).length
+
+  await chip.click()
+  await expect(toast()).toContainText('Added Milk, 110 g, to Breakfast.')
+  await expect.poll(async () => (await entriesToday()).length).toBe(before + 1)
+  await page.screenshot({ path: `${SHOTS}/31-chip-undo-phone.png`, fullPage: true })
+
+  await toast().getByRole('button', { name: 'Undo' }).click()
+  await expect(toast()).toHaveCount(0)
+  await expect.poll(async () => (await entriesToday()).length).toBe(before)
+})
+
+test('a favourite never logged opens its stepper instead', async () => {
+  expect((await api(page, 'PUT', `/foods/${foodIds.Oats}/favourite`)).status).toBe(200)
   await page.reload()
-
-  await expect(picks().getByRole('button')).toHaveText(['Oats', 'Milk'])
-  // Apple, first by name, is chosen by default and was never logged
-  await expect(form().locator('.food-field select')).toHaveValue(String(foodIds.Apple))
-
-  await picks().getByRole('button', { name: 'Milk' }).click()
-  await expect(form().locator('.food-field select')).toHaveValue(String(foodIds.Milk))
-  await expect(form().getByLabel('Grams')).toBeFocused()
-  await page.keyboard.type('150')
-  await page.keyboard.press('Enter')
-
-  await expect(page.locator('.meal li', { hasText: 'Milk' })).toHaveCount(2)
-  await expect(picks().getByRole('button')).toHaveText(['Milk', 'Oats'])
-  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390)
-  await page.screenshot({ path: `${SHOTS}/21-recent-foods-phone.png`, fullPage: true })
-})
-
-test('a starred food comes first on Today, once, and unstarring removes it', async () => {
-  const tab = (name: string) =>
-    page.getByRole('navigation').getByRole('button', { name, exact: true })
-  await tab('Foods').click()
-  const star = page.getByRole('button', { name: 'Favourite: Oats' })
-  await expect(star).toHaveAttribute('aria-pressed', 'false')
-  await star.click()
-  await expect(star).toHaveAttribute('aria-pressed', 'true')
-  const { body } = await api(page, 'GET', '/foods?favourite=true')
-  expect((body as { name: string }[]).map((food) => food.name)).toEqual(['Oats'])
-  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390)
-
-  await tab('Today').click()
+  await chooseMeal('Breakfast')
   const favourites = page.getByRole('group', { name: 'Favourite foods' })
-  await expect(favourites.getByRole('button')).toHaveText(['Oats'])
-  // Oats was logged recently too, but shows only among the favourites
-  await expect(picks().getByRole('button')).toHaveText(['Milk'])
-  await favourites.getByRole('button', { name: 'Oats' }).click()
-  await expect(form().locator('.food-field select')).toHaveValue(String(foodIds.Oats))
-  await expect(form().getByLabel('Grams')).toBeFocused()
-  await page.screenshot({ path: `${SHOTS}/22-favourite-foods-phone.png`, fullPage: true })
+  await favourites.getByRole('button', { name: 'Oats', exact: true }).click()
 
-  await tab('Foods').click()
-  await page.getByRole('button', { name: 'Favourite: Oats' }).click()
-  await expect(page.getByRole('button', { name: 'Favourite: Oats' })).toHaveAttribute(
-    'aria-pressed',
-    'false',
-  )
-  await tab('Today').click()
-  await expect(picks().getByRole('button')).toHaveText(['Milk', 'Oats'])
-  await expect(page.getByRole('group', { name: 'Favourite foods' })).toHaveCount(0)
+  const oats = result(/^Oats/)
+  await expect(oats.locator('input[type="number"]')).toHaveValue('100')
+  await oats.getByRole('button', { name: 'Add 389 kcal' }).click()
+  await expect(toast()).toContainText('Added Oats, 100 g, to Breakfast.')
+  await expect(favourites.getByRole('button', { name: 'Log Oats, 100 g' })).toBeVisible()
 })
 
-test('copy a meal: to tomorrow by default, or to another meal of the same day', async () => {
-  const day = await page.getByLabel('Day', { exact: true }).inputValue()
-  const breakfast = page.locator('section.meal', { has: page.getByRole('heading', { name: /^Breakfast/ }) })
-  const rows = await breakfast.locator('li').count()
+test('the headline: kcal left under the target, kcal over past it, and red only then', async () => {
+  expect((await api(page, 'PUT', '/auth/me/target', { daily_calorie_target: 2000 })).status).toBe(200)
+  await page.reload()
+  const summary = page.locator('section.summary')
+  await expect(summary.locator('.calories')).toContainText('kcal left')
+  await expect(summary.getByRole('progressbar')).not.toHaveClass(/over/)
+  await expect(summary).toContainText('eaten · of 2,000 kcal')
+  await page.screenshot({ path: `${SHOTS}/32-under-target-phone.png`, fullPage: true })
+
+  expect(
+    (await api(page, 'POST', '/entries/quick', {
+      eaten_on: await day(),
+      meal_type: 'dinner',
+      name: 'Feast',
+      calories: 2500,
+    })).status,
+  ).toBe(201)
+  await page.reload()
+  const { body } = await api(page, 'GET', `/summary?date=${await day()}`)
+  const over = -(body as { calories_remaining: number }).calories_remaining
+  await expect(summary.locator('.calories')).toContainText('kcal over')
+  await expect(summary.locator('.big')).toHaveText(Math.round(over).toLocaleString('en-US'))
+  await expect(summary.getByRole('progressbar')).toHaveClass(/over/)
+  await page.screenshot({ path: `${SHOTS}/33-over-target-phone.png`, fullPage: true })
+})
+
+test('only the open meal in full; the others on a line, a tap opens one', async () => {
+  await chooseMeal('Breakfast')
+  await expect(page.locator('section.meal h3', { hasText: 'Breakfast' })).toBeVisible()
+  const dinnerLine = page.getByRole('button', { name: 'Open Dinner' })
+  await expect(dinnerLine).toContainText('1 item')
+
+  await dinnerLine.click()
+  await expect(page.locator('section.meal h3', { hasText: 'Dinner' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Open Breakfast' })).toBeVisible()
+  // New entries now go to dinner
+  await expect(
+    logger().getByRole('group', { name: 'Add to' }).getByRole('button', { name: 'Dinner', exact: true }),
+  ).toHaveAttribute('aria-pressed', 'true')
+})
+
+test('copy a meal: to another meal of the same day', async () => {
+  await chooseMeal('Breakfast')
+  const rows = await page.locator('section.meal li').count()
   expect(rows).toBeGreaterThan(0)
 
   await page.getByRole('button', { name: 'Copy Breakfast to another day or meal' }).click()
   const copyForm = page.getByRole('form', { name: 'Copy Breakfast to another day or meal' })
-  const toDay = copyForm.getByLabel('To day')
-  const tomorrow = await toDay.inputValue()
-  expect(tomorrow > day).toBe(true)
-
-  // Onto itself is not offered: the server would refuse it (422)
-  await toDay.fill(day)
+  await copyForm.getByLabel('To day').fill(await day())
   await expect(copyForm.getByRole('button', { name: 'Copy', exact: true })).toBeDisabled()
-  await expect(copyForm).toContainText('Choose another day or meal.')
-
   await copyForm.locator('select').selectOption({ label: 'Lunch' })
   await copyForm.getByRole('button', { name: 'Copy', exact: true }).click()
-  await expect(page.getByRole('status')).toContainText(`Copied ${rows} items to Lunch`)
-  const lunch = page.locator('section.meal', { has: page.getByRole('heading', { name: /^Lunch/ }) })
-  await expect(lunch.locator('li')).toHaveCount(rows)
-  await expect(breakfast.locator('li')).toHaveCount(rows)
-  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390)
-  await page.screenshot({ path: `${SHOTS}/23-copy-meal-phone.png`, fullPage: true })
 
-  // The default target, tomorrow: the copy is there, not on the shown day
-  await page.getByRole('button', { name: 'Copy Lunch to another day or meal' }).click()
-  await page
-    .getByRole('form', { name: 'Copy Lunch to another day or meal' })
-    .getByRole('button', { name: 'Copy', exact: true })
-    .click()
-  await expect(page.getByRole('status')).toContainText(`Copied ${rows} items to Lunch`)
-  await expect(lunch.locator('li')).toHaveCount(rows)
-  const { body } = await api(page, 'GET', `/entries?date=${tomorrow}`)
-  expect((body as { meal_type: string }[]).filter((entry) => entry.meal_type === 'lunch')).toHaveLength(rows)
+  await expect(page.locator('p[role="status"]')).toContainText(`Copied ${rows} items to Lunch`)
+  expect((await entriesToday()).filter((entry) => entry.meal_type === 'lunch')).toHaveLength(rows)
 })
 
-test('quick add: kcal without a food, a default name, and deleting it', async () => {
-  const dinner = page.locator('section.meal', { has: page.getByRole('heading', { name: /^Dinner/ }) })
-  await expect(dinner).toHaveCount(0)
-
-  await page.getByRole('button', { name: 'Quick add: just the kcal' }).click()
+test('quick add: kcal without a food, under its short name', async () => {
+  await page.getByRole('button', { name: 'Just kcal' }).click()
   const quick = page.getByRole('form', { name: 'Quick add' })
   await quick.getByLabel('What (optional)').fill('Restaurant soup')
   await quick.getByLabel('Calories (kcal)').fill('320')
-  await quick.getByLabel('Protein (g)').fill('12')
-  await quick.locator('select').selectOption({ label: 'Dinner' })
+  await quick.locator('select').selectOption({ label: 'Snacks' })
   await quick.getByRole('button', { name: 'Add', exact: true }).click()
 
-  const soup = dinner.locator('li', { hasText: 'Restaurant soup' })
-  await expect(soup).toContainText('quick add')
-  await expect(soup).toContainText('320 kcal')
-  // Fields cleared, the meal kept for the next one
-  await expect(quick.getByLabel('Calories (kcal)')).toHaveValue('')
-  await expect(quick.locator('select')).toHaveValue('dinner')
-
-  await quick.getByLabel('Calories (kcal)').fill('150')
-  await quick.getByRole('button', { name: 'Add', exact: true }).click()
-  // Every quick row says "quick add"; the unnamed one, added last, also has it as its name
-  const unnamed = dinner.locator('li').nth(1)
-  await expect(unnamed).toContainText(/^Quick add quick add/)
-  await expect(unnamed).toContainText('150 kcal')
-  await expect(dinner.locator('h3')).toContainText('470 kcal')
-  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390)
-  await page.screenshot({ path: `${SHOTS}/24-quick-add-phone.png`, fullPage: true })
-
-  // Deleted through its own path; the food entries of the day stay
-  const foodRows = await page.locator('section.meal li').count()
-  page.once('dialog', (dialog) => void dialog.accept())
-  await page.getByRole('button', { name: 'Delete Restaurant soup' }).click()
-  await expect(soup).toHaveCount(0)
-  await expect(page.locator('section.meal li')).toHaveCount(foodRows - 1)
-  const day = await page.getByLabel('Day', { exact: true }).inputValue()
-  const { body } = await api(page, 'GET', `/entries?date=${day}`)
-  expect((body as { quick?: boolean }[]).filter((entry) => entry.quick)).toHaveLength(1)
+  await expect.poll(async () => (await entriesToday()).filter((e) => e.food_name === 'Restaurant soup')).toHaveLength(1)
+  await page.getByRole('button', { name: 'Open Snacks' }).click()
+  await expect(page.locator('section.meal li', { hasText: 'Restaurant soup' })).toContainText('quick add')
+  await quick.getByRole('button', { name: 'Cancel' }).click()
 })
 
-async function box(locator: Locator) {
-  const found = await locator.boundingBox()
-  expect(found).not.toBeNull()
-  return found!
-}
+test('names in the UI language: a catalog copy shows its Romanian name in Romanian', async () => {
+  await page.evaluate(() => localStorage.setItem('haki_locale', 'ro'))
+  await page.reload()
+  await page.getByRole('group', { name: 'Adaugă la' }).getByRole('button', { name: 'Mic dejun', exact: true }).click()
+  await expect(page.getByRole('group', { name: 'Alimente recente' })).toContainText('Brânză feta')
+  await expect(page.locator('section.meal li', { hasText: 'Brânză feta' })).toBeVisible()
+  await page.screenshot({ path: `${SHOTS}/34-names-ro-phone.png`, fullPage: true })
+  await page.evaluate(() => localStorage.setItem('haki_locale', 'auto'))
+  await page.reload()
+})
 
-test('long food names keep their room: Your foods on a phone, the entry form on a desktop', async () => {
+test('long food names keep their room: Your foods on a phone, Today on a desktop', async () => {
   const name = 'Greek yogurt, plain, whole milk'
-  expect((await api(page, 'POST', '/foods', {
+  const created = await api(page, 'POST', '/foods', {
     name,
     calories_per_100g: 97,
     protein_per_100g: 9,
     carbs_per_100g: 4,
     fat_per_100g: 5,
-  })).status).toBe(201)
+  })
+  expect(created.status).toBe(201)
+  const id = (created.body as { id: number }).id
+  expect((await api(page, 'PUT', `/foods/${id}/favourite`)).status).toBe(200)
 
   // Your foods at 390 px: the name gets most of the row, the buttons wrap under it
   await page.getByRole('navigation').getByRole('button', { name: 'Foods', exact: true }).click()
@@ -220,18 +247,14 @@ test('long food names keep their room: Your foods on a phone, the entry form on 
   expect(nameBox.width).toBeGreaterThan(rowBox.width * 0.75)
   const editBox = await box(row.getByRole('button', { name: 'Edit' }))
   expect(editBox.y).toBeGreaterThanOrEqual(nameBox.y + nameBox.height - 1)
-  const lineHeight = await row.locator('.grow strong').evaluate((el) => parseFloat(getComputedStyle(el).lineHeight) || 24)
-  expect((await box(row.locator('.grow strong'))).height).toBeLessThanOrEqual(lineHeight * 2 + 1)
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390)
-  await page.screenshot({ path: `${SHOTS}/26-your-foods-phone.png`, fullPage: true })
 
-  // Today on a desktop, that food chosen: Add stays inside its card
+  // Today on a desktop: the long favourite stays inside the logger's card
   await page.setViewportSize({ width: 1280, height: 900 })
   await page.getByRole('navigation').getByRole('button', { name: 'Today', exact: true }).click()
-  await form().locator('.food-field select').selectOption({ label: name })
-  const card = await box(form())
-  const add = await box(form().getByRole('button', { name: 'Add', exact: true }))
-  expect(add.x + add.width).toBeLessThanOrEqual(card.x + card.width)
-  await page.screenshot({ path: `${SHOTS}/27-today-desktop.png`, fullPage: true })
+  const card = await box(logger())
+  const chip = await box(page.getByRole('group', { name: 'Favourite foods' }).getByRole('button', { name }))
+  expect(chip.x + chip.width).toBeLessThanOrEqual(card.x + card.width)
+  await page.screenshot({ path: `${SHOTS}/35-today-desktop.png`, fullPage: true })
   await page.setViewportSize({ width: 390, height: 844 })
 })

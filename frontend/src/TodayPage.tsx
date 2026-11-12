@@ -1,8 +1,7 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import {
   MEAL_TYPES,
   copyMeal,
-  createEntry,
   createQuickEntry,
   deleteMealEntry,
   entryKey,
@@ -15,17 +14,13 @@ import {
 } from './api'
 import type { DailySummary, Food, MealEntry, MealType } from './api'
 import { defaultCopyDay } from './copyTarget'
-import { foodPicks } from './foodPicks'
+import FoodLogger from './FoodLogger'
+import { MEAL_LABELS, entryName, headline, mealForHour } from './logging'
+import Toast from './Toast'
+import type { ToastMessage } from './Toast'
 import { formatDay, formatDecimal, formatKcal, localDateString, shiftDate } from './format'
 import { useI18n } from './i18n/context'
 import type { MessageKey } from './i18n/i18n'
-
-const MEAL_LABELS: Record<MealType, MessageKey> = {
-  breakfast: 'meal.breakfast',
-  lunch: 'meal.lunch',
-  dinner: 'meal.dinner',
-  snack: 'meal.snack',
-}
 
 type DayData = { summary: DailySummary; entries: MealEntry[] }
 
@@ -172,20 +167,27 @@ function SummaryCard({
   onTargetChanged: () => void
 }) {
   const { t } = useI18n()
-  const { totals, daily_calorie_target: target, calories_remaining: remaining } =
-    summary
-  const over = remaining !== null && remaining < 0
+  const { totals, daily_calorie_target: target } = summary
+  const head = headline(summary)
+  const over = head.kind === 'over'
   const percent = target ? Math.min(100, (totals.calories / target) * 100) : 0
+  const label: MessageKey =
+    head.kind === 'over' ? 'today.kcalOver' : head.kind === 'left' ? 'today.kcalLeft' : 'today.kcalEaten'
 
   return (
     <section className="card summary">
-      <p className="calories">
-        <span className="big">{formatKcal(totals.calories)}</span>
-        {target === null ? ` ${t('today.kcalEaten')}` : ` / ${formatKcal(target)} kcal`}
+      <p className={over ? 'calories over' : 'calories'}>
+        <span className="big">{formatKcal(head.kcal)}</span> {t(label)}
       </p>
+      {target !== null && (
+        <p className="muted">
+          {t('today.eatenOf', { eaten: formatKcal(totals.calories), target: formatKcal(target) })}
+        </p>
+      )}
 
       {target !== null && (
         <div
+          // Red only past the target; under it the bar is plain
           className={over ? 'progress over' : 'progress'}
           role="progressbar"
           aria-label={t('today.caloriesEaten')}
@@ -196,13 +198,6 @@ function SummaryCard({
           <div style={{ width: `${percent}%` }} />
         </div>
       )}
-
-      {remaining !== null &&
-        (remaining < 0 ? (
-          <p className="over-text">{t('today.over', { kcal: formatKcal(-remaining) })}</p>
-        ) : (
-          <p className="muted">{t('today.left', { kcal: formatKcal(remaining) })}</p>
-        ))}
 
       <dl className="macros">
         <div>
@@ -221,159 +216,6 @@ function SummaryCard({
 
       <TargetEditor token={token} target={target} onSaved={onTargetChanged} />
     </section>
-  )
-}
-
-/**
- * One tap per food (a favourite, or one logged recently): picks it in the
- * form and moves on to the grams, the only field that usually changes.
- */
-function PickRow({
-  label,
-  groupLabel,
-  foods,
-  foodId,
-  onPick,
-}: {
-  label: string
-  groupLabel: string
-  foods: Food[]
-  foodId: string
-  onPick: (food: Food) => void
-}) {
-  if (foods.length === 0) return null
-
-  return (
-    <div className="quick-picks" role="group" aria-label={groupLabel}>
-      <span className="muted">{label}</span>
-      {foods.map((food) => (
-        <button
-          key={food.id}
-          type="button"
-          className="chip"
-          aria-pressed={String(food.id) === foodId}
-          onClick={() => onPick(food)}
-        >
-          {food.name}
-        </button>
-      ))}
-    </div>
-  )
-}
-
-function AddEntryForm({
-  token,
-  day,
-  foods,
-  recent,
-  onAdded,
-}: {
-  token: string
-  day: string
-  foods: Food[]
-  recent: Food[]
-  onAdded: () => void
-}) {
-  const { t } = useI18n()
-  const [foodId, setFoodId] = useState(String(foods[0].id))
-  const gramsRef = useRef<HTMLInputElement>(null)
-  const picks = foodPicks(foods, recent)
-  function pick(food: Food) {
-    setFoodId(String(food.id))
-    gramsRef.current?.focus()
-  }
-  const [grams, setGrams] = useState('')
-  const [mealType, setMealType] = useState<MealType>('breakfast')
-  const [error, setError] = useState<string | null>(null)
-  const [busy, setBusy] = useState(false)
-
-  async function handleSubmit() {
-    setError(null)
-    setBusy(true)
-    try {
-      await createEntry(token, {
-        food_id: Number(foodId),
-        eaten_on: day,
-        meal_type: mealType,
-        grams: Number(grams),
-      })
-      // Keep food and meal: the next entry is often for the same meal
-      setGrams('')
-      onAdded()
-    } catch (err) {
-      setError(describeError(err))
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  return (
-    <form
-      className="card entry-form"
-      onSubmit={(event) => {
-        event.preventDefault()
-        void handleSubmit()
-      }}
-    >
-      <h2>{t('today.addTitle')}</h2>
-      <PickRow
-        label={t('today.favourites')}
-        groupLabel={t('today.favouriteFoods')}
-        foods={picks.favourites}
-        foodId={foodId}
-        onPick={pick}
-      />
-      <PickRow
-        label={t('today.recent')}
-        groupLabel={t('today.recentFoods')}
-        foods={picks.recent}
-        foodId={foodId}
-        onPick={pick}
-      />
-      <div className="entry-fields">
-        <label className="food-field">
-          {t('today.food')}
-          <select value={foodId} onChange={(event) => setFoodId(event.target.value)}>
-            {foods.map((food) => (
-              <option key={food.id} value={food.id}>
-                {food.name}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label>
-          {t('today.grams')}
-          <input
-            ref={gramsRef}
-            type="number"
-            inputMode="decimal"
-            min={0.1}
-            max={5000}
-            step="any"
-            required
-            value={grams}
-            onChange={(event) => setGrams(event.target.value)}
-          />
-        </label>
-        <label>
-          {t('today.meal')}
-          <select
-            value={mealType}
-            onChange={(event) => setMealType(event.target.value as MealType)}
-          >
-            {MEAL_TYPES.map((meal) => (
-              <option key={meal} value={meal}>
-                {t(MEAL_LABELS[meal])}
-              </option>
-            ))}
-          </select>
-        </label>
-        <button type="submit" disabled={busy}>
-          {busy ? t('today.adding') : t('today.add')}
-        </button>
-      </div>
-      {error && <p className="error">{error}</p>}
-    </form>
   )
 }
 
@@ -617,18 +459,23 @@ function EntryList({
   token,
   day,
   data,
+  openMeal,
   deletingKey,
+  onOpen,
   onDelete,
   onCopied,
 }: {
   token: string
   day: string
   data: DayData
+  // The meal shown in full, the one new entries go to
+  openMeal: MealType
   deletingKey: string | null
+  onOpen: (meal: MealType) => void
   onDelete: (entry: MealEntry) => void
   onCopied: (message: string) => void
 }) {
-  const { t } = useI18n()
+  const { t, locale } = useI18n()
   const [copying, setCopying] = useState<MealType | null>(null)
   if (data.entries.length === 0) {
     return <p className="muted empty">{t('today.nothing')}</p>
@@ -639,13 +486,30 @@ function EntryList({
       {MEAL_TYPES.map((meal) => {
         const entries = data.entries.filter((entry) => entry.meal_type === meal)
         if (entries.length === 0) return null
+        const kcal = formatKcal(data.summary.meals[meal].calories)
+        if (meal !== openMeal) {
+          return (
+            <button
+              key={meal}
+              type="button"
+              className="card meal-line"
+              aria-expanded={false}
+              aria-label={t('today.openMeal', { meal: t(MEAL_LABELS[meal]) })}
+              onClick={() => onOpen(meal)}
+            >
+              <span>
+                {t(MEAL_LABELS[meal])}{' '}
+                <span className="muted">· {t('today.items', { count: entries.length })}</span>
+              </span>
+              <span className="kcal">{kcal}</span>
+            </button>
+          )
+        }
         return (
           <section key={meal} className="card meal">
             <h3>
               {t(MEAL_LABELS[meal])}
-              <span className="muted">
-                {formatKcal(data.summary.meals[meal].calories)} kcal
-              </span>
+              <span className="kcal">{kcal}</span>
             </h3>
             {copying === meal ? (
               <CopyMealForm
@@ -672,7 +536,7 @@ function EntryList({
               {entries.map((entry) => (
                 <li key={entryKey(entry)}>
                   <span className="grow">
-                    {entry.food_name}{' '}
+                    {entryName(entry, locale)}{' '}
                     <span className="muted">
                       {entry.grams === null ? t('quick.label') : `${formatDecimal(entry.grams)} g`}
                     </span>
@@ -681,7 +545,7 @@ function EntryList({
                   <button
                     type="button"
                     className="icon"
-                    aria-label={t('today.deleteEntry', { food: entry.food_name })}
+                    aria-label={t('today.deleteEntry', { food: entryName(entry, locale) })}
                     disabled={deletingKey === entryKey(entry)}
                     onClick={() => onDelete(entry)}
                   >
@@ -697,14 +561,8 @@ function EntryList({
   )
 }
 
-export default function TodayPage({
-  token,
-  onGoToFoods,
-}: {
-  token: string
-  onGoToFoods: () => void
-}) {
-  const { t } = useI18n()
+export default function TodayPage({ token }: { token: string }) {
+  const { t, locale } = useI18n()
   const [day, setDay] = useState(localDateString)
   const [foods, setFoods] = useState<Food[] | null>(null)
   const [recent, setRecent] = useState<Food[]>([])
@@ -713,10 +571,16 @@ export default function TodayPage({
   const [deletingKey, setDeletingKey] = useState<string | null>(null)
   // What the last copy did; cleared when the shown day changes
   const [notice, setNotice] = useState<string | null>(null)
+  // The meal new entries go to, and the one shown in full
+  const [meal, setMeal] = useState<MealType>(() => mealForHour(new Date().getHours()))
+  // "Added ... · Undo" after a one-tap or searched entry
+  const [toast, setToast] = useState<ToastMessage | null>(null)
+  const clearToast = useCallback(() => setToast(null), [])
   // Bumped after every change, to re-run the effect that loads the day
   const [version, setVersion] = useState(0)
   const reload = () => setVersion((v) => v + 1)
 
+  // Reloaded after every change too: a chip shows how much was logged last time
   useEffect(() => {
     let cancelled = false
     fetchFoods(token)
@@ -729,7 +593,7 @@ export default function TodayPage({
     return () => {
       cancelled = true
     }
-  }, [token])
+  }, [token, version])
 
   // Reloaded after every change: a food just logged moves to the front
   useEffect(() => {
@@ -768,9 +632,9 @@ export default function TodayPage({
     const meal = t(MEAL_LABELS[entry.meal_type])
     const question =
       entry.grams === null
-        ? t('quick.removeConfirm', { food: entry.food_name, meal })
+        ? t('quick.removeConfirm', { food: entryName(entry, locale), meal })
         : t('today.removeConfirm', {
-            food: entry.food_name,
+            food: entryName(entry, locale),
             grams: formatDecimal(entry.grams),
             meal,
           })
@@ -810,21 +674,29 @@ export default function TodayPage({
         />
       )}
 
-      {foods?.length === 0 && (
-        <section className="card">
-          <p>{t('today.noFoods')}</p>
-          <button type="button" onClick={onGoToFoods}>
-            {t('today.goToFoods')}
-          </button>
-        </section>
-      )}
-      {foods && foods.length > 0 && (
-        <AddEntryForm
+      {foods && (
+        <FoodLogger
           token={token}
           day={day}
+          meal={meal}
           foods={foods}
           recent={recent}
-          onAdded={reload}
+          onMealChange={setMeal}
+          onLogged={(entry, name) => {
+            reload()
+            setToast({
+              id: Date.now(),
+              text: t('log.added', {
+                food: name,
+                grams: formatDecimal(entry.grams ?? 0),
+                meal: t(MEAL_LABELS[entry.meal_type]),
+              }),
+              undo: async () => {
+                await deleteMealEntry(token, entry)
+                reload()
+              },
+            })
+          }}
         />
       )}
       <QuickAddForm token={token} day={day} onAdded={reload} />
@@ -834,6 +706,8 @@ export default function TodayPage({
           token={token}
           day={day}
           data={current}
+          openMeal={meal}
+          onOpen={setMeal}
           deletingKey={deletingKey}
           onDelete={(entry) => void handleDelete(entry)}
           onCopied={(message) => {
@@ -843,6 +717,7 @@ export default function TodayPage({
           }}
         />
       )}
+      <Toast message={toast} onDone={clearToast} />
     </div>
   )
 }

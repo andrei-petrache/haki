@@ -29,7 +29,14 @@ export type Food = FoodInput & {
   catalog_food_id?: number | null
   // Marked by the user; such foods come first on Today
   favourite?: boolean
+  // How the user last logged it, for one-tap logging; null if never
+  last_logged?: LastLogged | null
+  // The catalog's names of the food it was copied from (null: typed by hand)
+  catalog_name?: string | null
+  catalog_name_ro?: string | null
 }
+
+export type LastLogged = { grams: number; meal_type: MealType; eaten_on: string }
 
 export type Nutrients = {
   calories: number
@@ -55,6 +62,9 @@ export type MealEntry = Nutrients & {
   food_name: string
   // Quick entries live apart from food entries: their ids can be equal
   quick?: boolean
+  // The catalog's names of the entry's food, as on Food (null: none)
+  catalog_name?: string | null
+  catalog_name_ro?: string | null
 }
 
 /** A one-off entry without a food: calories, and optionally a name and macros. */
@@ -574,6 +584,44 @@ export function searchCatalogExercises(
     {},
     token,
   )
+}
+
+type Per100g = Pick<FoodInput, 'calories_per_100g' | 'protein_per_100g' | 'carbs_per_100g' | 'fat_per_100g'>
+
+/** One result of GET /foods/search: the user's own food, or a catalog food. */
+export type FoodSearchResult =
+  | (Per100g & {
+      origin: 'own'
+      id: number
+      name: string
+      favourite: boolean
+      last_logged: LastLogged | null
+      catalog_food_id: number | null
+      catalog_name?: string | null
+      catalog_name_ro?: string | null
+    })
+  | (Per100g & {
+      origin: 'catalog'
+      // The catalog food's id: copy it with copyCatalogFood before logging
+      id: number
+      // Already in the language asked for
+      name: string
+      source_key: string
+    })
+
+/**
+ * The user's foods and the catalog in one list, own ones first (by last
+ * use), each word matched in either name, ignoring case and diacritics.
+ * At most `limit` of each origin.
+ */
+export function searchFoods(
+  token: string,
+  q: string,
+  language: CatalogLanguage,
+  limit = 20,
+): Promise<FoodSearchResult[]> {
+  const query = new URLSearchParams({ q, language, limit: String(limit) })
+  return request<FoodSearchResult[]>(`/foods/search?${query}`, {}, token)
 }
 
 export function fetchCatalogSources(token: string): Promise<CatalogSource[]> {

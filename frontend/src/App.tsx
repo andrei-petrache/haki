@@ -412,7 +412,7 @@ function App() {
         </section>
       )}
       {user && tab === 'today' && (
-        <TodayPage token={token} onGoToFoods={() => setTab('foods')} />
+        <TodayPage token={token} />
       )}
       {user && tab === 'foods' && <FoodsPage token={token} />}
       {user && tab === 'workouts' && (
