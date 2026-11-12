@@ -68,6 +68,8 @@ test('a workout started from a program: the plan, last time per row, and which s
   await expect(rows().nth(0)).toContainText('next')
   await expect(rows().nth(1)).toContainText('from the program')
   await expect(rows().nth(3)).toContainText('from the program')
+  // 6 x 72.5 would beat last week's 5 x 70, but the plan alone is no record
+  await expect(page.locator('.record')).toHaveCount(0)
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390)
   await page.screenshot({ path: `${SHOTS}/38-workout-plan-phone.png`, fullPage: true })
 })
@@ -77,6 +79,8 @@ test('a tick marks a set done and starts the rest; -15 s, +15 s and Skip move it
   await tick.click()
   await expect(tick).toHaveAttribute('aria-pressed', 'true')
   await expect(rows().nth(1)).toContainText('next')
+  // Done as planned: now it is a record
+  await expect(page.locator('fieldset.exercise-block').first().locator('.record')).toHaveCount(1)
 
   const bar = page.getByRole('region', { name: 'Rest timer' })
   const timer = bar.getByRole('timer')
@@ -94,6 +98,7 @@ test('a tick marks a set done and starts the rest; -15 s, +15 s and Skip move it
   await tick.click()
   await expect(tick).toHaveAttribute('aria-pressed', 'false')
   await expect(rows().nth(0)).toContainText('next')
+  await expect(page.locator('.record')).toHaveCount(0)
 })
 
 test('a set changed from the plan stops being marked as the plan, and saves as typed', async () => {

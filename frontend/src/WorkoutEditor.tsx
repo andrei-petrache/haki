@@ -337,12 +337,17 @@ export default function WorkoutEditor({
     if (fields) setExercise(index, { ...fields.exercises[index], exercise: String(exercise.id), newName: '' })
   }
 
-  /** Which set of a row, as typed, would beat the history's best: live, while typing. */
-  function recordIndex(item: ExerciseFields): number | null {
+  /**
+   * Which set of a row, as typed, would beat the history's best: live, while
+   * typing. A set still as the program planned it counts only once ticked
+   * done: the plan alone is not a record.
+   */
+  function recordIndex(item: ExerciseFields, planned: PlannedExercise | null, doneRows: boolean[]): number | null {
     const history = histories.get(Number(item.exercise))
     if (!history) return null
-    const typed = item.sets.map((set) =>
-      setError(set, weightUnit) === null
+    const typed = item.sets.map((set, setIndex) =>
+      setError(set, weightUnit) === null &&
+      ((doneRows[setIndex] ?? false) || !untouchedPlan(set, planned, weightUnit))
         ? { reps: Number(set.reps), weight_kg: weightToSend(set.weight, weightUnit, set.savedKg) }
         : null,
     )
@@ -493,7 +498,7 @@ export default function WorkoutEditor({
           onRemove={() => removeExercise(index)}
           unit={weightUnit}
           last={lastText(item)}
-          record={recordIndex(item)}
+          record={recordIndex(item, plans[index], done[index] ?? [])}
           token={token}
           onPickFromCatalog={(exercise) => pickFromCatalog(index, exercise)}
         />
