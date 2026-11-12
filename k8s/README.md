@@ -784,6 +784,18 @@ expanded there) and nothing is printed but the archive's header. Stop if
 it out of the repository and delete it once it is no longer needed.
 Restoring is a decision of its own, not part of a deploy.
 
+Retention and deletions (the policy since 12 November 2026; it is
+implemented with the scheduled backups):
+
+- A dump is kept at most 30 days. Deleting one is Andrei's call.
+- Deleting an account is immediate and permanent. A restore must not bring
+  a deleted account back: it re-applies every deletion made after the
+  dump, from a log of deleted accounts with no personal data (the user's
+  id, its `created_at`, the time of the deletion).
+- The log is applied before any traffic reaches the restored database,
+  and deletes a row only where id and `created_at` both match: a restore
+  sets the id sequence back, so an id can be given out again.
+
 ### Moving a cluster from before Kustomize
 
 A cluster set up with the old per-file manifests keeps its data: prod uses
