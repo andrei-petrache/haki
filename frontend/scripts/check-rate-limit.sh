@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # Checks a built frontend image: the Nginx config is valid, Nginx starts
 # even when the backend's name does not resolve, an unreachable backend gives
-# 503 with Retry-After (not 502), POST login/signup and PUT password change
-# are rate limited per client IP, and the rest of the API is not. The client IP comes from
+# 503 with Retry-After (not 502), POST login/signup, PUT password change and
+# DELETE account are rate limited per client IP, and the rest of the API is
+# not (GET and PUT /api/auth/me included). The client IP comes from
 # X-Forwarded-For only behind a trusted proxy (REAL_IP_FROM).
 #
 # Usage: frontend/scripts/check-rate-limit.sh <image>
@@ -100,6 +101,10 @@ password="$(statuses 1 PUT /api/auth/me/password)"
 echo "PUT /api/auth/me/password x1: $password"
 [[ "$password" == "429 " ]] || fail "a password change should share the login budget"
 
+delete="$(statuses 1 DELETE /api/auth/me)"
+echo "DELETE /api/auth/me x1:    $delete"
+[[ "$delete" == "429 " ]] || fail "deleting the account should share the login budget"
+
 # By default nothing is trusted: a client's own X-Forwarded-For does not buy
 # it a fresh budget
 spoofed=""
@@ -115,9 +120,9 @@ retry_after="$(curl -s -o /dev/null -D - -X POST "$base/api/auth/login" |
 echo "Retry-After on 429:        ${retry_after:-<missing>}"
 [[ "$retry_after" == 60 ]] || fail "429 responses should carry Retry-After: 60"
 
-others="$(statuses 20 GET /api/health) $(statuses 5 GET /api/auth/login) $(statuses 5 GET /api/auth/me)"
-echo "GET (health, auth) x30:    $others"
-[[ "$others" != *429* ]] || fail "only POST login/signup and PUT password may be rate limited"
+others="$(statuses 20 GET /api/health) $(statuses 5 GET /api/auth/login) $(statuses 5 GET /api/auth/me) $(statuses 5 PUT /api/auth/me)"
+echo "GET/PUT (health, auth) x35: $others"
+[[ "$others" != *429* ]] || fail "only POST login/signup, PUT password and DELETE account may be rate limited"
 
 # Behind a trusted proxy. Requests from the host reach the container from
 # its network's gateway (Docker's port forwarding), so trusting the
