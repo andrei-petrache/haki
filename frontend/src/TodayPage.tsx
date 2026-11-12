@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import {
   MEAL_TYPES,
   copyMeal,
@@ -10,7 +11,6 @@ import {
   fetchFoods,
   fetchRecentFoods,
   fetchSummary,
-  setCalorieTarget,
 } from './api'
 import type { DailySummary, Food, MealEntry, MealType } from './api'
 import { defaultCopyDay } from './copyTarget'
@@ -18,7 +18,7 @@ import FoodLogger from './FoodLogger'
 import { MEAL_LABELS, entryName, headline, mealForHour } from './logging'
 import Toast from './Toast'
 import type { ToastMessage } from './Toast'
-import { formatDay, formatDecimal, formatKcal, localDateString, shiftDate } from './format'
+import { formatDay, formatDayLabel, formatDecimal, formatKcal, localDateString, shiftDate } from './format'
 import { useI18n } from './i18n/context'
 import type { MessageKey } from './i18n/i18n'
 
@@ -27,6 +27,12 @@ type DayData = { summary: DailySummary; entries: MealEntry[] }
 function DayPicker({ day, onChange }: { day: string; onChange: (day: string) => void }) {
   const { t } = useI18n()
   const today = localDateString()
+  const input = useRef<HTMLInputElement>(null)
+  const label = formatDayLabel(day, today, {
+    today: t('today.today'),
+    yesterday: t('today.yesterday'),
+    tomorrow: t('today.tomorrow'),
+  })
 
   return (
     <div className="day-picker">
@@ -38,13 +44,35 @@ function DayPicker({ day, onChange }: { day: string; onChange: (day: string) => 
       >
         ‹
       </button>
-      <input
-        type="date"
-        aria-label={t('today.day')}
-        value={day}
-        // Clearing the field gives an empty string: keep the current day
-        onChange={(event) => event.target.value && onChange(event.target.value)}
-      />
+      {/* The label opens the browser's own date picker, kept invisible under it */}
+      <span className="day-choice">
+        <button
+          type="button"
+          className="day-label"
+          aria-label={t('today.chooseDay', { day: label })}
+          onClick={() => {
+            const field = input.current
+            if (!field) return
+            try {
+              field.showPicker()
+            } catch {
+              field.focus()
+            }
+          }}
+        >
+          {label}
+        </button>
+        <input
+          ref={input}
+          type="date"
+          className="day-input"
+          tabIndex={-1}
+          aria-label={t('today.day')}
+          value={day}
+          // Clearing the field gives an empty string: keep the current day
+          onChange={(event) => event.target.value && onChange(event.target.value)}
+        />
+      </span>
       <button
         type="button"
         className="icon"
@@ -53,119 +81,16 @@ function DayPicker({ day, onChange }: { day: string; onChange: (day: string) => 
       >
         ›
       </button>
-      {/* Always rendered, only hidden on today: keeps its space, so the
-          arrow buttons never move under the cursor */}
-      <button
-        type="button"
-        className={day === today ? 'link invisible' : 'link'}
-        disabled={day === today}
-        onClick={() => onChange(today)}
-      >
-        {t('today.backToToday')}
-      </button>
+      {day !== today && (
+        <button type="button" className="link back-to-today" onClick={() => onChange(today)}>
+          {t('today.backToToday')}
+        </button>
+      )}
     </div>
   )
 }
 
-function TargetEditor({
-  token,
-  target,
-  onSaved,
-}: {
-  token: string
-  target: number | null
-  onSaved: () => void
-}) {
-  const { t } = useI18n()
-  const [editing, setEditing] = useState(false)
-  const [value, setValue] = useState('')
-  const [error, setError] = useState<string | null>(null)
-  const [busy, setBusy] = useState(false)
-
-  async function save(newTarget: number | null) {
-    setError(null)
-    setBusy(true)
-    try {
-      await setCalorieTarget(token, newTarget)
-      setEditing(false)
-      onSaved()
-    } catch (err) {
-      setError(describeError(err))
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  if (!editing) {
-    return (
-      <button
-        type="button"
-        className="link"
-        onClick={() => {
-          setValue(target === null ? '' : String(target))
-          setError(null)
-          setEditing(true)
-        }}
-      >
-        {target === null ? t('today.setTarget') : t('today.changeTarget')}
-      </button>
-    )
-  }
-
-  return (
-    <form
-      className="target-form"
-      onSubmit={(event) => {
-        event.preventDefault()
-        void save(Number(value))
-      }}
-    >
-      <label>
-        {t('today.dailyTarget')}
-        <input
-          type="number"
-          inputMode="numeric"
-          min={500}
-          max={10000}
-          step={1}
-          required
-          autoFocus
-          value={value}
-          onChange={(event) => setValue(event.target.value)}
-        />
-      </label>
-      <div className="actions">
-        <button type="submit" disabled={busy}>
-          {t('common.save')}
-        </button>
-        {target !== null && (
-          <button
-            type="button"
-            className="secondary"
-            disabled={busy}
-            onClick={() => void save(null)}
-          >
-            {t('today.clearTarget')}
-          </button>
-        )}
-        <button type="button" className="link" onClick={() => setEditing(false)}>
-          {t('common.cancel')}
-        </button>
-      </div>
-      {error && <p className="error">{error}</p>}
-    </form>
-  )
-}
-
-function SummaryCard({
-  token,
-  summary,
-  onTargetChanged,
-}: {
-  token: string
-  summary: DailySummary
-  onTargetChanged: () => void
-}) {
+function SummaryCard({ summary }: { summary: DailySummary }) {
   const { t } = useI18n()
   const { totals, daily_calorie_target: target } = summary
   const head = headline(summary)
@@ -214,7 +139,6 @@ function SummaryCard({
         </div>
       </dl>
 
-      <TargetEditor token={token} target={target} onSaved={onTargetChanged} />
     </section>
   )
 }
@@ -561,7 +485,14 @@ function EntryList({
   )
 }
 
-export default function TodayPage({ token }: { token: string }) {
+export default function TodayPage({
+  token,
+  headerSlot,
+}: {
+  token: string
+  // Where the day picker goes: the app header, next to the wordmark
+  headerSlot: HTMLElement | null
+}) {
   const { t, locale } = useI18n()
   const [day, setDay] = useState(localDateString)
   const [foods, setFoods] = useState<Food[] | null>(null)
@@ -655,23 +586,24 @@ export default function TodayPage({ token }: { token: string }) {
 
   return (
     <div className="page">
-      <DayPicker
-        day={day}
-        onChange={(next) => {
-          setNotice(null)
-          setDay(next)
-        }}
-      />
+      {(() => {
+        const picker = (
+          <DayPicker
+            day={day}
+            onChange={(next) => {
+              setNotice(null)
+              setDay(next)
+            }}
+          />
+        )
+        return headerSlot ? createPortal(picker, headerSlot) : picker
+      })()}
       {notice && <p role="status">{notice}</p>}
       {error && <p className="error">{error}</p>}
       {!current && !error && <p className="muted">{t('app.loading')}</p>}
 
       {current && (
-        <SummaryCard
-          token={token}
-          summary={current.summary}
-          onTargetChanged={reload}
-        />
+        <SummaryCard summary={current.summary} />
       )}
 
       {foods && (

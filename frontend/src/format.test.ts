@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
+  formatDayLabel,
   formatPlanned,
   formatSet,
   formatWeight,
@@ -7,6 +8,7 @@ import {
   parseDay,
   shorten,
 } from './format'
+import { setActiveLocale } from './i18n/i18n'
 
 afterEach(() => {
   vi.unstubAllEnvs()
@@ -89,5 +91,25 @@ describe('weights in the chosen unit', () => {
   it('stays in kg when no unit is given', () => {
     expect(formatSet(8, 60)).toBe('8 × 60 kg')
     expect(formatPlanned(3, 8, 60)).toBe('3 × 8 × 60 kg')
+  })
+})
+
+describe('formatDayLabel', () => {
+  const words = { today: 'Today', yesterday: 'Yesterday', tomorrow: 'Tomorrow' }
+
+  it('names today, yesterday and tomorrow, day before month', () => {
+    setActiveLocale('en')
+    expect(formatDayLabel('2026-11-12', '2026-11-12', words)).toBe('Today, 12 Nov')
+    expect(formatDayLabel('2026-11-11', '2026-11-12', words)).toBe('Yesterday, 11 Nov')
+    expect(formatDayLabel('2026-11-13', '2026-11-12', words)).toBe('Tomorrow, 13 Nov')
+    expect(formatDayLabel('2026-11-10', '2026-11-12', words)).toBe('Tue, 10 Nov')
+  })
+
+  it('in Romanian', () => {
+    setActiveLocale('ro')
+    expect(formatDayLabel('2026-11-12', '2026-11-12', { today: 'Azi', yesterday: 'Ieri', tomorrow: 'Mâine' })).toBe(
+      'Azi, 12 nov.',
+    )
+    setActiveLocale('en')
   })
 })

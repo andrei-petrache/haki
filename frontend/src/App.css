@@ -160,6 +160,34 @@ p {
   .app-header > .link {
     display: none;
   }
+
+  /* Wordmark and the day picker on one row */
+  .app-header {
+    flex-wrap: nowrap;
+    margin-bottom: 0.75rem;
+  }
+
+  .header-slot {
+    order: 0;
+    flex: 1;
+    flex-basis: auto;
+    min-width: 0;
+  }
+
+  .header-slot .day-picker {
+    flex-wrap: nowrap;
+    justify-content: flex-end;
+    gap: 0.25rem;
+    min-width: 0;
+  }
+
+  .app-header {
+    gap: 0.5rem;
+  }
+
+  .header-slot .back-to-today {
+    display: none;
+  }
 }
 
 /* Forms */
@@ -329,8 +357,55 @@ dd {
   gap: 0.5rem;
 }
 
-.day-picker input {
-  flex: 1;
+/* The day between the arrows, as words; the native picker sits under it */
+.day-choice {
+  position: relative;
+  display: inline-flex;
+  min-width: 0;
+}
+
+button.day-label,
+button.day-label:hover:not(:disabled) {
+  min-height: 44px;
+  min-width: 0;
+  padding: 0 0.4rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--font-num);
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text);
+  background: none;
+}
+
+.day-input {
+  position: absolute;
+  inset: auto 0 0 0;
+  width: 100%;
+  height: 1px;
+  padding: 0;
+  border: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.day-picker button.icon {
+  flex: none;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0;
+}
+
+/* A page's own header controls: on their own row under the header on a
+   desktop, next to the wordmark on a phone (below) */
+.header-slot {
+  order: 10;
+  flex-basis: 100%;
+}
+
+.header-slot:empty {
+  display: none;
 }
 
 .calories .big {
@@ -1042,4 +1117,35 @@ button.chip[aria-pressed='true'] .chip-grams {
   .toast {
     bottom: calc(76px + env(safe-area-inset-bottom));
   }
+}
+
+/* Chips on one row, scrolled sideways */
+.chip-row {
+  display: flex;
+  gap: 0.4rem;
+  overflow-x: auto;
+  scrollbar-width: none;
+  margin: 0 -1.25rem;
+  padding: 0 1.25rem 2px;
+  scroll-padding: 0 1.25rem;
+}
+
+.chip-row::-webkit-scrollbar {
+  display: none;
+}
+
+.chip-group {
+  display: flex;
+  flex: none;
+  gap: 0.4rem;
+}
+
+.chip-row button.chip {
+  flex: none;
+  min-height: 40px;
+  max-width: 16rem;
+}
+
+.profile-target p {
+  margin: 0 0 0.25rem;
 }

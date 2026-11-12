@@ -46,6 +46,30 @@ export function parseDay(day: string): Date {
   return new Date(year, month - 1, date)
 }
 
+/**
+ * The day between Today's arrows: "Today, 12 Nov", "Yesterday, 11 Nov",
+ * "Tomorrow, 13 Nov", else "Tue, 10 Nov"; in Romanian "Azi, 12 nov.".
+ * Day before month in English too (en-GB), as in the rest of the app.
+ */
+export function formatDayLabel(
+  day: string,
+  today: string,
+  words: { today: string; yesterday: string; tomorrow: string },
+): string {
+  const locale = activeLocale() === 'en' ? 'en-GB' : activeLocale()
+  const date = parseDay(day)
+  const dayMonth = date.toLocaleDateString(locale, { day: 'numeric', month: 'short' })
+  const word =
+    day === today
+      ? words.today
+      : day === shiftDate(today, -1)
+        ? words.yesterday
+        : day === shiftDate(today, 1)
+          ? words.tomorrow
+          : date.toLocaleDateString(locale, { weekday: 'short' })
+  return `${word}, ${dayMonth}`
+}
+
 export function formatDay(day: string): string {
   return parseDay(day).toLocaleDateString(activeLocale(), {
     weekday: 'short',
