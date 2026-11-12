@@ -167,9 +167,11 @@ Open items, outside the sprints:
   checked out, or the pull request's `base.sha` from the API) instead. Until
   then: close and reopen the promotion's pull request; "Re-run jobs" reuses
   the stale event. After S9
-- [ ] #81: the `pull_request_target` policy `prod-guard` needs from 2 December
+- [x] #81: the `pull_request_target` policy `prod-guard` needs from 2 December
   2026, when GitHub restricts that event on public repositories by default;
-  an Actions setting of the repository, mine to change
+  an Actions setting of the repository, mine to change. Saved as
+  `allow-pull-request-target` (12 November 2026), for `guard.yml` and
+  `automerge.yml`, `pull_request_target` only
 - [ ] Dependabot #79 (frontend, minor and patch) and #80 (backend, minor and
   patch)
 - [ ] GHCR refused `haki-frontend:3666079` twice with `write_package` while
