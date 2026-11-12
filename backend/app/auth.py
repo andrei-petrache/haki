@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 from app.db import get_session
 from app.models import User
 from app.schemas import (
+    AccountSettingsIn,
     CalorieTargetIn,
     LoginRequest,
     SignupRequest,
@@ -93,6 +94,17 @@ def login(data: LoginRequest, session: SessionDep) -> TokenResponse:
 @router.get("/me", response_model=UserResponse)
 def me(current_user: CurrentUser) -> User:
     """Return the currently authenticated user."""
+    return current_user
+
+
+@router.put("/me", response_model=UserResponse)
+def update_settings(
+    data: AccountSettingsIn, current_user: CurrentUser, session: SessionDep
+) -> User:
+    """Set the current user's account settings: today only the language
+    ("en", "ro", or null to follow the browser)."""
+    current_user.language = data.language
+    session.commit()
     return current_user
 
 
