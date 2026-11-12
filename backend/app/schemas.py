@@ -120,6 +120,14 @@ class FoodIn(BaseModel):
 # calories at 900.
 
 
+class LastLogged(BaseModel):
+    """How the user last logged a food: enough to log it again in one tap."""
+
+    grams: float
+    meal_type: str
+    eaten_on: date
+
+
 class FoodResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -132,6 +140,9 @@ class FoodResponse(BaseModel):
     # The catalog food this one was copied from; null when typed in by hand
     catalog_food_id: int | None = None
     favourite: bool = False
+    # The user's newest entry of this food (by id, as in recents); null
+    # when they never logged it
+    last_logged: LastLogged | None = None
 
 
 class ExerciseIn(BaseModel):

@@ -356,6 +356,7 @@ def test_copy_a_catalog_food(
         "fat_per_100g": 2.62,
         "catalog_food_id": item_id,
         "favourite": False,
+        "last_logged": None,
     }
     own = client.get("/foods", headers=auth_headers).json()
     assert own == [body]
