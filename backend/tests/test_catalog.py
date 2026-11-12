@@ -357,6 +357,8 @@ def test_copy_a_catalog_food(
         "catalog_food_id": item_id,
         "favourite": False,
         "last_logged": None,
+        "catalog_name": "Chicken breast, skinless, raw",
+        "catalog_name_ro": "Piept de pui fără piele, crud",
     }
     own = client.get("/foods", headers=auth_headers).json()
     assert own == [body]

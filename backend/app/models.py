@@ -227,6 +227,9 @@ class Food(Base):
         DateTime(timezone=True), default=None
     )
 
+    # Read-only: for the catalog's names next to the user's own one
+    catalog_food: Mapped[CatalogFood | None] = relationship()
+
     @property
     def favourite(self) -> bool:
         """Whether the user marked this food as a favourite."""

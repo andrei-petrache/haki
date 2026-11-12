@@ -60,17 +60,47 @@ def last_logged(
     }
 
 
+def catalog_names(
+    session: Session, foods: list[Food]
+) -> dict[int, tuple[str, str | None]]:
+    """The catalog's (name, name_ro) of each food copied from it, in one query."""
+    ids = {food.catalog_food_id for food in foods if food.catalog_food_id}
+    if not ids:
+        return {}
+    rows = session.execute(
+        select(CatalogFood.id, CatalogFood.name, CatalogFood.name_ro).where(
+            CatalogFood.id.in_(ids)
+        )
+    )
+    return {row.id: (row.name, row.name_ro) for row in rows}
+
+
+def language_for(asked: str | None, user: User) -> str:
+    """The language to name a copy in: the one asked for, else the account's,
+    else English."""
+    return asked or user.language or "en"
+
+
 def food_responses(
     session: Session, user: User, foods: list[Food]
 ) -> list[FoodResponse]:
-    """The foods as responses, each with how it was last logged."""
+    """The foods as responses, each with how it was last logged and the
+    catalog's names of the ones copied from it."""
     last = last_logged(session, user, [food.id for food in foods])
-    return [
-        FoodResponse.model_validate(food).model_copy(
-            update={"last_logged": last.get(food.id)}
+    names = catalog_names(session, foods)
+    responses = []
+    for food in foods:
+        name, name_ro = names.get(food.catalog_food_id or 0, (None, None))
+        responses.append(
+            FoodResponse.model_validate(food).model_copy(
+                update={
+                    "last_logged": last.get(food.id),
+                    "catalog_name": name,
+                    "catalog_name_ro": name_ro,
+                }
+            )
         )
-        for food in foods
-    ]
+    return responses
 
 
 def food_response(session: Session, user: User, food: Food) -> FoodResponse:
@@ -175,7 +205,9 @@ def copy_catalog_food(
         return food_response(session, current_user, existing)
     food = Food(
         user_id=current_user.id,
-        name=item.name_ro if data.language == "ro" and item.name_ro else item.name,
+        name=item.name_ro
+        if language_for(data.language, current_user) == "ro" and item.name_ro
+        else item.name,
         calories_per_100g=item.calories_per_100g,
         protein_per_100g=item.protein_per_100g,
         carbs_per_100g=item.carbs_per_100g,

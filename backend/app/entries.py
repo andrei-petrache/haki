@@ -47,10 +47,13 @@ def nutrients_for(food: Food, grams: float) -> Nutrients:
 
 
 def to_response(entry: MealEntry) -> MealEntryResponse:
+    catalog = entry.food.catalog_food
     return MealEntryResponse(
         id=entry.id,
         food_id=entry.food_id,
         food_name=entry.food.name,
+        catalog_name=catalog.name if catalog else None,
+        catalog_name_ro=catalog.name_ro if catalog else None,
         eaten_on=entry.eaten_on,
         meal_type=entry.meal_type,
         grams=entry.grams,
@@ -79,7 +82,7 @@ def entries_for_day(session: Session, user: User, day: date) -> list[MealEntry]:
     query = (
         select(MealEntry)
         # Load each entry's food in the same query, instead of one query per entry
-        .options(joinedload(MealEntry.food))
+        .options(joinedload(MealEntry.food).joinedload(Food.catalog_food))
         .where(MealEntry.user_id == user.id, MealEntry.eaten_on == day)
         .order_by(MEAL_ORDER, MealEntry.created_at, MealEntry.id)
     )
@@ -204,7 +207,7 @@ def copy_meal(
     """
     query = (
         select(MealEntry)
-        .options(joinedload(MealEntry.food))
+        .options(joinedload(MealEntry.food).joinedload(Food.catalog_food))
         .where(
             MealEntry.user_id == current_user.id,
             MealEntry.eaten_on == data.from_day,

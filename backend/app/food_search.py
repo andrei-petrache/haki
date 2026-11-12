@@ -47,14 +47,15 @@ def own_matches(
         .outerjoin(CatalogFood, Food.catalog_food_id == CatalogFood.id)
         .where(Food.user_id == user.id)
     )
-    matched = [
-        food
-        for food, catalog_name, catalog_name_ro in rows
+    names: dict[int, tuple[str | None, str | None]] = {}
+    matched = []
+    for food, catalog_name, catalog_name_ro in rows:
         if all(
             word in search_text(food.name, catalog_name, catalog_name_ro)
             for word in words
-        )
-    ]
+        ):
+            matched.append(food)
+            names[food.id] = (catalog_name, catalog_name_ro)
     newest = newest_entries(session, user, [food.id for food in matched])
 
     def rank(food: Food) -> tuple[bool, int, str, int]:
@@ -73,6 +74,8 @@ def own_matches(
             favourite=food.favourite,
             last_logged=to_last_logged(newest.get(food.id)),
             catalog_food_id=food.catalog_food_id,
+            catalog_name=names[food.id][0],
+            catalog_name_ro=names[food.id][1],
         )
         for food in sorted(matched, key=rank)[:limit]
     ]

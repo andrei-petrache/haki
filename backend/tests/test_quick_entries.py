@@ -45,6 +45,8 @@ def test_quick_add_returns_an_entry_without_a_food(
         "carbs": 0.0,
         "fat": 0.0,
         "quick": True,
+        "catalog_name": None,
+        "catalog_name_ro": None,
     }
 
 
