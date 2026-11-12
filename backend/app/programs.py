@@ -218,9 +218,11 @@ def start_workout(
 ) -> WorkoutResponse:
     """Start a workout from one day of a program, with its planned sets.
 
-    The workout is an ordinary one, edited with PUT /workouts/{id}: a copy,
-    with no link back to the day, so changing or deleting the program never
-    touches it, and the previous version of the app reads it too.
+    The workout is an ordinary one, edited with PUT /workouts/{id}: a copy
+    of the plan, so changing or deleting the program never changes what was
+    done, and the previous version of the app reads it too. It remembers the
+    day in program_day_id, for the plan next to it; deleting or replacing
+    the day only clears that link (ON DELETE SET NULL).
     """
     program = get_own_program(session, current_user, program_id)
     # A day of another program, even one of the user's own, is a 404 as well
@@ -230,6 +232,7 @@ def start_workout(
     workout = Workout(
         user_id=current_user.id,
         performed_on=data.performed_on,
+        program_day_id=day.id,
         # In the day's order; each planned set becomes one logged set
         exercises=[
             WorkoutExercise(
