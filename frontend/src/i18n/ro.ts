@@ -29,6 +29,7 @@ export const ro: Dictionary = {
   'auth.logIn': 'Intră',
   'auth.toLogIn': 'Ai deja cont? Intră',
   'auth.toSignUp': 'Ești nou? Fă-ți un cont',
+  'auth.created': 'Contul e creat; intră ca să începi.',
 
   'profile.title': 'Bine ai venit!',
   'profile.email': 'Email',

@@ -29,6 +29,7 @@ export const en = {
   'auth.logIn': 'Log in',
   'auth.toLogIn': 'Already have an account? Log in',
   'auth.toSignUp': 'New here? Create an account',
+  'auth.created': 'Your account is created; log in to start.',
 
   'profile.title': 'Welcome aboard!',
   'profile.email': 'Email',
