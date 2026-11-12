@@ -368,6 +368,30 @@ button.chip[aria-pressed='true']:hover:not(:disabled) {
   justify-content: space-between;
 }
 
+/* Quick add: name across, then kcal and meal, then the three macros */
+button.quick-open {
+  align-self: flex-start;
+}
+
+.quick-fields {
+  display: grid;
+  /* minmax(0, ...): a column may shrink below an input's default width,
+     else three of them push a 390 px phone sideways */
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: end;
+  gap: 0.75rem;
+}
+
+.quick-fields input,
+.quick-fields select {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.quick-fields .quick-name {
+  grid-column: 1 / -1;
+}
+
 /* Copy a meal: day and meal side by side, wrapping on a phone */
 .copy-form {
   display: flex;
