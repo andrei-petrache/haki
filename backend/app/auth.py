@@ -1,15 +1,16 @@
 from datetime import UTC, datetime
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Body, Depends, HTTPException, Response, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.db import get_session
 from app.models import User
 from app.schemas import (
+    AccountDeleteIn,
     AccountSettingsIn,
     CalorieTargetIn,
     LoginRequest,
@@ -62,6 +63,13 @@ def get_current_user(
     ):
         raise unauthorized("Invalid or expired token")
     return user
+
+
+def wrong_password() -> HTTPException:
+    """403, not 401: the token is valid, and clients sign out on a 401."""
+    return HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN, detail="Current password is wrong"
+    )
 
 
 def token_for(user: User) -> TokenResponse:
@@ -132,10 +140,7 @@ def change_password(
     which clients rightly read as "signed out".
     """
     if not verify_password(data.current_password, current_user.password_hash):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Current password is wrong",
-        )
+        raise wrong_password()
     current_user.password_hash = hash_password(data.new_password)
     current_user.password_changed_at = datetime.now(UTC)
     session.commit()
@@ -150,3 +155,26 @@ def set_calorie_target(
     current_user.daily_calorie_target = data.daily_calorie_target
     session.commit()
     return current_user
+
+
+@router.delete("/me", status_code=status.HTTP_204_NO_CONTENT)
+def delete_account(
+    data: Annotated[AccountDeleteIn, Body()],
+    current_user: CurrentUser,
+    session: SessionDep,
+) -> Response:
+    """Delete the current user and every row of theirs, in one transaction,
+    given the current password. 403 if it is wrong, and nothing is deleted.
+
+    One DELETE of the user row: every table of user data hangs off users
+    with ON DELETE CASCADE, directly or through its parent. Every table
+    ending empty, including meal_entries' RESTRICT on foods and the
+    exercises' deferred references, is checked on PostgreSQL by
+    tests/integration/test_delete_account_pg.py. Every token of the account
+    is refused afterwards: its user is gone.
+    """
+    if not verify_password(data.password, current_user.password_hash):
+        raise wrong_password()
+    session.execute(delete(User).where(User.id == current_user.id))
+    session.commit()
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
