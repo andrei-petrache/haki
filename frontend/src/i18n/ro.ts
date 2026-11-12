@@ -57,7 +57,7 @@ export const ro: Dictionary = {
     'Parola a fost schimbată. Celelalte dispozitive sunt deconectate și au nevoie de parola nouă.',
   'profile.languageAuto': 'Ca în browser ({language})',
   'profile.languageNote':
-    'Se salvează pe acest dispozitiv. Unele mesaje de la server pot apărea în engleză.',
+    'Se salvează în cont, pentru orice dispozitiv. Unele mesaje de la server pot apărea în engleză.',
 
   'common.save': 'Salvează',
   'common.saving': 'Se salvează…',

@@ -3,6 +3,8 @@ import { en } from './en'
 import {
   DICTIONARIES,
   LOCALE_KEY,
+  accountLanguageOf,
+  accountLocaleChoice,
   detectLocale,
   loadLocaleChoice,
   resolveLocale,
@@ -126,5 +128,20 @@ describe('choosing the language', () => {
     expect(loadLocaleChoice(null)).toBe('auto')
     expect(loadLocaleChoice(refusing)).toBe('auto')
     expect(() => saveLocaleChoice('ro', refusing)).not.toThrow()
+  })
+})
+
+describe('the account language', () => {
+  it('wins when the account has one, and leaves the device alone when not', () => {
+    expect(accountLocaleChoice('ro')).toBe('ro')
+    expect(accountLocaleChoice('en')).toBe('en')
+    expect(accountLocaleChoice(null)).toBeNull()
+    expect(accountLocaleChoice(undefined)).toBeNull()
+    expect(accountLocaleChoice('de')).toBeNull()
+  })
+
+  it('keeps an explicit choice, and none for following the browser', () => {
+    expect(accountLanguageOf('ro')).toBe('ro')
+    expect(accountLanguageOf('auto')).toBeNull()
   })
 })

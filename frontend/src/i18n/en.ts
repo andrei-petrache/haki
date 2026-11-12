@@ -57,7 +57,7 @@ export const en = {
     'Password changed. Your other devices are signed out and need the new password.',
   'profile.languageAuto': 'Same as the browser ({language})',
   'profile.languageNote':
-    'Saved on this device. Some messages from the server may still be in English.',
+    'Saved with your account, for every device. Some messages from the server may still be in English.',
 
   'common.save': 'Save',
   'common.saving': 'Saving…',
