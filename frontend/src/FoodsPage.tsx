@@ -210,7 +210,7 @@ export default function FoodsPage({ token }: { token: string }) {
           <p className="muted">{t('foods.none')}</p>
         )}
         {foods && foods.length > 0 && (
-          <ul className="rows">
+          <ul className="rows food-list">
             {foods.map((food) =>
               food.id === editingId ? (
                 <li key={food.id}>
