@@ -117,3 +117,95 @@ tests:
       - eval_time: 30m
         alertname: HakiStagingPodRestartLoop
         exp_alerts: []
+
+  - name: an image that cannot be pulled fires after 5 minutes, across ErrImagePull and ImagePullBackOff
+    interval: 30s
+    input_series:
+      # The two reasons take turns every 30 s, as the kubelet's back-off does
+      - series: 'kube_pod_container_status_waiting_reason{namespace="haki-staging", pod="haki-frontend-abc", container="frontend", reason="ErrImagePull"}'
+        values: "1 _ 1 _ 1 _ 1 _ 1 _ 1 _ 1 _ 1 _ 1 _ 1 _ 1 _ 1 _ 1 _ 1 _ 1 _"
+      - series: 'kube_pod_container_status_waiting_reason{namespace="haki-staging", pod="haki-frontend-abc", container="frontend", reason="ImagePullBackOff"}'
+        values: "_ 1 _ 1 _ 1 _ 1 _ 1 _ 1 _ 1 _ 1 _ 1 _ 1 _ 1 _ 1 _ 1 _ 1 _ 1"
+    alert_rule_test:
+      - eval_time: 4m
+        alertname: HakiStagingImagePullFailing
+        exp_alerts: []
+      - eval_time: 10m
+        alertname: HakiStagingImagePullFailing
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+              namespace: haki-staging
+              pod: haki-frontend-abc
+              container: frontend
+            exp_annotations:
+              summary: haki-frontend-abc cannot pull its image
+              description: "Container frontend of haki-frontend-abc has waited on its image for 5 minutes. Check that the tag in k8s/components/images exists on GHCR (the publish job's log names each push). kubectl -n haki-staging describe pod haki-frontend-abc."
+
+  - name: an init container that cannot pull its image fires too
+    interval: 30s
+    input_series:
+      - series: 'kube_pod_init_container_status_waiting_reason{namespace="haki-staging", pod="haki-backend-abc", container="wait-for-db", reason="ImagePullBackOff"}'
+        values: "1x20"
+    alert_rule_test:
+      - eval_time: 8m
+        alertname: HakiStagingImagePullFailing
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+              namespace: haki-staging
+              pod: haki-backend-abc
+              container: wait-for-db
+            exp_annotations:
+              summary: haki-backend-abc cannot pull its image
+              description: "Container wait-for-db of haki-backend-abc has waited on its image for 5 minutes. Check that the tag in k8s/components/images exists on GHCR (the publish job's log names each push). kubectl -n haki-staging describe pod haki-backend-abc."
+
+  - name: a short pull, other waiting reasons and prod stay quiet
+    interval: 30s
+    input_series:
+      # 2 minutes of ImagePullBackOff, then the image arrives
+      - series: 'kube_pod_container_status_waiting_reason{namespace="haki-staging", pod="haki-backend-abc", container="backend", reason="ImagePullBackOff"}'
+        values: "1x4 _x20"
+      - series: 'kube_pod_container_status_waiting_reason{namespace="haki-staging", pod="haki-backend-def", container="backend", reason="ContainerCreating"}'
+        values: "1x30"
+      - series: 'kube_pod_container_status_waiting_reason{namespace="haki", pod="haki-backend-prod", container="backend", reason="ImagePullBackOff"}'
+        values: "1x30"
+    alert_rule_test:
+      - eval_time: 14m
+        alertname: HakiStagingImagePullFailing
+        exp_alerts: []
+
+  - name: a failed Job fires after a minute
+    interval: 30s
+    input_series:
+      - series: 'kube_job_failed{namespace="haki-staging", job_name="haki-catalog-import", condition="true"}'
+        values: "0 1x10"
+      - series: 'kube_job_failed{namespace="haki-staging", job_name="haki-catalog-import", condition="false"}'
+        values: "1 0x10"
+    alert_rule_test:
+      - eval_time: 1m
+        alertname: HakiStagingJobFailed
+        exp_alerts: []
+      - eval_time: 3m
+        alertname: HakiStagingJobFailed
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+              namespace: haki-staging
+              job_name: haki-catalog-import
+              condition: "true"
+            exp_annotations:
+              summary: Job haki-catalog-import failed
+              description: "Job haki-catalog-import in haki-staging failed. kubectl -n haki-staging logs job/haki-catalog-import; the import's exit code says why (k8s/README.md)."
+
+  - name: completed Jobs and prod's Jobs stay quiet
+    interval: 30s
+    input_series:
+      - series: 'kube_job_complete{namespace="haki-staging", job_name="haki-migrate", condition="true"}'
+        values: "1x10"
+      - series: 'kube_job_failed{namespace="haki", job_name="haki-migrate", condition="true"}'
+        values: "1x10"
+    alert_rule_test:
+      - eval_time: 5m
+        alertname: HakiStagingJobFailed
+        exp_alerts: []

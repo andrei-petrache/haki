@@ -39,3 +39,35 @@ groups:
         annotations:
           summary: "{{ $labels.pod }} is in a restart loop"
           description: "Container {{ $labels.container }} of {{ $labels.pod }} keeps restarting. kubectl -n haki-staging describe pod {{ $labels.pod }}; dashboard Pods (staging)."
+
+      # A container that has waited on its image for 5 minutes: the tag in
+      # Git names an image GHCR does not have (a publish that pushed one image
+      # and not the other, as haki-frontend:3666079 once did, or a deleted
+      # package), or GHCR cannot be reached. ErrImagePull and ImagePullBackOff
+      # take turns, so the reasons are merged per container before the 5
+      # minutes are counted; init containers count too
+      - alert: HakiStagingImagePullFailing
+        expr: |
+          max by (namespace, pod, container) (
+            {__name__=~"kube_pod_(init_)?container_status_waiting_reason", namespace="haki-staging", reason=~"ErrImagePull|ImagePullBackOff|InvalidImageName"}
+          ) == 1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "{{ $labels.pod }} cannot pull its image"
+          description: "Container {{ $labels.container }} of {{ $labels.pod }} has waited on its image for 5 minutes. Check that the tag in k8s/components/images exists on GHCR (the publish job's log names each push). kubectl -n haki-staging describe pod {{ $labels.pod }}."
+
+      # A Job that failed: the migration hook (the sync stops there, the
+      # previous version keeps running) or the catalog import (PostSync: the
+      # deploy goes on and the catalog stays as it was). The failed Job stays
+      # until the next sync replaces it (BeforeHookCreation), so this fires
+      # until then
+      - alert: HakiStagingJobFailed
+        expr: kube_job_failed{namespace="haki-staging", condition="true"} == 1
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Job {{ $labels.job_name }} failed"
+          description: "Job {{ $labels.job_name }} in haki-staging failed. kubectl -n haki-staging logs job/{{ $labels.job_name }}; the import's exit code says why (k8s/README.md)."
