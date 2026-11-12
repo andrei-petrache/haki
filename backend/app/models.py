@@ -367,6 +367,9 @@ class Workout(Base):
         DateTime(timezone=True), server_default=func.now()
     )
 
+    # Read-only: the day's program_id, for the client to read the plan
+    program_day: Mapped[ProgramDay | None] = relationship()
+
     # In the order they were added. Replacing the list deletes the old rows
     # (delete-orphan); deleting the workout leaves that to the database's
     # ON DELETE CASCADE (passive_deletes) instead of loading every row first.

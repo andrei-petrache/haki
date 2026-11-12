@@ -66,4 +66,5 @@ def test_deleting_the_program_clears_the_link_on_postgresql(
     stored = pg_client.get(f"/workouts/{started['id']}", headers=headers).json()
     assert started["program_day_id"] == day_id
     assert stored["program_day_id"] is None
+    assert started["program_id"] == plan["id"] and stored["program_id"] is None
     assert stored["exercises"] == started["exercises"]

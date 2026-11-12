@@ -26,6 +26,7 @@ def test_a_workout_logged_by_hand_has_no_program_day(
     created = create_workout(client, auth_headers, workout(squat))
 
     assert created["program_day_id"] is None
+    assert created["program_id"] is None
 
 
 def test_a_started_workout_remembers_its_day(
@@ -37,8 +38,10 @@ def test_a_started_workout_remembers_its_day(
     started = start(client, auth_headers, plan)
 
     assert started["program_day_id"] == plan["days"][0]["id"]
+    assert started["program_id"] == plan["id"]
     stored = client.get(f"/workouts/{started['id']}", headers=auth_headers).json()
     assert stored["program_day_id"] == plan["days"][0]["id"]
+    assert stored["program_id"] == plan["id"]
 
 
 def test_editing_a_started_workout_keeps_its_day(
@@ -56,3 +59,4 @@ def test_editing_a_started_workout_keeps_its_day(
 
     assert response.status_code == 200
     assert response.json()["program_day_id"] == plan["days"][0]["id"]
+    assert response.json()["program_id"] == plan["id"]

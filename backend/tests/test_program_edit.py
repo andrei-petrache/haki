@@ -90,7 +90,7 @@ def test_replace_program_leaves_started_workouts_alone(
     workout = client.get(f"/workouts/{started['id']}", headers=auth_headers).json()
     # What was done stays; the replaced day is gone, so the link is cleared
     assert started["program_day_id"] == day_id
-    assert workout == {**started, "program_day_id": None}
+    assert workout == {**started, "program_day_id": None, "program_id": None}
 
 
 def test_replace_program_keeps_its_own_name(

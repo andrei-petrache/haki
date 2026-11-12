@@ -2,7 +2,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Query, Response, status
 from sqlalchemy import func, select
-from sqlalchemy.orm import Session, selectinload
+from sqlalchemy.orm import Session, joinedload, selectinload
 
 from app.auth import CurrentUser, SessionDep
 from app.errors import ApiError, ErrorCode
@@ -45,6 +45,7 @@ def get_own_workout(session: Session, user: User, workout_id: int) -> Workout:
         .options(
             selectinload(Workout.exercises).joinedload(WorkoutExercise.exercise),
             selectinload(Workout.exercises).selectinload(WorkoutExercise.sets),
+            joinedload(Workout.program_day),
         )
         .where(Workout.id == workout_id)
     )
@@ -82,6 +83,7 @@ def to_response(workout: Workout) -> WorkoutResponse:
         performed_on=workout.performed_on,
         note=workout.note,
         program_day_id=workout.program_day_id,
+        program_id=workout.program_day.program_id if workout.program_day else None,
         exercises=[
             WorkoutExerciseResponse(
                 exercise_id=item.exercise_id,

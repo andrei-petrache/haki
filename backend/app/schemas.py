@@ -358,9 +358,11 @@ class WorkoutResponse(BaseModel):
     performed_on: date
     note: str | None
     exercises: list[WorkoutExerciseResponse]
-    # The program day it was started from (GET /programs/{id} has its plan);
-    # null when logged by hand, or when that day was deleted or replaced
+    # The program day it was started from, and that day's program, whose
+    # plan GET /programs/{program_id} returns; both null when logged by
+    # hand, or when that day was deleted or replaced
     program_day_id: int | None = None
+    program_id: int | None = None
 
 
 class WorkoutSummary(BaseModel):
