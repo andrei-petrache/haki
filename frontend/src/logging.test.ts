@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { displayName, entryName, headline, kcalFor, mealForHour, startGrams, stepGrams } from './logging'
+import { displayName, entryName, headline, kcalFor, keepOrder, mealForHour, startGrams, stepGrams } from './logging'
 
 describe('mealForHour', () => {
   it('follows the day: breakfast, lunch, dinner, then snacks late', () => {
@@ -68,5 +68,16 @@ describe('headline', () => {
     expect(headline({ totals, calories_remaining: 0 })).toEqual({ kind: 'left', kcal: 0 })
     expect(headline({ totals, calories_remaining: -120 })).toEqual({ kind: 'over', kcal: 120 })
     expect(headline({ totals, calories_remaining: null })).toEqual({ kind: 'eaten', kcal: 1511 })
+  })
+})
+
+describe('keepOrder', () => {
+  it('keeps known items where they were and puts new ones at the end', () => {
+    const now = [{ id: 3 }, { id: 1 }, { id: 9 }, { id: 2 }]
+    expect(keepOrder(now, [1, 2, 3]).map((x) => x.id)).toEqual([1, 2, 3, 9])
+  })
+
+  it('drops nothing and keeps the list as is without an order', () => {
+    expect(keepOrder([{ id: 2 }, { id: 1 }], []).map((x) => x.id)).toEqual([2, 1])
   })
 })

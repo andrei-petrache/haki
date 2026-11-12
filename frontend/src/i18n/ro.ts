@@ -140,6 +140,8 @@ export const ro: Dictionary = {
   'log.grams': 'Grame de {name}',
   'log.none': 'Nimic nu se potrivește cu „{q}”',
   'log.added': 'Am adăugat {food}, {grams} g, la {meal}.',
+  'log.removed': 'Am scos {food}, {grams} g, de la {meal}.',
+  'log.removedQuick': 'Am scos {food} de la {meal}.',
   'log.undo': 'Anulează',
   'log.chipLog': 'Adaugă {name}, {grams} g',
   'log.source': 'Sursa valorilor: {source}',
