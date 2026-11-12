@@ -87,3 +87,35 @@ describe('the rest store', () => {
     expect(parseRest('{"endsAt":5000,"seconds":60}')).toEqual({ endsAt: 5000, seconds: 60 })
   })
 })
+
+describe('moving and repeating a rest', () => {
+  it('moves a running rest by 15 s either way, never ending before now', () => {
+    const store = createRestStore(memoryStorage())
+    store.start(60, 0)
+
+    store.adjust(15, 1_000)
+    expect(store.get()).toEqual({ endsAt: 75_000, seconds: 75 })
+    store.adjust(-15, 1_000)
+    store.adjust(-15, 1_000)
+    expect(store.get()).toEqual({ endsAt: 45_000, seconds: 45 })
+    store.adjust(-120, 40_000)
+    expect(store.get()!.endsAt).toBe(40_000)
+  })
+
+  it('does nothing when no rest runs', () => {
+    const store = createRestStore(memoryStorage())
+    store.adjust(15, 0)
+    expect(store.get()).toBeNull()
+  })
+
+  it('starts the length started last, 90 s at first', () => {
+    const storage = memoryStorage()
+    const store = createRestStore(storage)
+
+    store.startLast(0)
+    expect(store.get()).toEqual({ endsAt: 90_000, seconds: 90 })
+    store.start(120, 0)
+    store.startLast(1_000)
+    expect(store.get()).toEqual({ endsAt: 121_000, seconds: 120 })
+  })
+})

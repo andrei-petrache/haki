@@ -5,9 +5,10 @@ import {
   createWorkout,
   describeError,
   fetchExercises,
+  fetchProgram,
   updateWorkout,
 } from './api'
-import type { Exercise, Workout } from './api'
+import type { Exercise, PlannedExercise, ProgramDay, Workout, WorkoutSet } from './api'
 import { formatDay, formatSet, localDateString } from './format'
 import { liveRecordIndex, useExerciseHistory } from './history'
 import { withoutKeys } from './formErrors'
@@ -16,6 +17,8 @@ import { weightToSend } from './units'
 import type { WeightUnit } from './units'
 import CatalogExercisePicker from './CatalogExercisePicker'
 import { RestStart } from './RestTimer'
+import { restStore } from './restTimer'
+import { firstOpenRow, lastSetText, plannedForBlocks, rowNote, untouchedPlan } from './workoutRows'
 import WeightInput from './WeightInput'
 import {
   DATE_KEY,
@@ -63,6 +66,10 @@ function ExerciseBlock({
   record,
   token,
   onPickFromCatalog,
+  lastSets,
+  planned,
+  done,
+  onToggleDone,
 }: {
   index: number
   item: ExerciseFields
@@ -78,8 +85,16 @@ function ExerciseBlock({
   token: string
   /** The row now uses this exercise, picked from the catalog */
   onPickFromCatalog: (exercise: Exercise) => void
+  /** Last time's sets of this exercise, for the "last time" column */
+  lastSets: WorkoutSet[] | null
+  /** What the program day plans for this block, if it was started from one */
+  planned: PlannedExercise | null
+  /** Which rows are ticked as done (this visit only) */
+  done: boolean[]
+  onToggleDone: (setIndex: number) => void
 }) {
   const { t } = useI18n()
+  const firstOpen = firstOpenRow(done, item.sets.length)
 
   function setSet(setIndex: number, change: Partial<SetFields>) {
     onChange({
@@ -127,49 +142,77 @@ function ExerciseBlock({
       <CatalogExercisePicker token={token} own={catalog} onPick={onPickFromCatalog} />
       {last && <p className="muted last-time">{last}</p>}
 
-      {item.sets.map((set, setIndex) => (
-        // Rows have no state of their own (the inputs are controlled), so the
-        // index is a safe key even when a row in the middle is removed
-        <div key={setIndex} className="set-row-wrap">
-          <div className="set-row">
-            <span className="muted">{setIndex + 1}</span>
-            <label>
-              {t('workouts.reps')}
-              <input
-                type="number"
-                inputMode="numeric"
-                min={1}
-                max={MAX_REPS}
-                step={1}
-                value={set.reps}
-                onChange={(event) => setSet(setIndex, { reps: event.target.value })}
-              />
-            </label>
-            <WeightInput
-              value={set.weight}
-              unit={unit}
-              of={t('workouts.setOf', { set: setIndex + 1, exercise: index + 1 })}
-              onChange={(weight) => setSet(setIndex, { weight })}
-            />
-            <button
-              type="button"
-              className="icon"
-              aria-label={t('workouts.removeSet', { set: setIndex + 1, exercise: index + 1 })}
-              onClick={() =>
-                onChange({ ...item, sets: item.sets.filter((_, i) => i !== setIndex) })
-              }
-            >
-              ×
-            </button>
-          </div>
-          <FieldError errors={errors} field={setKey(index, setIndex)} />
-          {record === setIndex && (
-            <p className="record-line">
-              <span className="record">{t('history.record')}</span>
-            </p>
-          )}
+      {item.sets.length > 0 && (
+        <div className="set-table-head" aria-hidden="true">
+          <span>{t('workouts.colSet')}</span>
+          <span>{t('workouts.colLast')}</span>
+          <span>{unit}</span>
+          <span>{t('workouts.colReps')}</span>
+          <span />
         </div>
-      ))}
+      )}
+      {item.sets.map((set, setIndex) => {
+        const isDone = done[setIndex] ?? false
+        const note = rowNote(setIndex, isDone, firstOpen, untouchedPlan(set, planned, unit))
+        const lastText = lastSetText(lastSets, setIndex, unit)
+        return (
+          // Rows have no state of their own (the inputs are controlled), so the
+          // index is a safe key even when a row in the middle is removed
+          <div key={setIndex} className="set-row-wrap">
+            <div className={`set-row${isDone ? ' done' : ''}${note === 'plan' ? ' plan' : ''}`}>
+              <span className="set-n">{setIndex + 1}</span>
+              <span className="set-last">
+                {lastText ?? '—'}
+                {note && <span className={`set-note ${note}`}>{t(note === 'next' ? 'workouts.next' : 'workouts.fromPlan')}</span>}
+              </span>
+              <WeightInput
+                compact
+                value={set.weight}
+                unit={unit}
+                of={t('workouts.setOf', { set: setIndex + 1, exercise: index + 1 })}
+                onChange={(weight) => setSet(setIndex, { weight })}
+              />
+              <label className="set-reps">
+                <span className="visually-hidden">{t('workouts.reps')}</span>
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  min={1}
+                  max={MAX_REPS}
+                  step={1}
+                  value={set.reps}
+                  onChange={(event) => setSet(setIndex, { reps: event.target.value })}
+                />
+              </label>
+              <button
+                type="button"
+                className="tick"
+                aria-pressed={isDone}
+                aria-label={t('workouts.done', { set: setIndex + 1, exercise: index + 1 })}
+                onClick={() => onToggleDone(setIndex)}
+              >
+                ✓
+              </button>
+              <button
+                type="button"
+                className="icon set-remove"
+                aria-label={t('workouts.removeSet', { set: setIndex + 1, exercise: index + 1 })}
+                onClick={() =>
+                  onChange({ ...item, sets: item.sets.filter((_, i) => i !== setIndex) })
+                }
+              >
+                ×
+              </button>
+            </div>
+            <FieldError errors={errors} field={setKey(index, setIndex)} />
+            {record === setIndex && (
+              <p className="record-line">
+                <span className="record">{t('history.record')}</span>
+              </p>
+            )}
+          </div>
+        )
+      })}
       <FieldError errors={errors} field={setsKey(index)} />
       <button
         type="button"
@@ -209,6 +252,10 @@ export default function WorkoutEditor({
   )
   const [errors, setErrors] = useState<FormErrors>({})
   const [saveError, setSaveError] = useState<string | null>(null)
+  // Sets ticked as done, by block: this visit only, not saved
+  const [done, setDone] = useState<boolean[][]>([])
+  // The program day this workout was started from, for its plan
+  const [planDay, setPlanDay] = useState<ProgramDay | null>(null)
   const [busy, setBusy] = useState(false)
   // Set synchronously, unlike busy: a double click must not save twice
   const saving = useRef(false)
@@ -237,6 +284,39 @@ export default function WorkoutEditor({
     fields ? fields.exercises.map((item) => Number(item.exercise)) : [],
     initial ? initial.id : null,
   )
+
+  // Started from a program: its day, to show the plan beside what was done
+  useEffect(() => {
+    const programId = initial?.program_id
+    const dayId = initial?.program_day_id
+    if (!programId || !dayId) return
+    let cancelled = false
+    fetchProgram(token, programId)
+      .then((program) => {
+        if (!cancelled) setPlanDay(program.days.find((day) => day.id === dayId) ?? null)
+      })
+      // No plan shown, the workout itself still works
+      .catch(() => {})
+    return () => {
+      cancelled = true
+    }
+  }, [token, initial])
+
+  function toggleDone(block: number, setIndex: number) {
+    const now = !(done[block]?.[setIndex] ?? false)
+    // A set done: the rest between sets starts, as long as last time
+    if (now) restStore.startLast()
+    setDone((old) => {
+      const next = old.map((row) => [...row])
+      while (next.length <= block) next.push([])
+      next[block][setIndex] = now
+      return next
+    })
+  }
+
+  function lastSetsOf(item: ExerciseFields): WorkoutSet[] | null {
+    return histories.get(Number(item.exercise))?.last?.sets ?? null
+  }
 
   function lastText(item: ExerciseFields): string | null {
     const last = histories.get(Number(item.exercise))?.last
@@ -283,6 +363,7 @@ export default function WorkoutEditor({
 
   function removeExercise(index: number) {
     setErrors((old) => clearRemovedExercise(old, index))
+    setDone((old) => old.filter((_, i) => i !== index))
     setFields(
       (current) =>
         current && {
@@ -360,7 +441,15 @@ export default function WorkoutEditor({
         void handleSave(fields, catalog)
       }}
     >
-      <h2>{title}</h2>
+      <div className="editor-head">
+        <div>
+          <h2>{planDay ? planDay.name || t('programs.dayTitle', { position: planDay.position, name: '' }) : title}</h2>
+          <p className="muted">{formatDay(fields.performedOn)}</p>
+        </div>
+        <button type="submit" disabled={busy}>
+          {busy ? t('common.saving') : t('common.save')}
+        </button>
+      </div>
       <label className="date-field">
         {t('workouts.date')}
         <input
@@ -387,9 +476,15 @@ export default function WorkoutEditor({
       </label>
       <FieldError errors={errors} field={NOTE_KEY} />
 
-      {fields.exercises.map((item, index) => (
+      {(() => {
+        const plans = plannedForBlocks(fields.exercises, planDay)
+        return fields.exercises.map((item, index) => (
         <ExerciseBlock
           key={index}
+          lastSets={lastSetsOf(item)}
+          planned={plans[index]}
+          done={done[index] ?? []}
+          onToggleDone={(setIndex) => toggleDone(index, setIndex)}
           index={index}
           item={item}
           catalog={catalog}
@@ -402,7 +497,8 @@ export default function WorkoutEditor({
           token={token}
           onPickFromCatalog={(exercise) => pickFromCatalog(index, exercise)}
         />
-      ))}
+        ))
+      })()}
       <FieldError errors={errors} field={EXERCISES_KEY} />
       <button
         type="button"
@@ -420,9 +516,6 @@ export default function WorkoutEditor({
       <RestStart />
 
       <div className="actions">
-        <button type="submit" disabled={busy}>
-          {busy ? t('common.saving') : t('common.save')}
-        </button>
         <button type="button" className="link" onClick={onCancel}>
           {t('common.cancel')}
         </button>
