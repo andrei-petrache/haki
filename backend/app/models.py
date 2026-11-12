@@ -32,6 +32,11 @@ class User(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     email: Mapped[str] = mapped_column(String(255), unique=True, index=True)
     password_hash: Mapped[str] = mapped_column(String(255))
+    # When the password was last changed; null if never. Every token carries
+    # it (app.security.password_stamp), so a change refuses older tokens.
+    password_changed_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), default=None
+    )
     daily_calorie_target: Mapped[int | None] = mapped_column(default=None)
     # "en" or "ro"; null follows the browser's language
     language: Mapped[str | None] = mapped_column(String(5), default=None)
