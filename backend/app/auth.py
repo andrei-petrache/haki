@@ -1,6 +1,7 @@
+from datetime import UTC, datetime
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Response, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
@@ -19,8 +20,9 @@ from app.schemas import (
 )
 from app.security import (
     create_access_token,
-    decode_access_token,
+    decode_token,
     hash_password,
+    password_stamp,
     verify_password,
 )
 
@@ -50,13 +52,22 @@ def get_current_user(
     """Resolve the user from the bearer token, or reject the request with 401."""
     if credentials is None:
         raise unauthorized("Not authenticated")
-    user_id = decode_access_token(credentials.credentials)
-    if user_id is None:
+    claims = decode_token(credentials.credentials)
+    if claims is None:
         raise unauthorized("Invalid or expired token")
-    user = session.get(User, user_id)
-    if user is None:
+    user = session.get(User, claims.user_id)
+    # A token from before the user's last password change is refused
+    if user is None or claims.password_stamp != password_stamp(
+        user.password_changed_at
+    ):
         raise unauthorized("Invalid or expired token")
     return user
+
+
+def token_for(user: User) -> TokenResponse:
+    """A fresh token for the user, tied to their current password."""
+    stamp = password_stamp(user.password_changed_at)
+    return TokenResponse(access_token=create_access_token(user.id, stamp))
 
 
 CurrentUser = Annotated[User, Depends(get_current_user)]
@@ -89,7 +100,7 @@ def login(data: LoginRequest, session: SessionDep) -> TokenResponse:
     password_ok = verify_password(data.password, stored_hash)
     if user is None or not password_ok:
         raise unauthorized("Invalid email or password")
-    return TokenResponse(access_token=create_access_token(user.id))
+    return token_for(user)
 
 
 @router.get("/me", response_model=UserResponse)
@@ -109,16 +120,16 @@ def update_settings(
     return current_user
 
 
-@router.put("/me/password", status_code=status.HTTP_204_NO_CONTENT)
+@router.put("/me/password", response_model=TokenResponse)
 def change_password(
     data: PasswordChangeIn, current_user: CurrentUser, session: SessionDep
-) -> Response:
-    """Replace the current user's password, given the current one.
+) -> TokenResponse:
+    """Replace the current user's password, given the current one, and sign
+    out everywhere else: every token issued before the change is refused
+    from now on. Returns a fresh token for the device that made the change.
 
     403 if the current password is wrong: the token is fine, so not a 401,
-    which clients rightly read as "signed out". Tokens issued before the change
-    stay valid until they expire: tokens carry no password version yet, so
-    this does not sign out other devices.
+    which clients rightly read as "signed out".
     """
     if not verify_password(data.current_password, current_user.password_hash):
         raise HTTPException(
@@ -126,8 +137,9 @@ def change_password(
             detail="Current password is wrong",
         )
     current_user.password_hash = hash_password(data.new_password)
+    current_user.password_changed_at = datetime.now(UTC)
     session.commit()
-    return Response(status_code=status.HTTP_204_NO_CONTENT)
+    return token_for(current_user)
 
 
 @router.put("/me/target", response_model=UserResponse)
