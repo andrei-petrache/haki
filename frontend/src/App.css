@@ -308,6 +308,38 @@ dd {
   max-width: 12rem;
 }
 
+/* One-tap picks above the entry form; they wrap instead of scrolling */
+.quick-picks {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+button.chip {
+  max-width: 100%;
+  overflow: hidden;
+  padding: 0.3rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: CanvasText;
+  background: transparent;
+}
+
+button.chip:hover:not(:disabled) {
+  background: var(--card-bg);
+}
+
+button.chip[aria-pressed='true'],
+button.chip[aria-pressed='true']:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: white;
+  background: var(--accent);
+}
+
 .entry-fields {
   display: grid;
   grid-template-columns: 2fr 1fr 1fr auto;

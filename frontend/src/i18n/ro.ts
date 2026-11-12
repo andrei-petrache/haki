@@ -80,6 +80,8 @@ export const ro: Dictionary = {
   'today.fat': 'Grăsimi',
   'today.addTitle': 'Adaugă în ziua asta',
   'today.food': 'Aliment',
+  'today.recent': 'Recente:',
+  'today.recentFoods': 'Alimente recente',
   'today.grams': 'Grame',
   'today.meal': 'Masa',
   'today.adding': 'Se adaugă…',

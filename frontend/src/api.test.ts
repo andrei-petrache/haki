@@ -2,8 +2,10 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   ApiError,
   PROGRAMS_PAGE_SIZE,
+  RECENT_FOODS_LIMIT,
   fetchFoods,
   fetchPrograms,
+  fetchRecentFoods,
   login,
   setUnauthorizedHandler,
   startWorkout,
@@ -114,5 +116,24 @@ describe('programs', () => {
       url: '/api/programs/3/days/7/workouts',
       body: { performed_on: '2026-11-11' },
     })
+  })
+})
+
+describe('recent foods', () => {
+  it('asks for the few Today shows, newest first as the server sends them', async () => {
+    const fetchMock = vi.fn(
+      async () =>
+        new Response(JSON.stringify([{ id: 2, name: 'Oats' }]), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        }),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+
+    const foods = await fetchRecentFoods('a-token')
+
+    expect(foods).toEqual([{ id: 2, name: 'Oats' }])
+    const [url] = fetchMock.mock.calls[0] as unknown as [string]
+    expect(url.endsWith(`/foods/recent?limit=${RECENT_FOODS_LIMIT}`)).toBe(true)
   })
 })

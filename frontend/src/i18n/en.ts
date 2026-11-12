@@ -80,6 +80,8 @@ export const en = {
   'today.fat': 'Fat',
   'today.addTitle': 'Add to this day',
   'today.food': 'Food',
+  'today.recent': 'Recent:',
+  'today.recentFoods': 'Recent foods',
   'today.grams': 'Grams',
   'today.meal': 'Meal',
   'today.adding': 'Adding…',

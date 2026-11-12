@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   MEAL_TYPES,
   createEntry,
@@ -6,6 +6,7 @@ import {
   describeError,
   fetchEntries,
   fetchFoods,
+  fetchRecentFoods,
   fetchSummary,
   setCalorieTarget,
 } from './api'
@@ -218,19 +219,56 @@ function SummaryCard({
   )
 }
 
+/**
+ * One tap per recently logged food: picks it in the form and moves on to
+ * the grams, the only field that usually changes.
+ */
+function RecentPicks({
+  recent,
+  foodId,
+  onPick,
+}: {
+  recent: Food[]
+  foodId: string
+  onPick: (food: Food) => void
+}) {
+  const { t } = useI18n()
+  if (recent.length === 0) return null
+
+  return (
+    <div className="quick-picks" role="group" aria-label={t('today.recentFoods')}>
+      <span className="muted">{t('today.recent')}</span>
+      {recent.map((food) => (
+        <button
+          key={food.id}
+          type="button"
+          className="chip"
+          aria-pressed={String(food.id) === foodId}
+          onClick={() => onPick(food)}
+        >
+          {food.name}
+        </button>
+      ))}
+    </div>
+  )
+}
+
 function AddEntryForm({
   token,
   day,
   foods,
+  recent,
   onAdded,
 }: {
   token: string
   day: string
   foods: Food[]
+  recent: Food[]
   onAdded: () => void
 }) {
   const { t } = useI18n()
   const [foodId, setFoodId] = useState(String(foods[0].id))
+  const gramsRef = useRef<HTMLInputElement>(null)
   const [grams, setGrams] = useState('')
   const [mealType, setMealType] = useState<MealType>('breakfast')
   const [error, setError] = useState<string | null>(null)
@@ -265,6 +303,14 @@ function AddEntryForm({
       }}
     >
       <h2>{t('today.addTitle')}</h2>
+      <RecentPicks
+        recent={recent}
+        foodId={foodId}
+        onPick={(food) => {
+          setFoodId(String(food.id))
+          gramsRef.current?.focus()
+        }}
+      />
       <div className="entry-fields">
         <label className="food-field">
           {t('today.food')}
@@ -279,6 +325,7 @@ function AddEntryForm({
         <label>
           {t('today.grams')}
           <input
+            ref={gramsRef}
             type="number"
             inputMode="decimal"
             min={0.1}
@@ -375,6 +422,7 @@ export default function TodayPage({
   const { t } = useI18n()
   const [day, setDay] = useState(localDateString)
   const [foods, setFoods] = useState<Food[] | null>(null)
+  const [recent, setRecent] = useState<Food[]>([])
   const [data, setData] = useState<DayData | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [deletingId, setDeletingId] = useState<number | null>(null)
@@ -395,6 +443,22 @@ export default function TodayPage({
       cancelled = true
     }
   }, [token])
+
+  // Reloaded after every change: a food just logged moves to the front
+  useEffect(() => {
+    let cancelled = false
+    fetchRecentFoods(token)
+      .then((list) => {
+        if (!cancelled) setRecent(list)
+      })
+      // Only a shortcut: without it the form still works, so no error shown
+      .catch(() => {
+        if (!cancelled) setRecent([])
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [token, version])
 
   useEffect(() => {
     // If the day changes before the answer arrives, ignore the stale answer
@@ -457,7 +521,13 @@ export default function TodayPage({
         </section>
       )}
       {foods && foods.length > 0 && (
-        <AddEntryForm token={token} day={day} foods={foods} onAdded={reload} />
+        <AddEntryForm
+          token={token}
+          day={day}
+          foods={foods}
+          recent={recent}
+          onAdded={reload}
+        />
       )}
 
       {current && (
