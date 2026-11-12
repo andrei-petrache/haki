@@ -736,6 +736,7 @@ update, and change nothing. Turning them on, in this order:
    for `.github/workflows/guard.yml` and `.github/workflows/automerge.yml`.
    `prod-guard` needs it anyway: GitHub blocks the event by default on
    public repositories from 2 December 2026 (a brownout on 16 November).
+   Done: `allow-pull-request-target`, saved on 12 November 2026.
 2. Settings → General: **Allow auto-merge** (on since S9).
 3. One Monday batch of Dependabot pull requests in dry run, its logs read.
 4. The variables, one kind at a time.
