@@ -62,12 +62,26 @@ jobs:
 
       # Into the object store only: no checkout, the working tree stays main's.
       # The repository is public, so no credentials are needed.
+      # GitHub can start this job before refs/pull/N/head exists: on #153,
+      # opened seconds after its push, the fetch found no such ref. Only the
+      # fetch is tried again, 3 times in all, 5 s then 10 s apart; if the ref
+      # is still missing, the step fails. Tests: scripts/test-guard-fetch.sh
       - name: Fetch the pull request's commits, as data
         env:
           NUMBER: ${{ github.event.pull_request.number }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
-          git fetch --no-tags -q origin "+refs/pull/$NUMBER/head:refs/remotes/pull/head"
+          for try in 1 2 3; do
+            if git fetch --no-tags -q origin "+refs/pull/$NUMBER/head:refs/remotes/pull/head"; then
+              break
+            fi
+            if [ "$try" = 3 ]; then
+              echo "::error::refs/pull/$NUMBER/head could not be fetched after 3 tries"
+              exit 1
+            fi
+            echo "::warning::refs/pull/$NUMBER/head could not be fetched (try $try of 3); next try in $((try * 5)) s"
+            sleep $((try * 5))
+          done
           [ "$(git rev-parse refs/remotes/pull/head)" = "$HEAD_SHA" ] \
             || { echo "::error::The pull request moved while this ran; the next run checks it"; exit 1; }
 
