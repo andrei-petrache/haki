@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 from app.auth import CurrentUser, SessionDep
 from app.errors import ApiError, ErrorCode
 from app.models import CatalogFood, Food, MealEntry, User
-from app.schemas import CatalogFoodCopyIn, FoodIn, FoodResponse, IdPath
+from app.schemas import CatalogFoodCopyIn, FoodIn, FoodResponse, IdPath, LastLogged
 
 router = APIRouter(prefix="/foods", tags=["foods"])
 
@@ -26,6 +26,50 @@ def get_own_food(session: Session, user: User, food_id: int) -> Food:
     return food
 
 
+def last_logged(
+    session: Session, user: User, food_ids: list[int]
+) -> dict[int, LastLogged]:
+    """The user's newest entry of each food, by entry id, in one query."""
+    if not food_ids:
+        return {}
+    newest = (
+        select(func.max(MealEntry.id))
+        .where(MealEntry.user_id == user.id, MealEntry.food_id.in_(food_ids))
+        .group_by(MealEntry.food_id)
+    )
+    rows = session.execute(
+        select(
+            MealEntry.food_id,
+            MealEntry.grams,
+            MealEntry.meal_type,
+            MealEntry.eaten_on,
+        ).where(MealEntry.id.in_(newest))
+    )
+    return {
+        row.food_id: LastLogged(
+            grams=row.grams, meal_type=row.meal_type, eaten_on=row.eaten_on
+        )
+        for row in rows
+    }
+
+
+def food_responses(
+    session: Session, user: User, foods: list[Food]
+) -> list[FoodResponse]:
+    """The foods as responses, each with how it was last logged."""
+    last = last_logged(session, user, [food.id for food in foods])
+    return [
+        FoodResponse.model_validate(food).model_copy(
+            update={"last_logged": last.get(food.id)}
+        )
+        for food in foods
+    ]
+
+
+def food_response(session: Session, user: User, food: Food) -> FoodResponse:
+    return food_responses(session, user, [food])[0]
+
+
 def commit_or_conflict(session: Session, code: ErrorCode) -> None:
     """Commit, turning a database constraint violation into the 409 `code`."""
     try:
@@ -40,7 +84,7 @@ def list_foods(
     current_user: CurrentUser,
     session: SessionDep,
     favourite: Annotated[bool | None, Query()] = None,
-) -> list[Food]:
+) -> list[FoodResponse]:
     """Return the current user's foods, sorted by name; with favourite=true
     only their favourites, with favourite=false only the others."""
     query = select(Food).where(Food.user_id == current_user.id).order_by(Food.name)
@@ -48,7 +92,7 @@ def list_foods(
         query = query.where(Food.favourited_at.is_not(None))
     elif favourite is False:
         query = query.where(Food.favourited_at.is_(None))
-    return list(session.scalars(query))
+    return food_responses(session, current_user, list(session.scalars(query)))
 
 
 @router.get("/recent", response_model=list[FoodResponse])
@@ -56,7 +100,7 @@ def list_recent_foods(
     current_user: CurrentUser,
     session: SessionDep,
     limit: Annotated[int, Query(ge=1, le=50)] = 20,
-) -> list[Food]:
+) -> list[FoodResponse]:
     """Return the current user's foods by when they were last logged, newest
     first, each once. Foods never logged are left out.
 
@@ -77,17 +121,19 @@ def list_recent_foods(
         .order_by(last_use.c.last_entry_id.desc())
         .limit(limit)
     )
-    return list(session.scalars(query))
+    return food_responses(session, current_user, list(session.scalars(query)))
 
 
 @router.post("", status_code=status.HTTP_201_CREATED, response_model=FoodResponse)
-def create_food(data: FoodIn, current_user: CurrentUser, session: SessionDep) -> Food:
+def create_food(
+    data: FoodIn, current_user: CurrentUser, session: SessionDep
+) -> FoodResponse:
     """Add a food to the current user's list."""
     food = Food(user_id=current_user.id, **data.model_dump())
     session.add(food)
     commit_or_conflict(session, ErrorCode.FOOD_NAME_TAKEN)
     session.refresh(food)
-    return food
+    return food_response(session, current_user, food)
 
 
 def find_own_copy(session: Session, user: User, catalog_food_id: int) -> Food | None:
@@ -106,7 +152,7 @@ def copy_catalog_food(
     response: Response,
     current_user: CurrentUser,
     session: SessionDep,
-) -> Food:
+) -> FoodResponse:
     """Add a catalog food to the current user's list, as their own copy.
 
     201 with the new copy; 200 with the existing one if the user already
@@ -119,7 +165,7 @@ def copy_catalog_food(
     existing = find_own_copy(session, current_user, item.id)
     if existing is not None:
         response.status_code = status.HTTP_200_OK
-        return existing
+        return food_response(session, current_user, existing)
     food = Food(
         user_id=current_user.id,
         name=item.name_ro if data.language == "ro" and item.name_ro else item.name,
@@ -138,23 +184,23 @@ def copy_catalog_food(
         existing = find_own_copy(session, current_user, item.id)
         if existing is not None:
             response.status_code = status.HTTP_200_OK
-            return existing
+            return food_response(session, current_user, existing)
         raise ApiError(ErrorCode.FOOD_NAME_TAKEN) from None
     session.refresh(food)
-    return food
+    return food_response(session, current_user, food)
 
 
 @router.put("/{food_id}", response_model=FoodResponse)
 def update_food(
     food_id: IdPath, data: FoodIn, current_user: CurrentUser, session: SessionDep
-) -> Food:
+) -> FoodResponse:
     """Replace all fields of one of the current user's foods."""
     food = get_own_food(session, current_user, food_id)
     for field, value in data.model_dump().items():
         setattr(food, field, value)
     commit_or_conflict(session, ErrorCode.FOOD_NAME_TAKEN)
     session.refresh(food)
-    return food
+    return food_response(session, current_user, food)
 
 
 @router.delete("/{food_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -172,14 +218,14 @@ def delete_food(
 @router.put("/{food_id}/favourite", response_model=FoodResponse)
 def mark_favourite(
     food_id: IdPath, current_user: CurrentUser, session: SessionDep
-) -> Food:
+) -> FoodResponse:
     """Mark one of the current user's foods as a favourite. Idempotent: a
     favourite stays one, with the time it was first marked."""
     food = get_own_food(session, current_user, food_id)
     if food.favourited_at is None:
         food.favourited_at = datetime.now(UTC)
         session.commit()
-    return food
+    return food_response(session, current_user, food)
 
 
 @router.delete("/{food_id}/favourite", status_code=status.HTTP_204_NO_CONTENT)

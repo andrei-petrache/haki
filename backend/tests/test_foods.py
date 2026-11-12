@@ -34,6 +34,7 @@ def test_create_food_returns_it_with_id(
         "id": body["id"],
         "catalog_food_id": None,
         "favourite": False,
+        "last_logged": None,
     }
 
 
@@ -66,6 +67,7 @@ def test_update_food_replaces_fields(
         "id": food["id"],
         "catalog_food_id": None,
         "favourite": False,
+        "last_logged": None,
     }
 
 
@@ -294,7 +296,8 @@ def test_recent_foods_returns_full_foods(
 
     response = client.get("/foods/recent", headers=auth_headers)
 
-    assert response.json() == [food]
+    last = {"grams": 100.0, "meal_type": "lunch", "eaten_on": "2026-11-11"}
+    assert response.json() == [{**food, "last_logged": last}]
 
 
 def test_recent_foods_respects_limit(
