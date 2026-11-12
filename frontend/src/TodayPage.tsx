@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import {
   MEAL_TYPES,
   copyMeal,
+  createEntry,
   createQuickEntry,
   deleteMealEntry,
   entryKey,
@@ -15,7 +16,7 @@ import {
 import type { DailySummary, Food, MealEntry, MealType } from './api'
 import { defaultCopyDay } from './copyTarget'
 import FoodLogger from './FoodLogger'
-import { MEAL_LABELS, entryName, headline, mealForHour } from './logging'
+import { MEAL_LABELS, entryName, headline, keepOrder, mealForHour } from './logging'
 import Toast from './Toast'
 import type { ToastMessage } from './Toast'
 import { formatDay, formatDayLabel, formatDecimal, formatKcal, localDateString, shiftDate } from './format'
@@ -526,12 +527,20 @@ export default function TodayPage({
     }
   }, [token, version])
 
-  // Reloaded after every change: a food just logged moves to the front
+  // The chips' order, fixed for this visit and day: a chip just used keeps
+  // its place (its quantity updates); new foods go to the end
+  const chipOrder = useRef<{ day: string; ids: number[] } | null>(null)
+
+  // Reloaded after every change, for the quantities and new foods
   useEffect(() => {
     let cancelled = false
     fetchRecentFoods(token)
       .then((list) => {
-        if (!cancelled) setRecent(list)
+        if (cancelled) return
+        const order = chipOrder.current
+        const kept = order && order.day === day ? keepOrder(list, order.ids) : list
+        chipOrder.current = { day, ids: kept.map((food) => food.id) }
+        setRecent(kept)
       })
       // Only a shortcut: without it the form still works, so no error shown
       .catch(() => {
@@ -540,7 +549,7 @@ export default function TodayPage({
     return () => {
       cancelled = true
     }
-  }, [token, version])
+  }, [token, version, day])
 
   useEffect(() => {
     // If the day changes before the answer arrives, ignore the stale answer
@@ -559,21 +568,49 @@ export default function TodayPage({
     }
   }, [token, day, version])
 
+  /**
+   * Delete at once, no confirm dialog: the message offers Undo, which logs
+   * the same entry again (a quick entry with its own kcal and macros).
+   */
   async function handleDelete(entry: MealEntry) {
-    const meal = t(MEAL_LABELS[entry.meal_type])
-    const question =
-      entry.grams === null
-        ? t('quick.removeConfirm', { food: entryName(entry, locale), meal })
-        : t('today.removeConfirm', {
-            food: entryName(entry, locale),
-            grams: formatDecimal(entry.grams),
-            meal,
-          })
-    if (!window.confirm(question)) return
     setDeletingKey(entryKey(entry))
     try {
       await deleteMealEntry(token, entry)
       reload()
+      const food = entryName(entry, locale)
+      const meal = t(MEAL_LABELS[entry.meal_type])
+      setToast({
+        id: Date.now(),
+        text:
+          entry.grams === null
+            ? t('log.removedQuick', { food, meal })
+            : t('log.removed', { food, grams: formatDecimal(entry.grams), meal }),
+        undo: async () => {
+          try {
+            if (entry.grams === null || entry.food_id === null) {
+              await createQuickEntry(token, {
+                eaten_on: entry.eaten_on,
+                meal_type: entry.meal_type,
+                calories: entry.calories,
+                name: entry.food_name,
+                protein: entry.protein,
+                carbs: entry.carbs,
+                fat: entry.fat,
+              })
+            } else {
+              await createEntry(token, {
+                food_id: entry.food_id,
+                eaten_on: entry.eaten_on,
+                meal_type: entry.meal_type,
+                grams: entry.grams,
+              })
+            }
+          } catch (err) {
+            setError(describeError(err))
+          }
+          reload()
+        },
+      })
     } catch (err) {
       setError(describeError(err))
     } finally {
@@ -624,7 +661,11 @@ export default function TodayPage({
                 meal: t(MEAL_LABELS[entry.meal_type]),
               }),
               undo: async () => {
-                await deleteMealEntry(token, entry)
+                try {
+                  await deleteMealEntry(token, entry)
+                } catch (err) {
+                  setError(describeError(err))
+                }
                 reload()
               },
             })

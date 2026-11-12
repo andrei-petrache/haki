@@ -140,6 +140,8 @@ export const en = {
   'log.grams': 'Grams of {name}',
   'log.none': 'Nothing matches "{q}"',
   'log.added': 'Added {food}, {grams} g, to {meal}.',
+  'log.removed': 'Removed {food}, {grams} g, from {meal}.',
+  'log.removedQuick': 'Removed {food} from {meal}.',
   'log.undo': 'Undo',
   'log.chipLog': 'Log {name}, {grams} g',
   'log.source': 'Values from {source}',

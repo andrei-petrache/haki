@@ -45,6 +45,17 @@ export function entryName(
   return displayName({ ...entry, name: entry.food_name }, locale)
 }
 
+/**
+ * Keep a list in the order first seen: items already known keep their
+ * place, new ones go to the end. Today's chips use it, so the chip just
+ * used does not jump to the front while the user is on the page.
+ */
+export function keepOrder<T extends { id: number }>(list: T[], order: number[]): T[] {
+  const place = new Map(order.map((id, index) => [id, index]))
+  const known = list.filter((item) => place.has(item.id)).sort((a, b) => place.get(a.id)! - place.get(b.id)!)
+  return [...known, ...list.filter((item) => !place.has(item.id))]
+}
+
 /** Grams a pick starts from: as last time, else 100 g. */
 export function startGrams(last: { grams: number } | null | undefined): number {
   return last ? last.grams : 100

@@ -92,6 +92,9 @@ test('search: your foods first, then the catalog; Add logs what the stepper says
 
   await expect(toast()).toContainText('Added Milk, 110 g, to Breakfast.')
   await expect(page.locator('section.meal li', { hasText: 'Milk' })).toContainText('110 g')
+  // Done with this search: the field is empty and the results closed
+  await expect(logger().getByPlaceholder('Search a food')).toHaveValue('')
+  await expect(logger().locator('li.result')).toHaveCount(0)
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390)
   await page.screenshot({ path: `${SHOTS}/30-search-phone.png`, fullPage: true })
 })
@@ -119,10 +122,13 @@ test('a chip logs as much as last time in one tap, and Undo takes it back', asyn
   const chip = recent.getByRole('button', { name: 'Log Milk, 110 g' })
   await expect(chip).toContainText('110 g')
   const before = (await entriesToday()).length
+  const order = await page.locator('.chip-row button.chip').allTextContents()
 
   await chip.click()
   await expect(toast()).toContainText('Added Milk, 110 g, to Breakfast.')
   await expect.poll(async () => (await entriesToday()).length).toBe(before + 1)
+  // The chip just used keeps its place while the user stays on the page
+  await expect.poll(async () => page.locator('.chip-row button.chip').allTextContents()).toEqual(order)
   await page.screenshot({ path: `${SHOTS}/31-chip-undo-phone.png`, fullPage: true })
 
   await toast().getByRole('button', { name: 'Undo' }).click()
@@ -142,6 +148,37 @@ test('a favourite never logged opens its stepper instead', async () => {
   await oats.getByRole('button', { name: 'Add 389 kcal' }).click()
   await expect(toast()).toContainText('Added Oats, 100 g, to Breakfast.')
   await expect(favourites.getByRole('button', { name: 'Log Oats, 100 g' })).toBeVisible()
+})
+
+test('deleting an entry: at once, no dialog, Undo for 8 seconds above the bottom bar', async () => {
+  let dialogs = 0
+  const count = () => {
+    dialogs += 1
+  }
+  page.on('dialog', (dialog) => {
+    count()
+    void dialog.dismiss()
+  })
+  await chooseMeal('Breakfast')
+  const before = (await entriesToday()).length
+  const row = page.locator('section.meal li', { hasText: 'Oats' }).first()
+  await row.getByRole('button', { name: 'Delete Oats' }).click()
+
+  await expect(toast()).toContainText('Removed Oats, 100 g, from Breakfast.')
+  await expect.poll(async () => (await entriesToday()).length).toBe(before - 1)
+  expect(dialogs).toBe(0)
+  const message = await box(toast())
+  const bar = await box(page.getByRole('navigation'))
+  expect(message.y + message.height, 'Undo above the bottom bar').toBeLessThanOrEqual(bar.y)
+  await page.screenshot({ path: `${SHOTS}/37-delete-undo-phone.png` })
+
+  // Still there after 6.5 s (it stays 8 s)
+  await page.waitForTimeout(6500)
+  await expect(toast()).toBeVisible()
+  await toast().getByRole('button', { name: 'Undo' }).click()
+  await expect.poll(async () => (await entriesToday()).filter((e) => e.food_name === 'Oats')).toHaveLength(1)
+  await expect.poll(async () => (await entriesToday()).length).toBe(before)
+  page.removeAllListeners('dialog')
 })
 
 test('on a 390 px phone: search and the first meal show without scrolling; one chip row', async () => {
