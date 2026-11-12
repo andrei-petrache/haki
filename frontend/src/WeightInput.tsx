@@ -16,9 +16,12 @@ export default function WeightInput({
   unit,
   of,
   onChange,
+  compact = false,
 }: {
   value: string
   unit: WeightUnit
+  /** In a table row: the label is read out but not shown (the column says it) */
+  compact?: boolean
   /** What the weight belongs to, for the buttons' labels: "set 2 of exercise 1" */
   of: string
   onChange: (text: string) => void
@@ -33,7 +36,7 @@ export default function WeightInput({
   return (
     <div className="weight-input">
       <label>
-        {t('weight.label', { unit })}
+        <span className={compact ? 'visually-hidden' : undefined}>{t('weight.label', { unit })}</span>
         <input
           type="number"
           inputMode="decimal"

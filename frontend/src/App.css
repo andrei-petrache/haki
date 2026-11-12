@@ -1149,3 +1149,152 @@ button.chip[aria-pressed='true'] .chip-grams {
 .profile-target p {
   margin: 0 0 0.25rem;
 }
+
+/* Direction A: the workout editor */
+
+.editor-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.editor-head h2 {
+  font-size: 1.4rem;
+}
+
+/* Set rows: set, last time, weight, reps, done, remove; on one line on a
+   desktop. The column heads are for the eye only: each input has its label */
+.set-table-head,
+.set-row {
+  display: grid;
+  grid-template-columns: 2rem minmax(5rem, 1.2fr) minmax(0, 2fr) minmax(3.5rem, 0.8fr) 44px 32px;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.set-table-head {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.set-row .set-n {
+  font-family: var(--font-num);
+  font-weight: 700;
+  text-align: center;
+  color: var(--muted);
+}
+
+.set-last {
+  display: flex;
+  flex-direction: column;
+  font-size: 0.9rem;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.set-note {
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.set-note.next {
+  color: var(--accent-text);
+}
+
+.set-row .weight-input {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.set-row .weight-input label {
+  flex: 1;
+  min-width: 0;
+}
+
+.set-row input {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 44px;
+  text-align: center;
+  font-family: var(--font-num);
+  font-size: 1.05rem;
+}
+
+/* Still the plan as the program filled it: dimmer until touched or done */
+.set-row.plan input {
+  color: var(--muted);
+  font-style: italic;
+}
+
+button.tick {
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-cell);
+  font-size: 1.1rem;
+  color: var(--muted);
+  background: transparent;
+}
+
+button.tick[aria-pressed='true'],
+button.tick[aria-pressed='true']:hover:not(:disabled) {
+  border-color: var(--accent-fill);
+  color: var(--on-accent);
+  background: var(--accent-fill);
+}
+
+.set-row.done .set-n {
+  color: var(--accent-text);
+}
+
+/* The rest bar: the time big, then -15 s, +15 s and Skip */
+.rest-clock {
+  flex: 1;
+  font-family: var(--font-num);
+  font-size: 1.3rem;
+  font-weight: 700;
+}
+
+.rest-bar {
+  gap: 0.4rem;
+}
+
+.rest-bar button {
+  min-height: 44px;
+  padding: 0 0.7rem;
+}
+
+/* A phone: each set on two lines (number, last time and done; then the
+   weight with its plate buttons, reps and remove) */
+@media (max-width: 30rem) {
+  .set-table-head {
+    display: none;
+  }
+
+  /* Line 1: number, last time, reps, done. Line 2: the weight with its
+     plate buttons across the row (room for "102,5"), then remove */
+  .set-row {
+    grid-template-columns: 1.5rem minmax(0, 1fr) 4rem 44px;
+    grid-template-areas:
+      'n last reps tick'
+      'n weight weight remove';
+    row-gap: 0.35rem;
+  }
+
+  .set-row .set-n { grid-area: n; align-self: start; padding-top: 0.6rem; }
+  .set-row .set-last { grid-area: last; flex-direction: row; gap: 0.5rem; align-items: baseline; }
+  .set-row .weight-input { grid-area: weight; }
+  .set-row .set-reps { grid-area: reps; }
+  .set-row .tick { grid-area: tick; }
+  .set-row .set-remove { grid-area: remove; justify-self: center; }
+
+  .rest-clock {
+    font-size: 1.1rem;
+  }
+}
