@@ -69,3 +69,59 @@ test('change the password: checked here first, then by the server', async () => 
   expect((await login('a-new-secret-1')).status()).toBe(200)
   expect((await login(account.password)).status()).toBe(401)
 })
+
+/**
+ * Submit, waiting out Nginx's login budget (5 a minute, shared with
+ * signup, login and password changes) like the API helper does: on 429
+ * the form says so; wait, then submit again. Returns once anything else
+ * happened.
+ */
+async function submitPatiently(button: Locator, form: Locator) {
+  for (let attempt = 0; attempt < 6; attempt++) {
+    await button.click()
+    const limited = form.locator('.error', { hasText: 'Too many attempts' })
+    await page.waitForTimeout(500)
+    if (!(await limited.isVisible().catch(() => false))) return
+    await page.waitForTimeout(13_000)
+  }
+}
+
+test('delete the account: a step that names it, the password, and nothing without both', async () => {
+  let dialogs = 0
+  page.on('dialog', (dialog) => {
+    dialogs += 1
+    void dialog.dismiss()
+  })
+  const password = 'a-new-secret-1'
+  // The password test reloaded the page, which opens on Today
+  await tab('Profile').click()
+  await page.getByRole('button', { name: 'Delete account' }).click()
+  const step = page.getByRole('form', { name: 'Delete your account' })
+  await expect(step).toContainText(account.email)
+  await expect(step).toContainText('It cannot be undone.')
+  const confirm = step.getByRole('button', { name: 'Delete my account' })
+  await expect(confirm).toBeDisabled()
+
+  // A wrong password: refused, nothing deleted, still logged in
+  await step.getByLabel('Your password').fill('not-the-password')
+  await step.getByRole('checkbox').check()
+  await submitPatiently(confirm, step)
+  await expect(step).toContainText('The password is wrong. Nothing was deleted.')
+  await expect(page.getByRole('navigation')).toBeVisible()
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390)
+  await page.screenshot({ path: `${SHOTS}/40-delete-account-phone.png`, fullPage: true })
+
+  await step.getByLabel('Your password').fill(password)
+  await submitPatiently(confirm, step)
+  await expect(page.getByRole('status')).toHaveText('Your account and its data were deleted.')
+  await expect(page.getByRole('heading', { name: 'Welcome back' })).toBeVisible()
+  expect(dialogs).toBe(0)
+
+  // Gone for good: the login is refused, and the email is free again
+  let status = 429
+  for (let attempt = 0; attempt < 6 && status === 429; attempt++) {
+    if (attempt > 0) await page.waitForTimeout(13_000)
+    status = (await page.request.post('/api/auth/login', { data: { email: account.email, password } })).status()
+  }
+  expect(status).toBe(401)
+})

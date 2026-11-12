@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import DeleteAccount from './DeleteAccount'
 import ChangePassword from './ChangePassword'
 import {
   ApiError,
@@ -150,6 +151,7 @@ function Profile({
   browserLocale,
   onLocaleChoiceChange,
   onNewToken,
+  onDeleted,
 }: {
   token: string
   user: User
@@ -159,6 +161,7 @@ function Profile({
   browserLocale: Locale
   onLocaleChoiceChange: (choice: LocaleChoice) => void
   onNewToken: (token: string) => void
+  onDeleted: () => void
 }) {
   const { t, locale } = useI18n()
   const [showCredits, setShowCredits] = useState(false)
@@ -208,6 +211,7 @@ function Profile({
       </label>
       <p className="muted">{t('profile.languageNote')}</p>
       <ChangePassword token={token} onNewToken={onNewToken} />
+      <DeleteAccount token={token} email={user.email} onDeleted={onDeleted} />
       <button type="button" className="link" onClick={() => setShowCredits(true)}>
         {t('credits.open')}
       </button>
@@ -253,6 +257,8 @@ function App() {
     localStorage.getItem(TOKEN_KEY),
   )
   const [user, setUser] = useState<User | null>(null)
+  // Shown on the login screen right after the account was deleted
+  const [farewell, setFarewell] = useState(false)
   const [tab, setTab] = useState<Tab>('today')
   // A workout to open when the Workouts tab shows, e.g. one just started
   const [openWorkoutId, setOpenWorkoutId] = useState<number | null>(null)
@@ -330,7 +336,13 @@ function App() {
         <main className="container">
           <h1>Haki</h1>
           <p className="tagline">{t('app.tagline')}</p>
-          <AuthForm onLoggedIn={handleLoggedIn} />
+          {farewell && <p role="status">{t('account.deleted')}</p>}
+          <AuthForm
+            onLoggedIn={(newToken) => {
+              setFarewell(false)
+              handleLoggedIn(newToken)
+            }}
+          />
         </main>
       </I18nContext.Provider>
     )
@@ -393,6 +405,10 @@ function App() {
           localeChoice={localeChoice}
           browserLocale={browserLocale}
           onNewToken={handleLoggedIn}
+          onDeleted={() => {
+            handleLogout()
+            setFarewell(true)
+          }}
           onLocaleChoiceChange={(choice) => {
             saveLocaleChoice(choice)
             setLocaleChoice(choice)
