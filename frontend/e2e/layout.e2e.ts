@@ -36,6 +36,13 @@ test('on a phone: five tabs in a bar at the bottom, Log out in Profile', async (
     expect(box!.y, `tab ${i} top`).toBeGreaterThan(844 - 100)
   }
   await expect(tabs().first()).toHaveAttribute('aria-current', 'page')
+  // Wordmark and the day, as words between the arrows, on one row at the top
+  const brand = await page.locator('.brand').boundingBox()
+  const previous = await page.getByRole('button', { name: 'Previous day' }).boundingBox()
+  const label = page.locator('button.day-label')
+  await expect(label).toHaveText(/^Today, \d{1,2} [A-Z][a-z]{2}$/)
+  expect(Math.abs(brand!.y + brand!.height / 2 - (previous!.y + previous!.height / 2))).toBeLessThan(12)
+  expect(previous!.y).toBeLessThan(80)
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390)
 
   // The header has no Log out on a phone; Profile has it

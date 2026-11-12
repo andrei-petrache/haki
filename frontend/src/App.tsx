@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import DeleteAccount from './DeleteAccount'
 import ChangePassword from './ChangePassword'
+import TargetEditor from './TargetEditor'
 import {
   ApiError,
   describeError,
@@ -153,6 +154,7 @@ function Profile({
   onNewToken,
   onDeleted,
   onLogout,
+  onUserChange,
 }: {
   token: string
   user: User
@@ -164,6 +166,7 @@ function Profile({
   onNewToken: (token: string) => void
   onDeleted: () => void
   onLogout: () => void
+  onUserChange: (user: User) => void
 }) {
   const { t, locale } = useI18n()
   const [showCredits, setShowCredits] = useState(false)
@@ -182,6 +185,13 @@ function Profile({
         <dt>{t('profile.crewNumber')}</dt>
         <dd>#{user.id}</dd>
       </dl>
+      <div className="profile-target">
+        <p>
+          {t('today.dailyTarget')}:{' '}
+          <strong>{user.daily_calorie_target === null ? '—' : `${user.daily_calorie_target} kcal`}</strong>
+        </p>
+        <TargetEditor token={token} target={user.daily_calorie_target} onSaved={onUserChange} />
+      </div>
       <label className="date-field">
         {t('profile.weightsIn')}
         <select
@@ -257,15 +267,19 @@ function Header({
   tab,
   onTabChange,
   onLogout,
+  onSlot,
 }: {
   tab: Tab
   onTabChange: (tab: Tab) => void
   onLogout: () => void
+  // Where a page may put its own header controls (Today: the day picker)
+  onSlot: (slot: HTMLDivElement | null) => void
 }) {
   const { t } = useI18n()
   return (
     <header className="app-header">
       <span className="brand">Haki</span>
+      <div className="header-slot" ref={onSlot} />
       <nav className="tabs">
         {TABS.map(({ id, label }) => (
           <button
@@ -294,6 +308,8 @@ function App() {
   const [user, setUser] = useState<User | null>(null)
   // Shown on the login screen right after the account was deleted
   const [farewell, setFarewell] = useState(false)
+  // The header's slot element, for Today's day picker
+  const [headerSlot, setHeaderSlot] = useState<HTMLDivElement | null>(null)
   const [tab, setTab] = useState<Tab>('today')
   // A workout to open when the Workouts tab shows, e.g. one just started
   const [openWorkoutId, setOpenWorkoutId] = useState<number | null>(null)
@@ -387,6 +403,7 @@ function App() {
     <I18nContext.Provider value={i18n}>
     <main className="container">
       <Header
+        onSlot={setHeaderSlot}
         tab={tab}
         onTabChange={(next) => {
           setOpenWorkoutId(null)
@@ -412,7 +429,7 @@ function App() {
         </section>
       )}
       {user && tab === 'today' && (
-        <TodayPage token={token} />
+        <TodayPage token={token} headerSlot={headerSlot} />
       )}
       {user && tab === 'foods' && <FoodsPage token={token} />}
       {user && tab === 'workouts' && (
@@ -453,6 +470,7 @@ function App() {
               .catch(() => {})
           }}
           onLogout={handleLogout}
+          onUserChange={setUser}
         />
       )}
     </main>
