@@ -335,7 +335,8 @@ dd {
 
 .calories .big {
   font-family: var(--font-num);
-  font-size: 2.25rem;
+  font-size: 3.5rem;
+  line-height: 1;
   font-weight: 700;
 }
 
@@ -348,18 +349,17 @@ dd {
 
 .progress > div {
   height: 100%;
+  /* Plain while under the target: red is for actions and for over */
+  background: var(--text);
+}
+
+/* Over target: red, the bar and the number */
+.progress.over > div {
   background: var(--accent-fill);
 }
 
-/* Over target: a full, striped bar */
-.progress.over > div {
-  background: repeating-linear-gradient(
-    -45deg,
-    var(--accent),
-    var(--accent) 6px,
-    var(--accent-hover) 6px,
-    var(--accent-hover) 12px
-  );
+.calories.over .big {
+  color: var(--accent-text);
 }
 
 .macros {
@@ -875,4 +875,171 @@ textarea {
 
 .record-line {
   margin: 0.2rem 0 0 1.5rem;
+}
+
+/* Direction A: Today */
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.small {
+  font-size: 0.85rem;
+}
+
+/* Which meal new entries go to: four equal buttons, one pressed */
+.segmented {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 4px;
+  padding: 4px;
+  border-radius: var(--radius-field);
+  background: var(--raised);
+}
+
+.segmented button {
+  min-height: 44px;
+  padding: 0.3rem 0.25rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.85rem;
+  color: var(--muted);
+  background: none;
+}
+
+.segmented button[aria-pressed='true'],
+.segmented button[aria-pressed='true']:hover:not(:disabled) {
+  color: var(--text);
+  background: var(--surface);
+}
+
+.chip-grams {
+  color: var(--muted);
+}
+
+button.chip[aria-pressed='true'] .chip-grams {
+  color: inherit;
+}
+
+.search-field input {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 48px;
+}
+
+.results-title {
+  margin-top: 0.25rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.results {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.result {
+  border-radius: var(--radius-field);
+  background: var(--raised);
+}
+
+.result-head,
+.result-head:hover:not(:disabled) {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 0.6rem 0.8rem;
+  text-align: left;
+  font-weight: 400;
+  color: var(--text);
+  background: none;
+}
+
+.log-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0 0.8rem 0.8rem;
+}
+
+.stepper {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.stepper button.icon {
+  min-width: 44px;
+  min-height: 44px;
+  font-size: 1.2rem;
+}
+
+.stepper input {
+  width: 4.5rem;
+  min-height: 44px;
+  text-align: center;
+  font-family: var(--font-num);
+  font-size: 1.1rem;
+}
+
+/* A meal other than the open one: one line, its kcal at the end */
+.meal-line,
+.meal-line:hover:not(:disabled) {
+  width: 100%;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: 500;
+  text-align: left;
+  color: var(--text);
+  background: var(--surface);
+}
+
+.kcal {
+  font-family: var(--font-num);
+  font-weight: 700;
+}
+
+/* "Added ... · Undo": above the bottom bar on a phone, at the bottom elsewhere */
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(1rem + env(safe-area-inset-bottom));
+  z-index: 20;
+  transform: translateX(-50%);
+  width: min(36rem, calc(100% - 32px));
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-field);
+  color: var(--text);
+  background: var(--raised);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+}
+
+@media (max-width: 30rem) {
+  .toast {
+    bottom: calc(76px + env(safe-area-inset-bottom));
+  }
 }
