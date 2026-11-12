@@ -1,6 +1,6 @@
 import { useEffect, useRef, useSyncExternalStore } from 'react'
 import { useI18n } from './i18n/context'
-import { REST_PRESETS, formatClock, remainingSeconds, restStore } from './restTimer'
+import { REST_PRESETS, REST_STEP, formatClock, remainingSeconds, restStore } from './restTimer'
 
 function useRest() {
   return useSyncExternalStore(restStore.subscribe, restStore.get)
@@ -45,11 +45,31 @@ export function RestBar() {
   const over = left === 0
   return (
     <section className={over ? 'rest-bar over' : 'rest-bar'} aria-label={t('rest.title')}>
-      <span role="timer" aria-live={over ? 'assertive' : 'off'}>
+      <span role="timer" className="rest-clock" aria-live={over ? 'assertive' : 'off'}>
         {over ? t('rest.over') : t('rest.left', { time: formatClock(left) })}
       </span>
+      {!over && (
+        <>
+          <button
+            type="button"
+            className="secondary"
+            aria-label={t('rest.shorter', { seconds: String(REST_STEP) })}
+            onClick={() => restStore.adjust(-REST_STEP)}
+          >
+            −{REST_STEP} s
+          </button>
+          <button
+            type="button"
+            className="secondary"
+            aria-label={t('rest.longer', { seconds: String(REST_STEP) })}
+            onClick={() => restStore.adjust(REST_STEP)}
+          >
+            +{REST_STEP} s
+          </button>
+        </>
+      )}
       <button type="button" className="secondary" onClick={() => restStore.stop()}>
-        {over ? t('rest.dismiss') : t('rest.stop')}
+        {over ? t('rest.dismiss') : t('rest.skip')}
       </button>
     </section>
   )

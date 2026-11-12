@@ -11,6 +11,11 @@ export type Rest = { endsAt: number; seconds: number }
 export const REST_PRESETS = [60, 90, 120, 180] as const
 
 export const REST_KEY = 'haki_rest'
+// The length last started, which ticking a set starts again
+export const REST_LAST_KEY = 'haki_rest_last'
+export const DEFAULT_REST = 90
+/** How much −/+ on the bar move a running rest. */
+export const REST_STEP = 15
 
 /** Whole seconds left, rounded up (0:01 until the very end), never below 0. */
 export function remainingSeconds(rest: Rest, now: number): number {
@@ -80,7 +85,31 @@ export function createRestStore(storage: RestStorage | null = browserStorage()) 
       return () => listeners.delete(listener)
     },
     start(seconds: number, now: number = Date.now()): void {
+      try {
+        storage?.setItem(REST_LAST_KEY, String(seconds))
+      } catch {
+        // Only the default next time
+      }
       write({ endsAt: now + seconds * 1000, seconds })
+    },
+    /** Start the length started last (90 s at first), as a ticked set does. */
+    startLast(now: number = Date.now()): void {
+      let seconds = DEFAULT_REST
+      try {
+        const kept = Number(storage?.getItem(REST_LAST_KEY))
+        if (Number.isFinite(kept) && kept > 0) seconds = kept
+      } catch {
+        // The default
+      }
+      write({ endsAt: now + seconds * 1000, seconds })
+    },
+    /** Move a running rest by some seconds; never ends before now. */
+    adjust(seconds: number, now: number = Date.now()): void {
+      if (!current) return
+      write({
+        endsAt: Math.max(now, current.endsAt + seconds * 1000),
+        seconds: Math.max(1, current.seconds + seconds),
+      })
     },
     stop(): void {
       write(null)

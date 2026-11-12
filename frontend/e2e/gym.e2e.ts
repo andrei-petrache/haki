@@ -62,13 +62,13 @@ test('it survives a reload, and says when it is over', async () => {
   await expect(restBar()).toHaveCount(0)
 })
 
-test('Stop ends a rest early', async () => {
+test('Skip ends a rest early', async () => {
   await tab('Workouts').click()
   await page.getByRole('button', { name: 'New workout' }).click()
   await page.getByRole('button', { name: 'Start a 1:00 rest' }).click()
   await expect(restBar()).toContainText('Rest 1:00')
 
-  await restBar().getByRole('button', { name: 'Stop' }).click()
+  await restBar().getByRole('button', { name: 'Skip' }).click()
 
   await expect(restBar()).toHaveCount(0)
 })

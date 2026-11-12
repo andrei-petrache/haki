@@ -115,6 +115,10 @@ export type Workout = {
   performed_on: string
   note: string | null
   exercises: { exercise_id: number; exercise_name: string; sets: WorkoutSet[] }[]
+  // The program day it was started from; null when logged by hand, or when
+  // that day was deleted or replaced since
+  program_id?: number | null
+  program_day_id?: number | null
 }
 
 /** One row of the workout list: counts instead of the full contents. */
