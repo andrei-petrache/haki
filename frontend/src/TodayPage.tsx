@@ -3,7 +3,9 @@ import {
   MEAL_TYPES,
   copyMeal,
   createEntry,
-  deleteEntry,
+  createQuickEntry,
+  deleteMealEntry,
+  entryKey,
   describeError,
   fetchEntries,
   fetchFoods,
@@ -465,18 +467,164 @@ function CopyMealForm({
   )
 }
 
+/** Optional macro field: empty means 0, as the API's default. */
+function optionalGrams(value: string): number | undefined {
+  return value === '' ? undefined : Number(value)
+}
+
+/**
+ * Log something without a food: a restaurant dish, a snack with only a
+ * label's kcal. Folded away until asked for; it works with no foods at all.
+ */
+function QuickAddForm({
+  token,
+  day,
+  onAdded,
+}: {
+  token: string
+  day: string
+  onAdded: () => void
+}) {
+  const { t } = useI18n()
+  const [open, setOpen] = useState(false)
+  const [name, setName] = useState('')
+  const [calories, setCalories] = useState('')
+  const [protein, setProtein] = useState('')
+  const [carbs, setCarbs] = useState('')
+  const [fat, setFat] = useState('')
+  const [mealType, setMealType] = useState<MealType>('breakfast')
+  const [error, setError] = useState<string | null>(null)
+  const [busy, setBusy] = useState(false)
+
+  if (!open) {
+    return (
+      <button type="button" className="secondary quick-open" onClick={() => setOpen(true)}>
+        {t('quick.open')}
+      </button>
+    )
+  }
+
+  async function handleSubmit() {
+    setError(null)
+    setBusy(true)
+    try {
+      await createQuickEntry(token, {
+        eaten_on: day,
+        meal_type: mealType,
+        calories: Number(calories),
+        // Empty name: the server's default ("Quick add")
+        ...(name.trim() && { name: name.trim() }),
+        protein: optionalGrams(protein),
+        carbs: optionalGrams(carbs),
+        fat: optionalGrams(fat),
+      })
+      // Keep the meal: the next one is often for the same meal
+      setName('')
+      setCalories('')
+      setProtein('')
+      setCarbs('')
+      setFat('')
+      onAdded()
+    } catch (err) {
+      setError(describeError(err))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const macros: [string, string, (value: string) => void][] = [
+    [t('today.protein'), protein, setProtein],
+    [t('today.carbs'), carbs, setCarbs],
+    [t('today.fat'), fat, setFat],
+  ]
+
+  return (
+    <form
+      className="card quick-form"
+      aria-label={t('quick.title')}
+      onSubmit={(event) => {
+        event.preventDefault()
+        void handleSubmit()
+      }}
+    >
+      <h2>{t('quick.title')}</h2>
+      <p className="muted">{t('quick.optional')}</p>
+      <div className="quick-fields">
+        <label className="quick-name">
+          {t('quick.name')}
+          <input
+            value={name}
+            maxLength={100}
+            placeholder={t('quick.namePlaceholder')}
+            onChange={(event) => setName(event.target.value)}
+          />
+        </label>
+        <label>
+          {t('quick.calories')}
+          <input
+            type="number"
+            inputMode="decimal"
+            min={0}
+            max={5000}
+            step="any"
+            required
+            value={calories}
+            onChange={(event) => setCalories(event.target.value)}
+          />
+        </label>
+        <label>
+          {t('today.meal')}
+          <select
+            value={mealType}
+            onChange={(event) => setMealType(event.target.value as MealType)}
+          >
+            {MEAL_TYPES.map((meal) => (
+              <option key={meal} value={meal}>
+                {t(MEAL_LABELS[meal])}
+              </option>
+            ))}
+          </select>
+        </label>
+        {macros.map(([label, value, setValue]) => (
+          <label key={label}>
+            {t('quick.macro', { macro: label })}
+            <input
+              type="number"
+              inputMode="decimal"
+              min={0}
+              max={500}
+              step="any"
+              value={value}
+              onChange={(event) => setValue(event.target.value)}
+            />
+          </label>
+        ))}
+      </div>
+      <div className="actions">
+        <button type="submit" disabled={busy}>
+          {busy ? t('today.adding') : t('today.add')}
+        </button>
+        <button type="button" className="link" onClick={() => setOpen(false)}>
+          {t('common.cancel')}
+        </button>
+      </div>
+      {error && <p className="error">{error}</p>}
+    </form>
+  )
+}
+
 function EntryList({
   token,
   day,
   data,
-  deletingId,
+  deletingKey,
   onDelete,
   onCopied,
 }: {
   token: string
   day: string
   data: DayData
-  deletingId: number | null
+  deletingKey: string | null
   onDelete: (entry: MealEntry) => void
   onCopied: (message: string) => void
 }) {
@@ -522,17 +670,19 @@ function EntryList({
             )}
             <ul className="rows">
               {entries.map((entry) => (
-                <li key={entry.id}>
+                <li key={entryKey(entry)}>
                   <span className="grow">
                     {entry.food_name}{' '}
-                    <span className="muted">{formatDecimal(entry.grams)} g</span>
+                    <span className="muted">
+                      {entry.grams === null ? t('quick.label') : `${formatDecimal(entry.grams)} g`}
+                    </span>
                   </span>
                   <span>{formatKcal(entry.calories)} kcal</span>
                   <button
                     type="button"
                     className="icon"
                     aria-label={t('today.deleteEntry', { food: entry.food_name })}
-                    disabled={deletingId === entry.id}
+                    disabled={deletingKey === entryKey(entry)}
                     onClick={() => onDelete(entry)}
                   >
                     ×
@@ -560,7 +710,7 @@ export default function TodayPage({
   const [recent, setRecent] = useState<Food[]>([])
   const [data, setData] = useState<DayData | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [deletingId, setDeletingId] = useState<number | null>(null)
+  const [deletingKey, setDeletingKey] = useState<string | null>(null)
   // What the last copy did; cleared when the shown day changes
   const [notice, setNotice] = useState<string | null>(null)
   // Bumped after every change, to re-run the effect that loads the day
@@ -615,20 +765,24 @@ export default function TodayPage({
   }, [token, day, version])
 
   async function handleDelete(entry: MealEntry) {
-    const question = t('today.removeConfirm', {
-      food: entry.food_name,
-      grams: formatDecimal(entry.grams),
-      meal: t(MEAL_LABELS[entry.meal_type]),
-    })
+    const meal = t(MEAL_LABELS[entry.meal_type])
+    const question =
+      entry.grams === null
+        ? t('quick.removeConfirm', { food: entry.food_name, meal })
+        : t('today.removeConfirm', {
+            food: entry.food_name,
+            grams: formatDecimal(entry.grams),
+            meal,
+          })
     if (!window.confirm(question)) return
-    setDeletingId(entry.id)
+    setDeletingKey(entryKey(entry))
     try {
-      await deleteEntry(token, entry.id)
+      await deleteMealEntry(token, entry)
       reload()
     } catch (err) {
       setError(describeError(err))
     } finally {
-      setDeletingId(null)
+      setDeletingKey(null)
     }
   }
 
@@ -673,13 +827,14 @@ export default function TodayPage({
           onAdded={reload}
         />
       )}
+      <QuickAddForm token={token} day={day} onAdded={reload} />
 
       {current && (
         <EntryList
           token={token}
           day={day}
           data={current}
-          deletingId={deletingId}
+          deletingKey={deletingKey}
           onDelete={(entry) => void handleDelete(entry)}
           onCopied={(message) => {
             setNotice(message)

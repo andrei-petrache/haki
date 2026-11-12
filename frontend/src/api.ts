@@ -43,7 +43,33 @@ export type MealEntryInput = {
   grams: number
 }
 
-export type MealEntry = MealEntryInput & Nutrients & { id: number; food_name: string }
+export type MealEntry = Nutrients & {
+  id: number
+  eaten_on: string
+  meal_type: MealType
+  // Null for a quick entry: it has its own nutrients, no food and no grams
+  food_id: number | null
+  grams: number | null
+  food_name: string
+  // Quick entries live apart from food entries: their ids can be equal
+  quick?: boolean
+}
+
+/** A one-off entry without a food: calories, and optionally a name and macros. */
+export type QuickEntryInput = {
+  eaten_on: string
+  meal_type: MealType
+  calories: number
+  name?: string
+  protein?: number
+  carbs?: number
+  fat?: number
+}
+
+/** A key unique across food and quick entries, for lists and "busy" state. */
+export function entryKey(entry: Pick<MealEntry, 'id' | 'quick'>): string {
+  return `${entry.quick ? 'quick' : 'food'}-${entry.id}`
+}
 
 export type DailySummary = {
   eaten_on: string
@@ -247,6 +273,16 @@ export type MealCopy = { from_day: string; from_meal: MealType; to_day: string; 
  */
 export function copyMeal(token: string, copy: MealCopy): Promise<MealEntry[]> {
   return request<MealEntry[]>('/entries/copy', json('POST', copy), token)
+}
+
+export function createQuickEntry(token: string, entry: QuickEntryInput): Promise<MealEntry> {
+  return request<MealEntry>('/entries/quick', json('POST', entry), token)
+}
+
+/** Delete a food entry or a quick one: each kind has its own path. */
+export function deleteMealEntry(token: string, entry: Pick<MealEntry, 'id' | 'quick'>): Promise<void> {
+  const path = entry.quick ? `/entries/quick/${entry.id}` : `/entries/${entry.id}`
+  return request<void>(path, { method: 'DELETE' }, token)
 }
 
 export function deleteEntry(token: string, id: number): Promise<void> {
