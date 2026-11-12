@@ -14,6 +14,9 @@ import { formatDecimal, formatKcal } from './format'
 import { useI18n } from './i18n/context'
 import { MAX_GRAMS, MEAL_LABELS, displayName, kcalFor, startGrams, stepGrams } from './logging'
 
+/** Chips on Today's one row: favourites first, then recent foods. */
+const MAX_CHIPS = 8
+
 /** A food to log, from the user's own or from the catalog. */
 type Candidate =
   | { origin: 'own'; food: Food | Extract<FoodSearchResult, { origin: 'own' }> }
@@ -132,7 +135,11 @@ export default function FoodLogger({
   const [sources, setSources] = useState<Record<string, string>>({})
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  const query = q.trim()
   const picks = foodPicks(foods, recent)
+  const favouriteChips = picks.favourites.slice(0, MAX_CHIPS)
+  const recentChips = picks.recent.slice(0, MAX_CHIPS - favouriteChips.length)
+  const chips = [...favouriteChips, ...recentChips]
 
   // Search as the user types, a moment after they stop
   useEffect(() => {
@@ -207,7 +214,6 @@ export default function FoodLogger({
     )
   }
 
-  const query = q.trim()
   const shown = query === '' ? null : results
   const own = shown?.filter((r): r is Extract<FoodSearchResult, { origin: 'own' }> => r.origin === 'own') ?? []
   const catalog =
@@ -253,20 +259,6 @@ export default function FoodLogger({
 
   return (
     <section className="card logger" aria-label={t('log.title', { meal: t(MEAL_LABELS[meal]) })}>
-      <MealPicker meal={meal} onChange={onMealChange} />
-
-      {picks.favourites.length > 0 && (
-        <div className="quick-picks" role="group" aria-label={t('today.favouriteFoods')}>
-          {picks.favourites.map(chip)}
-        </div>
-      )}
-      {picks.recent.length > 0 && (
-        <div className="quick-picks" role="group" aria-label={t('today.recentFoods')}>
-          {picks.recent.map(chip)}
-        </div>
-      )}
-      {openPick && <ul className="results">{resultRow(openPick)}</ul>}
-
       <label className="search-field">
         <span className="visually-hidden">{t('log.search')}</span>
         <input
@@ -280,6 +272,26 @@ export default function FoodLogger({
           }}
         />
       </label>
+
+      {/* One row, scrolled sideways: favourites, then recent foods, 8 at most.
+          Hidden while searching, so results start right under the field. */}
+      {query === '' && chips.length > 0 && (
+        <div className="chip-row">
+          {favouriteChips.length > 0 && (
+            <div className="chip-group" role="group" aria-label={t('today.favouriteFoods')}>
+              {favouriteChips.map(chip)}
+            </div>
+          )}
+          {recentChips.length > 0 && (
+            <div className="chip-group" role="group" aria-label={t('today.recentFoods')}>
+              {recentChips.map(chip)}
+            </div>
+          )}
+        </div>
+      )}
+      {query === '' && openPick && <ul className="results">{resultRow(openPick)}</ul>}
+
+      <MealPicker meal={meal} onChange={onMealChange} />
       {error && <p className="error">{error}</p>}
 
       {query !== '' && shown === null && !error && <p className="muted">{t('catalog.searching')}</p>}

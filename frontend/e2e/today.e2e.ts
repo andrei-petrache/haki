@@ -144,6 +144,33 @@ test('a favourite never logged opens its stepper instead', async () => {
   await expect(favourites.getByRole('button', { name: 'Log Oats, 100 g' })).toBeVisible()
 })
 
+test('on a 390 px phone: search and the first meal show without scrolling; one chip row', async () => {
+  await page.reload()
+  await page.evaluate(() => window.scrollTo(0, 0))
+  const bar = await box(page.getByRole('navigation'))
+  const field = await box(logger().getByPlaceholder('Search a food'))
+  expect(field.y).toBeGreaterThanOrEqual(0)
+  expect(field.y + field.height, 'search above the bottom bar').toBeLessThanOrEqual(bar.y)
+  const firstMeal = page.locator('section.meal h3, button.meal-line').first()
+  const meal = await box(firstMeal)
+  expect(meal.y + meal.height, 'first meal above the bottom bar').toBeLessThanOrEqual(bar.y)
+
+  // The chips: one row (scrolled sideways), favourites first
+  const chips = page.locator('.chip-row button.chip')
+  expect(await chips.count()).toBeGreaterThan(1)
+  const tops = new Set<number>()
+  for (const chip of await chips.all()) tops.add(Math.round((await box(chip)).y))
+  expect(tops.size, 'chips on one row').toBe(1)
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390)
+  await page.screenshot({ path: `${SHOTS}/36-today-fold-phone.png` })
+
+  // While searching, no chips: results start under the field
+  await search('mi')
+  await expect(page.locator('.chip-row')).toHaveCount(0)
+  await search('')
+  await expect(page.locator('.chip-row')).toHaveCount(1)
+})
+
 test('the headline: kcal left under the target, kcal over past it, and red only then', async () => {
   expect((await api(page, 'PUT', '/auth/me/target', { daily_calorie_target: 2000 })).status).toBe(200)
   await page.reload()
