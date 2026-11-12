@@ -40,6 +40,20 @@ export const en = {
   'profile.unitNote':
     'Saved on this device. Your weights are stored in kilograms whatever you choose here.',
   'profile.language': 'Language',
+  'password.open': 'Change password',
+  'password.title': 'Change password',
+  'password.current': 'Current password',
+  'password.new': 'New password',
+  'password.confirm': 'New password again',
+  'password.rules': 'At least {min} characters.',
+  'password.save': 'Change password',
+  'password.tooShort': 'The new password is too short.',
+  'password.tooLong': 'The new password is too long (128 characters at most).',
+  'password.mismatch': 'The two new passwords are not the same.',
+  'password.same': 'The new password is the same as the current one.',
+  'password.wrongCurrent': 'The current password is wrong.',
+  'password.changed':
+    'Password changed. Devices already signed in stay signed in until their session ends.',
   'profile.languageAuto': 'Same as the browser ({language})',
   'profile.languageNote':
     'Saved on this device. Some messages from the server may still be in English.',

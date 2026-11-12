@@ -25,8 +25,9 @@ async function postAuth(page: Page, path: string, data: unknown) {
 /**
  * A new account, logged in. Through the API, not the form (language.e2e.ts
  * signs up through the form); one per file, the files run one after another.
+ * Returns the credentials, for a file that needs them again.
  */
-export async function signUp(page: Page): Promise<void> {
+export async function signUp(page: Page): Promise<{ email: string; password: string }> {
   const email = `e2e-${Date.now()}-${randomBytes(3).toString('hex')}@example.com`
   const password = randomBytes(16).toString('hex')
   await page.goto('/')
@@ -37,6 +38,7 @@ export async function signUp(page: Page): Promise<void> {
   await page.evaluate((value) => localStorage.setItem('haki_token', value), access_token)
   await page.reload()
   await expect(page.getByRole('button', { name: 'Log out' })).toBeVisible()
+  return { email, password }
 }
 
 async function token(page: Page): Promise<string> {

@@ -215,6 +215,22 @@ export function fetchMe(token: string): Promise<User> {
   return request<User>('/auth/me', {}, token)
 }
 
+/**
+ * Replace the password, given the current one. A wrong current password
+ * is 403, not 401: the session is fine, so it must not log the user out.
+ */
+export function changePassword(
+  token: string,
+  currentPassword: string,
+  newPassword: string,
+): Promise<void> {
+  return request<void>(
+    '/auth/me/password',
+    json('PUT', { current_password: currentPassword, new_password: newPassword }),
+    token,
+  )
+}
+
 export function setCalorieTarget(token: string, target: number | null): Promise<User> {
   return request<User>(
     '/auth/me/target',
