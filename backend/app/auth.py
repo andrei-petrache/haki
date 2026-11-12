@@ -115,12 +115,16 @@ def change_password(
 ) -> Response:
     """Replace the current user's password, given the current one.
 
-    401 if the current password is wrong. Tokens issued before the change
+    403 if the current password is wrong: the token is fine, so not a 401,
+    which clients rightly read as "signed out". Tokens issued before the change
     stay valid until they expire: tokens carry no password version yet, so
     this does not sign out other devices.
     """
     if not verify_password(data.current_password, current_user.password_hash):
-        raise unauthorized("Current password is wrong")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Current password is wrong",
+        )
     current_user.password_hash = hash_password(data.new_password)
     session.commit()
     return Response(status_code=status.HTTP_204_NO_CONTENT)

@@ -29,14 +29,15 @@ def test_change_password_replaces_it(client: TestClient) -> None:
     assert login(client, OLD) == 401
 
 
-def test_wrong_current_password_is_401_and_changes_nothing(
+def test_wrong_current_password_is_403_and_changes_nothing(
     client: TestClient,
 ) -> None:
     headers = register_and_login(client, EMAIL)
 
     status = change(client, headers, "not-my-password", NEW)
 
-    assert status == 401
+    # Not 401: the token is valid, and clients sign out on a 401
+    assert status == 403
     assert login(client, OLD) == 200
     assert login(client, NEW) == 401
 
