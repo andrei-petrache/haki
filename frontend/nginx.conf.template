@@ -9,14 +9,18 @@
 # in one shared budget. The last two also check the current password:
 # limited, a stolen token cannot guess it at full speed. Only those
 # requests count, by method and path: GET /auth/me (the profile) and
-# PUT /auth/me (settings) stay unlimited. $request_uri, not $uri: limit_req
-# runs after the location's rewrite has stripped /api. An empty key is
-# never limited.
-map "$request_method:$request_uri" $auth_limit_key {
-    ~^POST:/api/auth/(login|signup)(\?|$)    $binary_remote_addr;
-    ~^PUT:/api/auth/me/password(\?|$)        $binary_remote_addr;
-    ~^DELETE:/api/auth/me(\?|$)              $binary_remote_addr;
-    default                                  "";
+# PUT /auth/me (settings) stay unlimited. An empty key is never limited.
+#
+# The path is $uri as limit_req sees it: inside the limited location below,
+# after its rewrite, so without /api, and normalized like the location
+# match itself (slashes merged, %XX decoded). Never $request_uri: raw, it
+# lets /api//auth/login or /api/auth/%6cogin reach the location without
+# matching here, so without a limit.
+map "$request_method:$uri" $auth_limit_key {
+    ~^POST:/auth/(login|signup)$    $binary_remote_addr;
+    PUT:/auth/me/password           $binary_remote_addr;
+    DELETE:/auth/me                 $binary_remote_addr;
+    default                         "";
 }
 # 5 requests per minute per IP; 10 MB of state tracks ~160,000 addresses
 limit_req_zone $auth_limit_key zone=auth:10m rate=5r/m;
@@ -111,8 +115,9 @@ server {
     }
 
     # Login, signup, password change and account deletion (the map above
-    # picks which methods count): a burst of 5 at once, then one every 12 s,
-    # else 429. A regex location wins over the /api/ prefix above.
+    # picks which methods count, from $uri after this rewrite): a burst of 5
+    # at once, then one every 12 s, else 429. A regex location wins over the
+    # /api/ prefix above.
     location ~ ^/api/auth/(login|signup|me|me/password)$ {
         limit_req zone=auth burst=5 nodelay;
         rewrite ^/api(/.*)$ $1 break;

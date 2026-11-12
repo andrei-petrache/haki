@@ -26,7 +26,8 @@ fail() {
 }
 
 status() {  # status <method> <path> [curl options...]
-  curl -s -o /dev/null -w '%{http_code}' -X "$1" "${@:3}" "$base$2"
+  # --path-as-is: send // and %XX exactly as written, as an attacker would
+  curl -s --path-as-is -o /dev/null -w '%{http_code}' -X "$1" "${@:3}" "$base$2"
 }
 
 statuses() {  # statuses <count> <method> <path> [curl options...]
@@ -104,6 +105,14 @@ echo "PUT /api/auth/me/password x1: $password"
 delete="$(statuses 1 DELETE /api/auth/me)"
 echo "DELETE /api/auth/me x1:    $delete"
 [[ "$delete" == "429 " ]] || fail "deleting the account should share the login budget"
+
+# The same routes spelled differently reach the same location: they must
+# not escape the limit (a key from the raw request line once let them)
+odd="$(status POST /api//auth/login) $(status POST /api/auth/%6cogin) $(status POST /api/auth/sign%75p)"
+odd+=" $(status PUT /api/auth//me/password) $(status DELETE /api//auth/me)"
+echo "Odd spellings x5:          $odd"
+[[ "$odd" == "429 429 429 429 429" ]] ||
+  fail "a double slash or a percent-encoded letter must not escape the limit"
 
 # By default nothing is trusted: a client's own X-Forwarded-For does not buy
 # it a fresh budget
