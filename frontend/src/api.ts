@@ -199,6 +199,17 @@ export function fetchFoods(token: string): Promise<Food[]> {
   return request<Food[]>('/foods', {}, token)
 }
 
+/** How many recent foods Today offers as one-tap picks. */
+export const RECENT_FOODS_LIMIT = 6
+
+/**
+ * The user's foods by when they were last logged, newest first, each once.
+ * Foods never logged are left out, so a new user gets an empty list.
+ */
+export function fetchRecentFoods(token: string, limit = RECENT_FOODS_LIMIT): Promise<Food[]> {
+  return request<Food[]>(`/foods/recent?limit=${limit}`, {}, token)
+}
+
 export function createFood(token: string, food: FoodInput): Promise<Food> {
   return request<Food>('/foods', json('POST', food), token)
 }
