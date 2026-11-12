@@ -155,3 +155,43 @@ test('copy a meal: to tomorrow by default, or to another meal of the same day', 
   const { body } = await api(page, 'GET', `/entries?date=${tomorrow}`)
   expect((body as { meal_type: string }[]).filter((entry) => entry.meal_type === 'lunch')).toHaveLength(rows)
 })
+
+test('quick add: kcal without a food, a default name, and deleting it', async () => {
+  const dinner = page.locator('section.meal', { has: page.getByRole('heading', { name: /^Dinner/ }) })
+  await expect(dinner).toHaveCount(0)
+
+  await page.getByRole('button', { name: 'Quick add: just the kcal' }).click()
+  const quick = page.getByRole('form', { name: 'Quick add' })
+  await quick.getByLabel('What (optional)').fill('Restaurant soup')
+  await quick.getByLabel('Calories (kcal)').fill('320')
+  await quick.getByLabel('Protein (g)').fill('12')
+  await quick.locator('select').selectOption({ label: 'Dinner' })
+  await quick.getByRole('button', { name: 'Add', exact: true }).click()
+
+  const soup = dinner.locator('li', { hasText: 'Restaurant soup' })
+  await expect(soup).toContainText('quick add')
+  await expect(soup).toContainText('320 kcal')
+  // Fields cleared, the meal kept for the next one
+  await expect(quick.getByLabel('Calories (kcal)')).toHaveValue('')
+  await expect(quick.locator('select')).toHaveValue('dinner')
+
+  await quick.getByLabel('Calories (kcal)').fill('150')
+  await quick.getByRole('button', { name: 'Add', exact: true }).click()
+  // Every quick row says "quick add"; the unnamed one, added last, also has it as its name
+  const unnamed = dinner.locator('li').nth(1)
+  await expect(unnamed).toContainText(/^Quick add quick add/)
+  await expect(unnamed).toContainText('150 kcal')
+  await expect(dinner.locator('h3')).toContainText('470 kcal')
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390)
+  await page.screenshot({ path: `${SHOTS}/24-quick-add-phone.png`, fullPage: true })
+
+  // Deleted through its own path; the food entries of the day stay
+  const foodRows = await page.locator('section.meal li').count()
+  page.once('dialog', (dialog) => void dialog.accept())
+  await page.getByRole('button', { name: 'Delete Restaurant soup' }).click()
+  await expect(soup).toHaveCount(0)
+  await expect(page.locator('section.meal li')).toHaveCount(foodRows - 1)
+  const day = await page.getByLabel('Day', { exact: true }).inputValue()
+  const { body } = await api(page, 'GET', `/entries?date=${day}`)
+  expect((body as { quick?: boolean }[]).filter((entry) => entry.quick)).toHaveLength(1)
+})
