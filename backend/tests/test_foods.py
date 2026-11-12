@@ -35,6 +35,8 @@ def test_create_food_returns_it_with_id(
         "catalog_food_id": None,
         "favourite": False,
         "last_logged": None,
+        "catalog_name": None,
+        "catalog_name_ro": None,
     }
 
 
@@ -68,6 +70,8 @@ def test_update_food_replaces_fields(
         "catalog_food_id": None,
         "favourite": False,
         "last_logged": None,
+        "catalog_name": None,
+        "catalog_name_ro": None,
     }
 
 

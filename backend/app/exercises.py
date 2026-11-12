@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.auth import CurrentUser, SessionDep
 from app.errors import ApiError, ErrorCode
-from app.foods import commit_or_conflict
+from app.foods import commit_or_conflict, language_for
 from app.models import (
     CatalogExercise,
     Exercise,
@@ -99,7 +99,9 @@ def copy_catalog_exercise(
         return existing
     exercise = Exercise(
         user_id=current_user.id,
-        name=item.name_ro if data.language == "ro" and item.name_ro else item.name,
+        name=item.name_ro
+        if language_for(data.language, current_user) == "ro" and item.name_ro
+        else item.name,
         catalog_exercise_id=item.id,
     )
     session.add(exercise)

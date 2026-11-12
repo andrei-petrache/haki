@@ -47,6 +47,8 @@ def test_own_foods_come_first_then_the_catalog(
         "favourite": False,
         "last_logged": None,
         "catalog_food_id": None,
+        "catalog_name": None,
+        "catalog_name_ro": None,
     }
     catalog_rows = results[1:]
     assert catalog_rows and all(r["origin"] == "catalog" for r in catalog_rows)

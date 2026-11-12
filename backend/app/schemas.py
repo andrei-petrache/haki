@@ -143,6 +143,11 @@ class FoodResponse(BaseModel):
     # The user's newest entry of this food (by id, as in recents); null
     # when they never logged it
     last_logged: LastLogged | None = None
+    # The names of the catalog food this one was copied from, both of them,
+    # so the client shows the one in its language. Null for a food typed in
+    # by hand. If the user renamed the copy, `name` differs from both and wins.
+    catalog_name: str | None = None
+    catalog_name_ro: str | None = None
 
 
 class OwnFoodResult(BaseModel):
@@ -158,6 +163,11 @@ class OwnFoodResult(BaseModel):
     favourite: bool
     last_logged: LastLogged | None
     catalog_food_id: int | None
+    # The names of the catalog food this one was copied from, both of them,
+    # so the client shows the one in its language. Null for a food typed in
+    # by hand. If the user renamed the copy, `name` differs from both and wins.
+    catalog_name: str | None = None
+    catalog_name_ro: str | None = None
 
 
 class CatalogFoodResult(BaseModel):
@@ -251,14 +261,16 @@ class CatalogFoodCopyIn(BaseModel):
     """Add a catalog food to the user's own foods, named in `language`."""
 
     catalog_food_id: DbId
-    language: CatalogLanguage = "en"
+    # Without it, the account's language, then English
+    language: CatalogLanguage | None = None
 
 
 class CatalogExerciseCopyIn(BaseModel):
     """Add a catalog exercise to the user's own exercises."""
 
     catalog_exercise_id: DbId
-    language: CatalogLanguage = "en"
+    # Without it, the account's language, then English
+    language: CatalogLanguage | None = None
 
 
 # Upper bounds on what one request may write: at most 50 x 50 sets
@@ -502,6 +514,10 @@ class MealEntryResponse(Nutrients):
     meal_type: MealType
     grams: float | None
     quick: bool = False
+    # As on a food: the catalog's names of the entry's food, null for a food
+    # typed in by hand and for a quick entry
+    catalog_name: str | None = None
+    catalog_name_ro: str | None = None
 
 
 class DailySummary(BaseModel):
