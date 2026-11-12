@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
@@ -12,6 +12,7 @@ from app.schemas import (
     AccountSettingsIn,
     CalorieTargetIn,
     LoginRequest,
+    PasswordChangeIn,
     SignupRequest,
     TokenResponse,
     UserResponse,
@@ -106,6 +107,23 @@ def update_settings(
     current_user.language = data.language
     session.commit()
     return current_user
+
+
+@router.put("/me/password", status_code=status.HTTP_204_NO_CONTENT)
+def change_password(
+    data: PasswordChangeIn, current_user: CurrentUser, session: SessionDep
+) -> Response:
+    """Replace the current user's password, given the current one.
+
+    401 if the current password is wrong. Tokens issued before the change
+    stay valid until they expire: tokens carry no password version yet, so
+    this does not sign out other devices.
+    """
+    if not verify_password(data.current_password, current_user.password_hash):
+        raise unauthorized("Current password is wrong")
+    current_user.password_hash = hash_password(data.new_password)
+    session.commit()
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @router.put("/me/target", response_model=UserResponse)
