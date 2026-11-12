@@ -86,6 +86,7 @@ def test_create_workout_returns_it_with_exercises_and_sets(
                 "sets": [{"reps": 8, "weight_kg": 60}, {"reps": 6, "weight_kg": 70}],
             },
         ],
+        "program_day_id": None,
     }
 
 
@@ -257,6 +258,7 @@ def test_replace_workout_replaces_everything(
                 "sets": [{"reps": 5, "weight_kg": 120.5}],
             }
         ],
+        "program_day_id": None,
     }
     assert response.status_code == 200
     assert response.json() == expected

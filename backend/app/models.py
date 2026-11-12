@@ -350,6 +350,19 @@ class Workout(Base):
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
     performed_on: Mapped[date]
     note: Mapped[str | None] = mapped_column(String(500), default=None)
+    # The program day it was started from, so the editor can show the plan
+    # next to what was done; null for a workout logged by hand. SET NULL:
+    # deleting or replacing the day leaves the workout whole, only unlinked.
+    # Nullable, so the previous version, which does not know it, still inserts.
+    program_day_id: Mapped[int | None] = mapped_column(
+        ForeignKey(
+            "program_days.id",
+            ondelete="SET NULL",
+            name="fk_workouts_program_day_id",
+        ),
+        default=None,
+        index=True,
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )

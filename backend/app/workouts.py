@@ -81,6 +81,7 @@ def to_response(workout: Workout) -> WorkoutResponse:
         id=workout.id,
         performed_on=workout.performed_on,
         note=workout.note,
+        program_day_id=workout.program_day_id,
         exercises=[
             WorkoutExerciseResponse(
                 exercise_id=item.exercise_id,
