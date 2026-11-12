@@ -75,7 +75,7 @@ def test_delete_food_removes_it(
     [
         {"name": "   "},
         {"name": "x" * 101},
-        {"calories_per_100g": 901},
+        {"calories_per_100g": 951},
         {"calories_per_100g": -1},
         {"protein_per_100g": 101},
         {"carbs_per_100g": -0.5},
@@ -88,6 +88,20 @@ def test_create_food_rejects_invalid_values(
     response = client.post("/foods", json={**OATS, **overrides}, headers=auth_headers)
 
     assert response.status_code == 422
+
+
+def test_create_food_accepts_fats_up_to_950_kcal(
+    client: TestClient, auth_headers: dict[str, str]
+) -> None:
+    lard = {"name": "Lard", "calories_per_100g": 902, "fat_per_100g": 100}
+    edge = {"name": "Edge", "calories_per_100g": 950, "fat_per_100g": 100}
+
+    responses = [
+        client.post("/foods", json={**OATS, **food}, headers=auth_headers)
+        for food in (lard, edge)
+    ]
+
+    assert [r.status_code for r in responses] == [201, 201]
 
 
 def test_create_food_rejects_missing_field(
@@ -219,3 +233,96 @@ def test_user_cannot_delete_another_users_food(
 
     assert response.status_code == 404
     assert client.get("/foods", headers=auth_headers).json() == [food]
+
+
+def log(client: TestClient, headers: dict[str, str], food_id: int, day: str) -> None:
+    entry = {"food_id": food_id, "eaten_on": day, "meal_type": "lunch", "grams": 100}
+    response = client.post("/entries", json=entry, headers=headers)
+    assert response.status_code == 201
+
+
+def recent_names(
+    client: TestClient, headers: dict[str, str], **params: Any
+) -> list[str]:
+    response = client.get("/foods/recent", params=params, headers=headers)
+    assert response.status_code == 200
+    return [food["name"] for food in response.json()]
+
+
+def test_recent_foods_are_ordered_by_last_logged_each_once(
+    client: TestClient, auth_headers: dict[str, str]
+) -> None:
+    oats, rice, eggs = (
+        create_food(client, auth_headers, name=name)["id"]
+        for name in ("Oats", "Rice", "Eggs")
+    )
+    create_food(client, auth_headers, name="Never logged")
+    log(client, auth_headers, oats, "2026-11-10")
+    log(client, auth_headers, rice, "2026-11-11")
+    log(client, auth_headers, oats, "2026-11-11")
+    # Logged last, for an earlier day: it still counts as the newest use
+    log(client, auth_headers, eggs, "2026-11-01")
+
+    names = recent_names(client, auth_headers)
+
+    assert names == ["Eggs", "Oats", "Rice"]
+
+
+def test_recent_foods_returns_full_foods(
+    client: TestClient, auth_headers: dict[str, str]
+) -> None:
+    food = create_food(client, auth_headers)
+    log(client, auth_headers, food["id"], "2026-11-11")
+
+    response = client.get("/foods/recent", headers=auth_headers)
+
+    assert response.json() == [food]
+
+
+def test_recent_foods_respects_limit(
+    client: TestClient, auth_headers: dict[str, str]
+) -> None:
+    for name in ("A", "B", "C"):
+        food_id = create_food(client, auth_headers, name=name)["id"]
+        log(client, auth_headers, food_id, "2026-11-11")
+
+    names = recent_names(client, auth_headers, limit=2)
+
+    assert names == ["C", "B"]
+
+
+def test_recent_foods_is_empty_without_entries(
+    client: TestClient, auth_headers: dict[str, str]
+) -> None:
+    create_food(client, auth_headers)
+
+    assert recent_names(client, auth_headers) == []
+
+
+def test_recent_foods_shows_only_own_foods(
+    client: TestClient,
+    auth_headers: dict[str, str],
+    other_auth_headers: dict[str, str],
+) -> None:
+    mine = create_food(client, auth_headers, name="Mine")["id"]
+    theirs = create_food(client, other_auth_headers, name="Theirs")["id"]
+    log(client, auth_headers, mine, "2026-11-11")
+    log(client, other_auth_headers, theirs, "2026-11-11")
+
+    assert recent_names(client, auth_headers) == ["Mine"]
+    assert recent_names(client, other_auth_headers) == ["Theirs"]
+
+
+@pytest.mark.parametrize("limit", [0, 51, "many"])
+def test_recent_foods_rejects_invalid_limit(
+    client: TestClient, auth_headers: dict[str, str], limit: Any
+) -> None:
+    response = client.get(
+        "/foods/recent", params={"limit": limit}, headers=auth_headers
+    )
+
+    assert response.status_code == 422
+
+
+def test_recent_foods_requires_login(client: TestClient) -> None:
+    assert client.get("/foods/recent").status_code == 401
