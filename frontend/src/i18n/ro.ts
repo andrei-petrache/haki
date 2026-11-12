@@ -40,6 +40,20 @@ export const ro: Dictionary = {
   'profile.unitNote':
     'Se salvează pe acest dispozitiv. Greutățile rămân stocate în kilograme, orice ai alege.',
   'profile.language': 'Limba',
+  'password.open': 'Schimbă parola',
+  'password.title': 'Schimbă parola',
+  'password.current': 'Parola actuală',
+  'password.new': 'Parola nouă',
+  'password.confirm': 'Parola nouă, din nou',
+  'password.rules': 'Cel puțin {min} caractere.',
+  'password.save': 'Schimbă parola',
+  'password.tooShort': 'Parola nouă e prea scurtă.',
+  'password.tooLong': 'Parola nouă e prea lungă (cel mult 128 de caractere).',
+  'password.mismatch': 'Cele două parole noi nu sunt la fel.',
+  'password.same': 'Parola nouă e la fel ca cea actuală.',
+  'password.wrongCurrent': 'Parola actuală e greșită.',
+  'password.changed':
+    'Parola a fost schimbată. Dispozitivele deja conectate rămân conectate până le expiră sesiunea.',
   'profile.languageAuto': 'Ca în browser ({language})',
   'profile.languageNote':
     'Se salvează pe acest dispozitiv. Unele mesaje de la server pot apărea în engleză.',

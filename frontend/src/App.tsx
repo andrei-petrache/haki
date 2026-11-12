@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import ChangePassword from './ChangePassword'
 import {
   ApiError,
   describeError,
@@ -191,6 +192,7 @@ function Profile({
         </select>
       </label>
       <p className="muted">{t('profile.languageNote')}</p>
+      <ChangePassword token={token} />
       <button type="button" className="link" onClick={() => setShowCredits(true)}>
         {t('credits.open')}
       </button>

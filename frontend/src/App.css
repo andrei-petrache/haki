@@ -376,6 +376,18 @@ button.chip[aria-pressed='true']:hover:not(:disabled) {
   justify-content: space-between;
 }
 
+/* Change password, in Profile: one field per row */
+.password-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.password-form input {
+  width: 100%;
+  box-sizing: border-box;
+}
+
 /* Quick add: name across, then kcal and meal, then the three macros */
 button.quick-open {
   align-self: flex-start;

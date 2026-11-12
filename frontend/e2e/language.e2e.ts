@@ -66,9 +66,21 @@ test('a Romanian browser gets the app in Romanian, signing up included', async (
   await page.getByRole('button', { name: 'Ești nou? Fă-ți un cont' }).click()
   await page.getByLabel('Email').fill(`e2e-${Date.now()}-${randomBytes(3).toString('hex')}@example.com`)
   await page.getByLabel('Parolă').fill(randomBytes(16).toString('hex'))
-  await page.getByRole('button', { name: 'Creează contul' }).click()
+  // Through the form, so no waiting in the helper: Nginx allows 5 sign-ups
+  // and logins a minute per address, and earlier files may have used them.
+  // On 429 the form says so; wait as postAuth does, then submit again. If
+  // the sign-up went through and only its login was refused, the form has
+  // turned into a login form: the same submit button logs in.
+  const loggedIn = page.getByRole('button', { name: 'Ieși' })
+  const limited = page.locator('form .error', { hasText: 'Prea multe încercări' })
+  for (let attempt = 0; ; attempt++) {
+    await page.locator('form button[type="submit"]').click()
+    await expect(loggedIn.or(limited)).toBeVisible()
+    if ((await loggedIn.isVisible()) || attempt === 5) break
+    await page.waitForTimeout(13_000)
+  }
 
-  await expect(page.getByRole('button', { name: 'Ieși' })).toBeVisible()
+  await expect(loggedIn).toBeVisible()
   for (const name of ['Azi', 'Alimente', 'Antrenamente', 'Programe', 'Profil']) {
     await expect(tab(name)).toBeVisible()
   }
