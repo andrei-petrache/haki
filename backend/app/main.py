@@ -15,6 +15,7 @@ from app.db import database_is_reachable
 from app.entries import router as entries_router
 from app.errors import ErrorCode, error_response, install_error_handlers
 from app.exercises import router as exercises_router
+from app.food_search import router as food_search_router
 from app.foods import router as foods_router
 from app.metrics import record_request, start_metrics_server
 from app.programs import router as programs_router
@@ -48,6 +49,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 app = FastAPI(title="Haki API", version=API_VERSION, lifespan=lifespan)
 app.include_router(auth_router)
 app.include_router(foods_router)
+app.include_router(food_search_router)
 app.include_router(entries_router)
 app.include_router(summary_router)
 app.include_router(exercises_router)
