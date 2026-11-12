@@ -4,6 +4,8 @@ import {
   PROGRAMS_PAGE_SIZE,
   RECENT_FOODS_LIMIT,
   deleteMealEntry,
+  fetchBestSet,
+  fetchLastSession,
   entryKey,
   fetchFoods,
   fetchPrograms,
@@ -157,5 +159,21 @@ describe('quick entries', () => {
     const urls = (fetchMock.mock.calls as unknown as [string][]).map(([url]) => url)
     expect(urls[0].endsWith('/entries/quick/3')).toBe(true)
     expect(urls[1].endsWith('/entries/3')).toBe(true)
+  })
+})
+
+describe('exercise history', () => {
+  it('asks before the given workout, or about all of them, and reads null as never done', async () => {
+    const fetchMock = vi.fn(
+      async () => new Response('null', { status: 200, headers: { 'Content-Type': 'application/json' } }),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+
+    expect(await fetchLastSession('a-token', 4, 12)).toBeNull()
+    expect(await fetchBestSet('a-token', 4)).toBeNull()
+
+    const urls = (fetchMock.mock.calls as unknown as [string][]).map(([url]) => url)
+    expect(urls[0].endsWith('/exercises/4/last?before_workout=12')).toBe(true)
+    expect(urls[1].endsWith('/exercises/4/best')).toBe(true)
   })
 })

@@ -217,7 +217,7 @@ export const en = {
   'rest.startPreset': 'Start a {time} rest',
   'history.lastTime': 'Last time ({day}): {sets}',
   'history.record': 'New record',
-  'history.recordScope': 'Your best set of this exercise in your last {count} workouts',
+  'history.recordScope': 'Your best set of this exercise so far',
 
   'credits.open': 'Credits: where the catalog comes from',
   'credits.back': '‹ Back to profile',

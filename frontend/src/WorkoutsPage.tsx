@@ -9,7 +9,7 @@ import {
 import type { Workout, WorkoutSummary } from './api'
 import { formatDay, formatSet, shorten } from './format'
 import { useI18n } from './i18n/context'
-import { HISTORY_LIMIT, loadHistory, recordPositions } from './history'
+import { recordPositions, useExerciseHistory } from './history'
 import WorkoutEditor from './WorkoutEditor'
 import type { WeightUnit } from './units'
 
@@ -135,8 +135,6 @@ function WorkoutDetail({
 }) {
   const { t } = useI18n()
   const [workout, setWorkout] = useState<Workout | null>(null)
-  // The recent workouts, to spot records; nothing is marked until they arrive
-  const [history, setHistory] = useState<Workout[]>([])
   const [error, setError] = useState<string | null>(null)
   const [deleting, setDeleting] = useState(false)
 
@@ -154,20 +152,15 @@ function WorkoutDetail({
     }
   }, [token, id])
 
-  useEffect(() => {
-    let cancelled = false
-    loadHistory(token)
-      .then((loaded) => {
-        if (!cancelled) setHistory(loaded)
-      })
-      // No history, no records: the workout itself still shows
-      .catch(() => {})
-    return () => {
-      cancelled = true
-    }
-  }, [token])
-
-  const records = workout ? recordPositions(workout, history) : new Set<string>()
+  // The best set before this workout, per exercise, to spot records; an
+  // exercise is not marked until its best arrives, and a failure marks none
+  const histories = useExerciseHistory(
+    token,
+    workout ? workout.exercises.map((item) => item.exercise_id) : [],
+    workout ? workout.id : null,
+  )
+  const bests = new Map([...histories].map(([exerciseId, history]) => [exerciseId, history.best]))
+  const records = workout ? recordPositions(workout, bests) : new Set<string>()
 
   async function handleDelete(loaded: Workout) {
     if (!window.confirm(t('workouts.deleteConfirm', { day: formatDay(loaded.performed_on) }))) {
@@ -207,7 +200,7 @@ function WorkoutDetail({
                     {records.has(`${index}.${setIndex}`) && (
                       <span
                         className="record"
-                        title={t('history.recordScope', { count: HISTORY_LIMIT })}
+                        title={t('history.recordScope')}
                       >
                         {t('history.record')}
                       </span>

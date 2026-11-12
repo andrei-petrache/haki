@@ -298,6 +298,37 @@ export function fetchExercises(token: string): Promise<Exercise[]> {
   return request<Exercise[]>('/exercises', {}, token)
 }
 
+/** An exercise's sets in the latest earlier workout with it. */
+export type LastSession = { workout_id: number; performed_on: string; sets: WorkoutSet[] }
+
+/** The best set of an exercise, and the workout where it was first done. */
+export type BestSet = WorkoutSet & { workout_id: number; performed_on: string }
+
+function beforeQuery(before: number | null): string {
+  return before === null ? '' : `?${new URLSearchParams({ before_workout: String(before) })}`
+}
+
+/**
+ * The sets of an exercise last time: in the latest workout before
+ * `before` (any workout when null). null when never done before.
+ */
+export function fetchLastSession(
+  token: string,
+  exerciseId: number,
+  before: number | null = null,
+): Promise<LastSession | null> {
+  return request<LastSession | null>(`/exercises/${exerciseId}/last${beforeQuery(before)}`, {}, token)
+}
+
+/** The best set of an exercise before `before` (ever, when null), or null. */
+export function fetchBestSet(
+  token: string,
+  exerciseId: number,
+  before: number | null = null,
+): Promise<BestSet | null> {
+  return request<BestSet | null>(`/exercises/${exerciseId}/best${beforeQuery(before)}`, {}, token)
+}
+
 export function createExercise(token: string, name: string): Promise<Exercise> {
   return request<Exercise>('/exercises', json('POST', { name }), token)
 }

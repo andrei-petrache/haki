@@ -222,7 +222,7 @@ export const ro: Dictionary = {
   'rest.startPreset': 'Pornește o pauză de {time}',
   'history.lastTime': 'Ultima dată ({day}): {sets}',
   'history.record': 'Record nou',
-  'history.recordScope': 'Cel mai bun set la acest exercițiu din ultimele {count} antrenamente',
+  'history.recordScope': 'Cel mai bun set la acest exercițiu de până acum',
 
   'credits.open': 'Surse: de unde vine catalogul',
   'credits.back': '‹ Înapoi la profil',
