@@ -9,8 +9,7 @@ import {
 } from './api'
 import type { Exercise, Workout } from './api'
 import { formatDay, formatSet, localDateString } from './format'
-import { bestBefore, lastTime, liveRecordIndex, loadHistory } from './history'
-import type { Current } from './history'
+import { liveRecordIndex, useExerciseHistory } from './history'
 import { withoutKeys } from './formErrors'
 import { useI18n } from './i18n/context'
 import { weightToSend } from './units'
@@ -205,8 +204,6 @@ export default function WorkoutEditor({
 }) {
   const { t } = useI18n()
   const [catalog, setCatalog] = useState<Exercise[] | null>(null)
-  // The recent workouts, for "last time"; null while loading, [] if it failed
-  const [history, setHistory] = useState<Workout[] | null>(null)
   const [fields, setFields] = useState<WorkoutFields | null>(() =>
     initial ? workoutToFields(initial, weightUnit) : null,
   )
@@ -233,31 +230,19 @@ export default function WorkoutEditor({
     }
   }, [token])
 
-  // Alongside the form, never in its way: a failure only hides "last time"
-  useEffect(() => {
-    let cancelled = false
-    loadHistory(token)
-      .then((loaded) => {
-        if (!cancelled) setHistory(loaded)
-      })
-      .catch(() => {
-        if (!cancelled) setHistory([])
-      })
-    return () => {
-      cancelled = true
-    }
-  }, [token])
-
-  // The workout being edited is not its own "last time"
-  const current: Current = initial ? { id: initial.id, performed_on: initial.performed_on } : null
+  // Alongside the form, never in its way: a failure only hides "last time".
+  // The workout being edited is not its own "last time": only earlier ones count.
+  const histories = useExerciseHistory(
+    token,
+    fields ? fields.exercises.map((item) => Number(item.exercise)) : [],
+    initial ? initial.id : null,
+  )
 
   function lastText(item: ExerciseFields): string | null {
-    const exerciseId = Number(item.exercise)
-    if (!history || !Number.isInteger(exerciseId) || exerciseId < 1) return null
-    const last = lastTime(history, exerciseId, current)
+    const last = histories.get(Number(item.exercise))?.last
     if (!last) return null
     return t('history.lastTime', {
-      day: formatDay(last.performedOn),
+      day: formatDay(last.performed_on),
       sets: last.sets.map((set) => formatSet(set.reps, set.weight_kg, weightUnit)).join(', '),
     })
   }
@@ -274,14 +259,14 @@ export default function WorkoutEditor({
 
   /** Which set of a row, as typed, would beat the history's best: live, while typing. */
   function recordIndex(item: ExerciseFields): number | null {
-    const exerciseId = Number(item.exercise)
-    if (!history || !Number.isInteger(exerciseId) || exerciseId < 1) return null
+    const history = histories.get(Number(item.exercise))
+    if (!history) return null
     const typed = item.sets.map((set) =>
       setError(set, weightUnit) === null
         ? { reps: Number(set.reps), weight_kg: weightToSend(set.weight, weightUnit, set.savedKg) }
         : null,
     )
-    return liveRecordIndex(typed, bestBefore(history, exerciseId, current))
+    return liveRecordIndex(typed, history.best)
   }
 
   function setExercise(index: number, item: ExerciseFields) {
