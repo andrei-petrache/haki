@@ -10,6 +10,7 @@ import {
 import type { Food, FoodInput } from './api'
 import CatalogFoodPicker from './CatalogFoodPicker'
 import { formatDecimal } from './format'
+import { displayName } from './logging'
 import { useI18n } from './i18n/context'
 import type { MessageKey } from './i18n/i18n'
 
@@ -133,7 +134,7 @@ function FoodForm({
 }
 
 export default function FoodsPage({ token }: { token: string }) {
-  const { t } = useI18n()
+  const { t, locale } = useI18n()
   const [foods, setFoods] = useState<Food[] | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [editingId, setEditingId] = useState<number | null>(null)
@@ -224,7 +225,7 @@ export default function FoodsPage({ token }: { token: string }) {
               ) : (
                 <li key={food.id}>
                   <span className="grow">
-                    <strong>{food.name}</strong>
+                    <strong>{displayName(food, locale)}</strong>
                     <br />
                     <span className="muted">
                       {t('foods.row', {
@@ -239,7 +240,7 @@ export default function FoodsPage({ token }: { token: string }) {
                     <button
                       type="button"
                       className="icon star"
-                      aria-label={t('foods.favourite', { name: food.name })}
+                      aria-label={t('foods.favourite', { name: displayName(food, locale) })}
                       aria-pressed={food.favourite === true}
                       onClick={() => void toggleFavourite(food)}
                     >
