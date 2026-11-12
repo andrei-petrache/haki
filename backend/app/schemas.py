@@ -54,7 +54,20 @@ class UserResponse(BaseModel):
     id: int
     email: str
     daily_calorie_target: int | None
+    # A plain string, not the Literal of the input: a response must not fail
+    # on a language that another version of the app accepted
+    language: str | None = None
     created_at: datetime
+
+
+# The app's languages; null means "follow the browser"
+AppLanguage = Literal["en", "ro"]
+
+
+class AccountSettingsIn(BaseModel):
+    """Required field: clients send null explicitly to follow the browser."""
+
+    language: AppLanguage | None
 
 
 class CalorieTargetIn(BaseModel):

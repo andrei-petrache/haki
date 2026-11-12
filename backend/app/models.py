@@ -33,6 +33,8 @@ class User(Base):
     email: Mapped[str] = mapped_column(String(255), unique=True, index=True)
     password_hash: Mapped[str] = mapped_column(String(255))
     daily_calorie_target: Mapped[int | None] = mapped_column(default=None)
+    # "en" or "ro"; null follows the browser's language
+    language: Mapped[str | None] = mapped_column(String(5), default=None)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
