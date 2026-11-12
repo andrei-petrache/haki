@@ -4,10 +4,14 @@
 # NGINX_ENVSUBST_FILTER (see the Dockerfile): nginx's own variables are left
 # alone.
 
-# Login and signup run Argon2 (64 MiB each, deliberately slow), so they are
-# rate limited per client IP. Only POST counts: an empty key is never limited.
+# Login, signup and a password change run Argon2 (64 MiB each, deliberately
+# slow), so they are rate limited per client IP, in one shared budget. A
+# password change also checks the current password: limited, a stolen token
+# cannot guess it at full speed. Only the writes count (POST, PUT): an empty
+# key is never limited.
 map $request_method $auth_limit_key {
     POST    $binary_remote_addr;
+    PUT     $binary_remote_addr;
     default "";
 }
 # 5 requests per minute per IP; 10 MB of state tracks ~160,000 addresses
@@ -102,9 +106,9 @@ server {
         proxy_pass $backend;
     }
 
-    # Login and signup: a burst of 5 at once, then one every 12 s, else 429.
-    # A regex location wins over the /api/ prefix above.
-    location ~ ^/api/auth/(login|signup)$ {
+    # Login, signup and password change: a burst of 5 at once, then one
+    # every 12 s, else 429. A regex location wins over the /api/ prefix above.
+    location ~ ^/api/auth/(login|signup|me/password)$ {
         limit_req zone=auth burst=5 nodelay;
         rewrite ^/api(/.*)$ $1 break;
         proxy_pass $backend;
