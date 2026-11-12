@@ -42,23 +42,35 @@ names had 4 to 5 words, the same shape as the catalog's:
 | Search for two common words, first 20 rows | 16 ms | less |
 | Peak memory of the import process | 300 MB, with the benchmark's own copy of the data | about 150-200 MB |
 
+Measured again on 12 November 2026 after the import learned to read in
+batches (same throwaway container, 50,000 synthetic foods, 13 MB file, peak
+RSS of the import process alone):
+
+| | Whole files (before) | Streamed, batches of 1,000 | Batches, 200,000 foods |
+| --- | --- | --- | --- |
+| First import | 18.9 s, 370 MB | 3.4 s, 96 MB | 13.4 s, 108 MB |
+| Re-run, nothing changed | 15.6 s, 278 MB | 1.7 s, 96 MB | 6.4 s, 108 MB |
+
+Bulk statements also made it about five times faster. The 12 MB that remain
+going from 50,000 to 200,000 items are the set of refs kept to catch
+duplicates.
+
 What follows from it:
 
 - **The database is not the limit.** Prod and staging volumes are 1 GiB, so
   30,000 foods take under 2% of one. Search stays fast because of the
   trigram index.
-- **The import Job's memory is the limit.** It reads each file whole and
-  holds every item while it validates. The staging Job is limited to 256 MiB,
-  which fits today's data but not 30,000 items with a margin. Before a bulk
-  import, the import either reads and upserts in batches of 1,000 (one
-  transaction still, so a bad file still writes nothing), or ops raises the
-  limit. Batching is the better fix, since memory then stops growing with
-  the data. It is backend work, with no migration.
-- **Re-runs cost a full read.** An unchanged re-run takes almost as long as
-  the first run, because it compares every row. With the PostSync hook
-  running after every staging sync, 15 s per sync is acceptable. If it grows,
-  the import can store a checksum of each file and skip a file that has not
-  changed.
+- **The import Job's memory was the limit; it no longer grows with the
+  data.** The import used to read each file whole and hold every item, which
+  would not have fit 30,000 items with a margin in the staging Job's
+  256 MiB. It now streams each file and upserts in batches of 1,000, still in
+  one transaction. A first pass validates the whole file, so a bad file still
+  writes nothing. About 100 MB covers any size above, with no change to the
+  Job's limit.
+- **Re-runs cost a full read.** An unchanged re-run still reads and compares
+  every row, now about 2 s for 50,000 foods. With the PostSync hook running
+  after every staging sync, that is acceptable. If it grows, the import can
+  store a checksum of each file and skip a file that has not changed.
 - **The image grows by the data files.** About 6.5 MB of JSON is small next
   to the Python runtime. Open Food Facts over 50,000 rows would be a reason
   to fetch at import time instead, which brings a network dependency and is
@@ -96,8 +108,8 @@ attribution.
 
 ## Proposed order
 
-1. **USDA Foundation + FNDDS** (about 5,700 rows, CC0). The import reads in
-   batches first. The only decision needed is which FNDDS dishes get a
+1. **USDA Foundation + FNDDS** (about 5,700 rows, CC0). The import already
+   reads in batches. The only decision needed is which FNDDS dishes get a
    Romanian name.
 2. **haki-ro-staples**, once Andrei approves the list in #143, with the
    `estimated` flag.
