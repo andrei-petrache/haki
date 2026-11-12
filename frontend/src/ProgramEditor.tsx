@@ -1,6 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
-import { ApiError, createExercise, createProgram, describeError, fetchExercises } from './api'
-import type { Exercise } from './api'
+import {
+  ApiError,
+  createExercise,
+  createProgram,
+  describeError,
+  fetchExercises,
+  updateProgram,
+} from './api'
+import type { Exercise, Program } from './api'
 import { withoutKeys } from './formErrors'
 import { useI18n } from './i18n/context'
 import {
@@ -21,6 +28,7 @@ import {
   programExercisesToCreate,
   toProgramInput,
   validateProgram,
+  programToFields,
 } from './programForm'
 import type { DayFields, FormErrors, PlannedFields, ProgramFields } from './programForm'
 import type { WeightUnit } from './units'
@@ -234,25 +242,30 @@ function DayBlock({
 }
 
 /**
- * A new program. There is no editing yet: the API has no PUT for programs.
+ * A new program, or a saved one (initial) to edit: Save then replaces it
+ * whole (PUT), and its days come back as new rows.
  *
  * Save validates first and sends nothing if anything is wrong. Only then does
  * it create the new exercises, one at a time, and finally the whole program.
  */
 export default function ProgramEditor({
   token,
+  initial = null,
   onSaved,
   onCancel,
   weightUnit,
 }: {
   token: string
+  initial?: Program | null
   onSaved: (id: number) => void
   onCancel: () => void
   weightUnit: WeightUnit
 }) {
   const { t } = useI18n()
   const [catalog, setCatalog] = useState<Exercise[] | null>(null)
-  const [fields, setFields] = useState<ProgramFields | null>(null)
+  const [fields, setFields] = useState<ProgramFields | null>(() =>
+    initial ? programToFields(initial, weightUnit) : null,
+  )
   const [errors, setErrors] = useState<FormErrors>({})
   const [saveError, setSaveError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
@@ -336,7 +349,10 @@ export default function ProgramEditor({
           return
         }
       }
-      const saved = await createProgram(token, toProgramInput(current, known, weightUnit))
+      const input = toProgramInput(current, known, weightUnit)
+      const saved = initial
+        ? await updateProgram(token, initial.id, input)
+        : await createProgram(token, input)
       onSaved(saved.id)
     } catch (err) {
       if (err instanceof ApiError && err.status === 409) {
@@ -355,10 +371,12 @@ export default function ProgramEditor({
     }
   }
 
+  const title = initial ? t('programs.editTitle', { name: initial.name }) : t('programs.new')
+
   if (!fields || !catalog) {
     return (
       <section className="card">
-        <h2>{t('programs.new')}</h2>
+        <h2>{title}</h2>
         {saveError ? <p className="error">{saveError}</p> : <p className="muted">{t('app.loading')}</p>}
         <button type="button" className="link" onClick={onCancel}>
           {t('common.cancel')}
@@ -379,7 +397,7 @@ export default function ProgramEditor({
         void handleSave(fields, catalog)
       }}
     >
-      <h2>{t('programs.new')}</h2>
+      <h2>{title}</h2>
       <label>
         {t('programs.name')}
         <input

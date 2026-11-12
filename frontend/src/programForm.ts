@@ -2,7 +2,7 @@
  * The program editor's state and the pure functions around it: validation,
  * which exercises to create first, and the request body. No React, no fetch.
  */
-import type { Exercise, ProgramInput } from './api'
+import type { Exercise, Program, ProgramInput } from './api'
 import {
   MAX_NAME_LENGTH,
   MAX_SETS,
@@ -16,7 +16,7 @@ import { firstChangedRow, withoutKeys, withoutRowsFrom } from './formErrors'
 import type { FormErrors } from './formErrors'
 import { tActive } from './i18n/i18n'
 import type { MessageKey } from './i18n/i18n'
-import { weightToSend } from './units'
+import { weightFieldText, weightToSend } from './units'
 import type { WeightUnit } from './units'
 
 export type { FormErrors } from './formErrors'
@@ -32,6 +32,9 @@ export type PlannedFields = {
   sets: string
   reps: string
   weight: string
+  // The kilograms saved for this row when editing: an untouched field sends
+  // them back exactly (pounds shown rounded must not change them)
+  savedKg?: number | null
 }
 
 export type DayFields = {
@@ -74,6 +77,26 @@ export function newDay(days: DayFields[], catalog: Exercise[]): DayFields | null
 
 export function newProgramFields(catalog: Exercise[]): ProgramFields {
   return { name: '', days: [newDay([], catalog) as DayFields] }
+}
+
+/** A saved program as the editor's fields, weights in the chosen unit. */
+export function programToFields(program: Program, unit: WeightUnit = 'kg'): ProgramFields {
+  return {
+    name: program.name,
+    days: program.days.map((day) => ({
+      position: day.position,
+      name: day.name,
+      exercises: day.exercises.map((item) => ({
+        exercise: String(item.exercise_id),
+        newName: '',
+        sets: String(item.sets),
+        reps: String(item.reps),
+        // Plain text, not formatWeight(): a number input rejects "22,5"
+        weight: weightFieldText(item.weight_kg, unit),
+        savedKg: item.weight_kg,
+      })),
+    })),
+  }
 }
 
 // Validation errors are keyed by where they belong in the form (see the
@@ -199,8 +222,8 @@ export function toProgramInput(
         exercise_id: exerciseIdOf(item, catalog),
         sets: Number(item.sets),
         reps: Number(item.reps),
-        // A new program only: no saved weight to keep
-        weight_kg: weightToSend(item.weight, unit, null),
+        // A row loaded from a saved program keeps its kilograms if untouched
+        weight_kg: weightToSend(item.weight, unit, item.savedKg),
       })),
     })),
   }

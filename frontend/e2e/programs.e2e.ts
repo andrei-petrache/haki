@@ -197,6 +197,38 @@ test('keeps an exercise a program uses from being deleted (409)', async () => {
   expect(response.body).toEqual({ detail: 'Exercise is used by workouts or programs' })
 })
 
+test('edits a program in place: renamed, the rest kept exactly', async () => {
+  await tab('Programs').click()
+  await page.locator('.workout-card', { hasText: 'E2E Full body' }).click()
+  const programId = (await api('GET', '/programs')).body as { id: number; name: string }[]
+  const id = programId.find((item) => item.name === 'E2E Full body')!.id
+  const before = (await api('GET', `/programs/${id}`)).body as {
+    days: { id: number; exercises: unknown[] }[]
+  }
+
+  await page.getByRole('button', { name: 'Edit' }).click()
+  await expect(page.getByRole('heading', { name: 'Edit E2E Full body' })).toBeVisible()
+  await page.getByLabel('Name', { exact: true }).first().fill('E2E Full body B')
+  await dayBlock(0).getByLabel('Name', { exact: true }).fill('Everything')
+  await page.getByRole('button', { name: 'Save' }).click()
+
+  // Back on the program, under its new name, with the same id
+  await expect(page.getByRole('heading', { name: 'E2E Full body B' })).toBeVisible()
+  await expect(page.getByText('Everything')).toBeVisible()
+  const after = (await api('GET', `/programs/${id}`)).body as {
+    name: string
+    days: { id: number; name: string; exercises: unknown[] }[]
+  }
+  expect(after.name).toBe('E2E Full body B')
+  expect(after.days.map((day) => day.name)).toEqual(['Everything'])
+  // The planned exercises, weights included, come back unchanged
+  expect(after.days.map((day) => day.exercises)).toEqual(before.days.map((day) => day.exercises))
+  expect(await ids('/programs')).toHaveLength(2)
+  await page.screenshot({ path: `${SHOTS}/5-edited-program.png`, fullPage: true })
+  // The next test opens the list from the tab, which keeps the current view
+  await page.getByRole('button', { name: '‹ Back to programs' }).click()
+})
+
 test('deletes a program and keeps the workout started from it', async () => {
   await tab('Programs').click()
   await page.locator('.workout-card', { hasText: 'E2E Push/Pull' }).click()

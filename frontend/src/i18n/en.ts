@@ -153,6 +153,7 @@ export const en = {
   'count.days': { one: '{count} day', other: '{count} days' },
   'programs.yours': 'Your programs',
   'programs.new': 'New program',
+  'programs.editTitle': 'Edit {name}',
   'programs.none': 'No programs yet',
   'programs.deleteConfirm': 'Delete the program "{name}"? Its workouts stay.',
   'programs.back': '‹ Back to programs',

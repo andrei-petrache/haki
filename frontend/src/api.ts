@@ -429,6 +429,14 @@ export function createProgram(token: string, program: ProgramInput): Promise<Pro
   return request<Program>('/programs', json('POST', program), token)
 }
 
+/**
+ * Replace a program with this one, whole: name and days. The days are
+ * new rows afterwards (new ids), so read them from the answer.
+ */
+export function updateProgram(token: string, id: number, program: ProgramInput): Promise<Program> {
+  return request<Program>(`/programs/${id}`, json('PUT', program), token)
+}
+
 export function deleteProgram(token: string, id: number): Promise<void> {
   return request<void>(`/programs/${id}`, { method: 'DELETE' }, token)
 }
