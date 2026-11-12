@@ -26,9 +26,9 @@ def get_own_food(session: Session, user: User, food_id: int) -> Food:
     return food
 
 
-def last_logged(
+def newest_entries(
     session: Session, user: User, food_ids: list[int]
-) -> dict[int, LastLogged]:
+) -> dict[int, MealEntry]:
     """The user's newest entry of each food, by entry id, in one query."""
     if not food_ids:
         return {}
@@ -37,19 +37,26 @@ def last_logged(
         .where(MealEntry.user_id == user.id, MealEntry.food_id.in_(food_ids))
         .group_by(MealEntry.food_id)
     )
-    rows = session.execute(
-        select(
-            MealEntry.food_id,
-            MealEntry.grams,
-            MealEntry.meal_type,
-            MealEntry.eaten_on,
-        ).where(MealEntry.id.in_(newest))
+    entries = session.scalars(select(MealEntry).where(MealEntry.id.in_(newest)))
+    return {entry.food_id: entry for entry in entries}
+
+
+def to_last_logged(entry: MealEntry | None) -> LastLogged | None:
+    """How an entry logged its food, or None without an entry."""
+    if entry is None:
+        return None
+    return LastLogged(
+        grams=entry.grams, meal_type=entry.meal_type, eaten_on=entry.eaten_on
     )
+
+
+def last_logged(
+    session: Session, user: User, food_ids: list[int]
+) -> dict[int, LastLogged | None]:
+    """How the user last logged each food that they ever logged."""
     return {
-        row.food_id: LastLogged(
-            grams=row.grams, meal_type=row.meal_type, eaten_on=row.eaten_on
-        )
-        for row in rows
+        food_id: to_last_logged(entry)
+        for food_id, entry in newest_entries(session, user, food_ids).items()
     }
 
 

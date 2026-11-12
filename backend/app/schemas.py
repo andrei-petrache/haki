@@ -145,6 +145,42 @@ class FoodResponse(BaseModel):
     last_logged: LastLogged | None = None
 
 
+class OwnFoodResult(BaseModel):
+    """A search result from the user's own foods."""
+
+    origin: Literal["own"] = "own"
+    id: int
+    name: str
+    calories_per_100g: float
+    protein_per_100g: float
+    carbs_per_100g: float
+    fat_per_100g: float
+    favourite: bool
+    last_logged: LastLogged | None
+    catalog_food_id: int | None
+
+
+class CatalogFoodResult(BaseModel):
+    """A search result from the catalog; copied with POST /foods/from-catalog."""
+
+    origin: Literal["catalog"] = "catalog"
+    # The catalog food's id, not a food of the user's
+    id: int
+    # In the language asked for, English where there is no Romanian name
+    name: str
+    calories_per_100g: float
+    protein_per_100g: float
+    carbs_per_100g: float
+    fat_per_100g: float
+    # The source's key, as GET /catalog/sources lists it, for the credit line
+    source_key: str
+
+
+FoodSearchResult = Annotated[
+    OwnFoodResult | CatalogFoodResult, Field(discriminator="origin")
+]
+
+
 class ExerciseIn(BaseModel):
     name: ExerciseName
 
