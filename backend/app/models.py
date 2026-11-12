@@ -213,6 +213,17 @@ class Food(Base):
     catalog_food_id: Mapped[int | None] = mapped_column(
         ForeignKey("catalog_foods.id", name="fk_foods_catalog_food_id"), default=None
     )
+    # When the user marked it as a favourite; null when it is not one.
+    # Nullable without a default, so the previous version still inserts;
+    # a time rather than a nullable flag, which would have three states.
+    favourited_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), default=None
+    )
+
+    @property
+    def favourite(self) -> bool:
+        """Whether the user marked this food as a favourite."""
+        return self.favourited_at is not None
 
 
 class MealEntry(Base):

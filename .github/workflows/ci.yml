@@ -178,7 +178,7 @@ jobs:
 
   # The Kubernetes manifests, without a cluster: every overlay builds, matches
   # the API schemas, runs the PostgreSQL image pinned in compose.yaml and pins
-  # the app images to a commit SHA
+  # the app images to a commit SHA; and the alert rules pass their tests
   manifests:
     runs-on: ubuntu-24.04
     timeout-minutes: 5
@@ -196,6 +196,12 @@ jobs:
 
       - name: Check the manifests
         run: k8s/scripts/check-manifests.sh
+
+      # promtool from the Prometheus image k8s/monitoring deploys (Docker is
+      # on the runner), so a rule that its version would not load, or that
+      # no longer fires as its tests say, fails here and not on staging
+      - name: Test the alert rules
+        run: k8s/scripts/check-alert-rules.sh
 
   # The scope of the tag bot's pull request is checked by prod-guard
   # (.github/workflows/guard.yml), from main's copy of the rule.

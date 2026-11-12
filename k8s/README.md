@@ -538,11 +538,12 @@ Two alert rules, in `k8s/monitoring/prometheus/alerts.yml`: the API answers
 a staging container restarts 3 times in 15 minutes or waits in
 CrashLoopBackOff for 5 minutes. They show as pending, then firing, in
 Prometheus (Alerts); nothing sends them anywhere yet, since an Alertmanager
-needs an e-mail or chat service. Their tests:
+needs an e-mail or chat service. Their tests, run by CI in the job
+`manifests` with promtool from the Prometheus image that
+`k8s/monitoring/prometheus.yaml` deploys:
 
 ```bash
-docker run --rm -v "$PWD/k8s/monitoring/prometheus:/cfg:ro" --entrypoint promtool \
-  docker.io/prom/prometheus:v3.15.1 test rules /cfg/alerts.test.yml
+k8s/scripts/check-alert-rules.sh
 ```
 
 Nothing is reachable from outside the machine. To look at it:
