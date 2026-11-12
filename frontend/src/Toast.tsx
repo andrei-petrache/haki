@@ -9,8 +9,8 @@ export type ToastMessage = {
   undo?: () => Promise<void>
 }
 
-/** How long a message stays, long enough to reach Undo. */
-export const TOAST_MS = 6000
+/** How long a message stays: long enough to read it and reach Undo. */
+export const TOAST_MS = 8000
 
 /**
  * A short message above the bottom bar, e.g. "Added ... · Undo", that goes

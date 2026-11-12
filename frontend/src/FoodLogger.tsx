@@ -185,6 +185,9 @@ export default function FoodLogger({
       const entry = await createEntry(token, { food_id: foodId, eaten_on: day, meal_type: meal, grams })
       const name = candidate.origin === 'own' ? displayName(candidate.food, locale) : candidate.food.name
       setOpen(null)
+      // Done with this search: the field empties, the results close
+      setQ('')
+      setResults(null)
       onLogged(entry, name)
     } catch (err) {
       setError(describeError(err))
