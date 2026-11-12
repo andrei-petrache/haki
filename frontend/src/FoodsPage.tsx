@@ -1,5 +1,12 @@
 import { useEffect, useState } from 'react'
-import { createFood, deleteFood, describeError, fetchFoods, updateFood } from './api'
+import {
+  createFood,
+  deleteFood,
+  describeError,
+  fetchFoods,
+  setFavourite,
+  updateFood,
+} from './api'
 import type { Food, FoodInput } from './api'
 import CatalogFoodPicker from './CatalogFoodPicker'
 import { formatDecimal } from './format'
@@ -10,8 +17,13 @@ import type { MessageKey } from './i18n/i18n'
 type FoodFields = Record<keyof FoodInput, string>
 type NutrientKey = Exclude<keyof FoodInput, 'name'>
 
+// The backend's MAX_CALORIES_PER_100G (app/schemas.py). Pure fat is about
+// 900, but USDA rounds per food: lard is 902, and a copy of it from the
+// catalog must stay editable (the browser blocks a submit over max).
+const MAX_CALORIES_PER_100G = 950
+
 const NUTRIENT_FIELDS: { key: NutrientKey; label: MessageKey; max: number }[] = [
-  { key: 'calories_per_100g', label: 'foods.calories', max: 900 },
+  { key: 'calories_per_100g', label: 'foods.calories', max: MAX_CALORIES_PER_100G },
   { key: 'protein_per_100g', label: 'foods.protein', max: 100 },
   { key: 'carbs_per_100g', label: 'foods.carbs', max: 100 },
   { key: 'fat_per_100g', label: 'foods.fat', max: 100 },
@@ -159,6 +171,16 @@ export default function FoodsPage({ token }: { token: string }) {
     reload()
   }
 
+  async function toggleFavourite(food: Food) {
+    setError(null)
+    try {
+      await setFavourite(token, food.id, !food.favourite)
+      reload()
+    } catch (err) {
+      setError(`${food.name}: ${describeError(err)}`)
+    }
+  }
+
   async function handleDelete(food: Food) {
     if (!window.confirm(t('foods.deleteConfirm', { name: food.name }))) return
     setError(null)
@@ -214,6 +236,15 @@ export default function FoodsPage({ token }: { token: string }) {
                     </span>
                   </span>
                   <span className="actions">
+                    <button
+                      type="button"
+                      className="icon star"
+                      aria-label={t('foods.favourite', { name: food.name })}
+                      aria-pressed={food.favourite === true}
+                      onClick={() => void toggleFavourite(food)}
+                    >
+                      {food.favourite ? '★' : '☆'}
+                    </button>
                     <button
                       type="button"
                       className="secondary"

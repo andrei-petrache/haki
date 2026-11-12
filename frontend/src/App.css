@@ -308,6 +308,43 @@ dd {
   max-width: 12rem;
 }
 
+/* A favourite's star: filled and in the accent colour when marked */
+button.star[aria-pressed='true'] {
+  color: var(--accent);
+}
+
+/* One-tap picks above the entry form; they wrap instead of scrolling */
+.quick-picks {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+button.chip {
+  max-width: 100%;
+  overflow: hidden;
+  padding: 0.3rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: CanvasText;
+  background: transparent;
+}
+
+button.chip:hover:not(:disabled) {
+  background: var(--card-bg);
+}
+
+button.chip[aria-pressed='true'],
+button.chip[aria-pressed='true']:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: white;
+  background: var(--accent);
+}
+
 .entry-fields {
   display: grid;
   grid-template-columns: 2fr 1fr 1fr auto;
@@ -329,6 +366,43 @@ dd {
 .meal h3 {
   display: flex;
   justify-content: space-between;
+}
+
+/* Quick add: name across, then kcal and meal, then the three macros */
+button.quick-open {
+  align-self: flex-start;
+}
+
+.quick-fields {
+  display: grid;
+  /* minmax(0, ...): a column may shrink below an input's default width,
+     else three of them push a 390 px phone sideways */
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: end;
+  gap: 0.75rem;
+}
+
+.quick-fields input,
+.quick-fields select {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.quick-fields .quick-name {
+  grid-column: 1 / -1;
+}
+
+/* Copy a meal: day and meal side by side, wrapping on a phone */
+.copy-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 0.75rem;
+}
+
+.copy-form .actions,
+.copy-form p {
+  flex-basis: 100%;
 }
 
 .meal h3 .muted {

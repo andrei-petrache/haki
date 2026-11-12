@@ -25,6 +25,8 @@ export type Food = FoodInput & {
   id: number
   // The catalog food this one was copied from; null when typed in by hand
   catalog_food_id?: number | null
+  // Marked by the user; such foods come first on Today
+  favourite?: boolean
 }
 
 export type Nutrients = {
@@ -41,7 +43,33 @@ export type MealEntryInput = {
   grams: number
 }
 
-export type MealEntry = MealEntryInput & Nutrients & { id: number; food_name: string }
+export type MealEntry = Nutrients & {
+  id: number
+  eaten_on: string
+  meal_type: MealType
+  // Null for a quick entry: it has its own nutrients, no food and no grams
+  food_id: number | null
+  grams: number | null
+  food_name: string
+  // Quick entries live apart from food entries: their ids can be equal
+  quick?: boolean
+}
+
+/** A one-off entry without a food: calories, and optionally a name and macros. */
+export type QuickEntryInput = {
+  eaten_on: string
+  meal_type: MealType
+  calories: number
+  name?: string
+  protein?: number
+  carbs?: number
+  fat?: number
+}
+
+/** A key unique across food and quick entries, for lists and "busy" state. */
+export function entryKey(entry: Pick<MealEntry, 'id' | 'quick'>): string {
+  return `${entry.quick ? 'quick' : 'food'}-${entry.id}`
+}
 
 export type DailySummary = {
   eaten_on: string
@@ -199,6 +227,22 @@ export function fetchFoods(token: string): Promise<Food[]> {
   return request<Food[]>('/foods', {}, token)
 }
 
+/** Mark or unmark one of the user's foods as a favourite. Both are idempotent. */
+export function setFavourite(token: string, id: number, favourite: boolean): Promise<void> {
+  return request<void>(`/foods/${id}/favourite`, { method: favourite ? 'PUT' : 'DELETE' }, token)
+}
+
+/** How many recent foods Today offers as one-tap picks. */
+export const RECENT_FOODS_LIMIT = 6
+
+/**
+ * The user's foods by when they were last logged, newest first, each once.
+ * Foods never logged are left out, so a new user gets an empty list.
+ */
+export function fetchRecentFoods(token: string, limit = RECENT_FOODS_LIMIT): Promise<Food[]> {
+  return request<Food[]>(`/foods/recent?limit=${limit}`, {}, token)
+}
+
 export function createFood(token: string, food: FoodInput): Promise<Food> {
   return request<Food>('/foods', json('POST', food), token)
 }
@@ -218,6 +262,27 @@ export function fetchEntries(token: string, day: string): Promise<MealEntry[]> {
 
 export function createEntry(token: string, entry: MealEntryInput): Promise<MealEntry> {
   return request<MealEntry>('/entries', json('POST', entry), token)
+}
+
+export type MealCopy = { from_day: string; from_meal: MealType; to_day: string; to_meal: MealType }
+
+/**
+ * Copy every entry of one meal to another meal or day, in one request.
+ * Returns the new entries: none when the meal was empty. Copying onto the
+ * same meal and day is refused (422).
+ */
+export function copyMeal(token: string, copy: MealCopy): Promise<MealEntry[]> {
+  return request<MealEntry[]>('/entries/copy', json('POST', copy), token)
+}
+
+export function createQuickEntry(token: string, entry: QuickEntryInput): Promise<MealEntry> {
+  return request<MealEntry>('/entries/quick', json('POST', entry), token)
+}
+
+/** Delete a food entry or a quick one: each kind has its own path. */
+export function deleteMealEntry(token: string, entry: Pick<MealEntry, 'id' | 'quick'>): Promise<void> {
+  const path = entry.quick ? `/entries/quick/${entry.id}` : `/entries/${entry.id}`
+  return request<void>(path, { method: 'DELETE' }, token)
 }
 
 export function deleteEntry(token: string, id: number): Promise<void> {

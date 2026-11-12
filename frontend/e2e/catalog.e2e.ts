@@ -94,6 +94,31 @@ test('a food from the catalog: search, add, add again, and a name taken by hand'
   await expect(page.getByText('Nothing in the catalog matches "zzzz"')).toBeVisible()
 })
 
+test('a catalog food over 900 kcal (lard, 902) can be edited and saved', async () => {
+  await tab('Foods').click()
+  await page.getByLabel('Search the catalog').fill('lard')
+  await page.getByRole('button', { name: 'Add Lard', exact: true }).click()
+  await expect(page.getByRole('status')).toHaveText('Added "Lard" to your foods.')
+
+  // Saving the copy unchanged: with the old 900 the browser refused the form
+  const yours = page.locator('section').filter({ has: page.getByRole('heading', { name: 'Your foods' }) })
+  await yours.locator('li', { hasText: 'Lard' }).getByRole('button', { name: 'Edit' }).click()
+  const calories = yours.getByLabel('Calories')
+  await expect(calories).toHaveValue('902')
+  expect(await calories.evaluate((input: HTMLInputElement) => input.checkValidity())).toBe(true)
+  await yours.getByRole('button', { name: 'Save' }).click()
+  await expect(yours.getByLabel('Calories')).toHaveCount(0)
+  await expect(yours.locator('li', { hasText: 'Lard' })).toContainText('902 kcal')
+
+  // Over the backend's 950 the browser still says no, before any request
+  await yours.locator('li', { hasText: 'Lard' }).getByRole('button', { name: 'Edit' }).click()
+  await yours.getByLabel('Calories').fill('951')
+  expect(
+    await yours.getByLabel('Calories').evaluate((input: HTMLInputElement) => input.validity.rangeOverflow),
+  ).toBe(true)
+  await yours.getByRole('button', { name: 'Cancel' }).click()
+})
+
 test('an exercise from the catalog in the workout editor: new, again, and a name taken', async () => {
   await tab('Workouts').click()
   await page.getByRole('button', { name: 'New workout' }).click()
