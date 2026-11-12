@@ -533,13 +533,18 @@ kubectl -n argocd get application monitoring \
   -o jsonpath='{.status.sync.status} {.status.health.status}{"\n"}'   # Synced Healthy
 ```
 
-Four alert rules, in `k8s/monitoring/prometheus/alerts.yml`: the API answers
+Eight alert rules, in `k8s/monitoring/prometheus/alerts.yml`: the API answers
 5xx to more than 5% of requests for 10 minutes (with a little traffic); a
 staging container restarts 3 times in 15 minutes or waits in
 CrashLoopBackOff for 5 minutes; a staging container waits on its image
 for 5 minutes (ErrImagePull or ImagePullBackOff: the tag names an image
 GHCR does not have); and a staging Job fails (the migration or the catalog
-import). A publish that fails as a whole shows in none of them: CI on
+import). Four more watch the watchers and memory: a scrape target that
+answers nothing for 5 minutes; no staging backend to scrape for 10
+minutes; a staging or monitoring container above 90% of its memory limit
+for 15 minutes; and a restart after an OOM kill. No rule watches disk: the
+local-path provisioner reports no volume statistics. A publish that fails
+as a whole shows in none of them: CI on
 `main` goes red, the staging bump is skipped and staging keeps the
 previous version, healthy. They show as pending, then firing, in
 Prometheus (Alerts); nothing sends them anywhere yet, since an Alertmanager
