@@ -57,7 +57,8 @@ test('change the password: checked here first, then by the server', async () => 
   const newToken = await page.evaluate(() => localStorage.getItem('haki_token'))
   expect(newToken).not.toBe(oldToken)
   await page.reload()
-  await expect(page.getByRole('button', { name: 'Log out' })).toBeVisible()
+  // Still logged in: the tabs show (Log out sits in Profile on a phone)
+  await expect(page.getByRole('navigation').getByRole('button').first()).toBeVisible()
   const me = (value: string | null) =>
     page.request.get('/api/auth/me', { headers: { Authorization: `Bearer ${value}` } })
   expect((await me(oldToken)).status()).toBe(401)

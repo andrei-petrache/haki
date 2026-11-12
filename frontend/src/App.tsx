@@ -152,6 +152,7 @@ function Profile({
   onLocaleChoiceChange,
   onNewToken,
   onDeleted,
+  onLogout,
 }: {
   token: string
   user: User
@@ -162,6 +163,7 @@ function Profile({
   onLocaleChoiceChange: (choice: LocaleChoice) => void
   onNewToken: (token: string) => void
   onDeleted: () => void
+  onLogout: () => void
 }) {
   const { t, locale } = useI18n()
   const [showCredits, setShowCredits] = useState(false)
@@ -215,7 +217,39 @@ function Profile({
       <button type="button" className="link" onClick={() => setShowCredits(true)}>
         {t('credits.open')}
       </button>
+      {/* Shown on a phone only, where the header has no Log out (App.css) */}
+      <button type="button" className="secondary profile-logout" onClick={onLogout}>
+        {t('nav.logOut')}
+      </button>
     </section>
+  )
+}
+
+/** One line icon per tab, 24 px grid, drawn with the text colour. */
+const TAB_ICONS: Record<Tab, string> = {
+  today: 'M4 7h16v13H4zM4 11h16M8 4v4M16 4v4',
+  foods: 'M4 11h16a8 8 0 0 1-16 0zM9 7c0-2 2-2 2-4M14 7c0-2 2-2 2-4',
+  workouts: 'M3 9v6M6 6v12M18 6v12M21 9v6M6 12h12',
+  programs: 'M6 4h12v16H6zM9 8h6M9 12h6M9 16h4',
+  profile: 'M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 20c1.5-4 4.5-6 8-6s6.5 2 8 6',
+}
+
+function TabIcon({ tab }: { tab: Tab }) {
+  return (
+    <svg
+      className="tab-icon"
+      width="22"
+      height="22"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.75"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d={TAB_ICONS[tab]} />
+    </svg>
   )
 }
 
@@ -241,6 +275,7 @@ function Header({
             aria-current={tab === id ? 'page' : undefined}
             onClick={() => onTabChange(id)}
           >
+            <TabIcon tab={id} />
             {t(label)}
           </button>
         ))}
@@ -417,6 +452,7 @@ function App() {
               .then(setUser)
               .catch(() => {})
           }}
+          onLogout={handleLogout}
         />
       )}
     </main>

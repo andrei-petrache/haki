@@ -37,7 +37,8 @@ export async function signUp(page: Page): Promise<{ email: string; password: str
   const { access_token } = (await login.json()) as { access_token: string }
   await page.evaluate((value) => localStorage.setItem('haki_token', value), access_token)
   await page.reload()
-  await expect(page.getByRole('button', { name: 'Log out' })).toBeVisible()
+  // The tabs show once logged in, at the top or (on a phone) at the bottom
+  await expect(page.getByRole('navigation').getByRole('button').first()).toBeVisible()
   return { email, password }
 }
 

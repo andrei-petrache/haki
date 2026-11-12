@@ -20,14 +20,14 @@
   gap: 0.75rem;
   padding: 1.25rem;
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: var(--radius-card);
   background: var(--card-bg);
 }
 
 h1 {
   margin: 2rem 0 0;
   font-size: 2.5rem;
-  color: var(--accent);
+  color: var(--accent-text);
 }
 
 h2,
@@ -58,7 +58,7 @@ p {
 
 .error,
 .over-text {
-  color: var(--accent);
+  color: var(--accent-text);
   font-weight: 600;
 }
 
@@ -83,9 +83,10 @@ p {
 }
 
 .brand {
+  font-family: var(--font-num);
   font-size: 1.5rem;
   font-weight: 700;
-  color: var(--accent);
+  color: var(--accent-text);
 }
 
 .tabs {
@@ -98,24 +99,66 @@ p {
   margin-left: auto;
 }
 
-/* Phone: tabs get their own full-width row under brand and Log out. Tighter
-   than on a wide screen, so longer labels (Romanian "Antrenamente") still fit
-   at 390 px; if a label ever does not, the row wraps instead of pushing the
-   page sideways. */
+/* The tab icons show only on a phone, in the bottom navigation */
+.tab-icon {
+  display: none;
+}
+
+/* Phone: the five tabs move to a bar fixed at the bottom of the screen,
+   each at least 52 px tall, the current one in the accent colour. The
+   page keeps room for it, and for the home indicator (safe area). */
 @media (max-width: 30rem) {
   .tabs {
-    order: 1;
-    flex-basis: 100%;
-    flex-wrap: wrap;
-    gap: 0.1rem;
+    position: fixed;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 10;
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 0;
+    padding: 4px 4px calc(8px + env(safe-area-inset-bottom));
+    border-top: 1px solid var(--line);
+    background: var(--nav-bg);
   }
 
   /* More specific than button.tab further down, whose padding would
      otherwise win (same specificity, later in the file) */
-  .tabs button.tab {
-    flex: 1 1 auto;
-    padding-inline: 0.25rem;
-    font-size: 0.85rem;
+  .tabs button.tab,
+  .tabs button.tab[aria-current='page'],
+  .tabs button.tab:hover:not(:disabled),
+  .tabs button.tab[aria-current='page']:hover:not(:disabled) {
+    min-width: 0;
+    min-height: 52px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    padding: 0 2px;
+    border-radius: var(--radius-cell);
+    font-size: 0.66rem;
+    font-weight: 600;
+    color: var(--muted);
+    background: none;
+  }
+
+  .tabs button.tab[aria-current='page'],
+  .tabs button.tab[aria-current='page']:hover:not(:disabled) {
+    color: var(--accent-text);
+  }
+
+  .tab-icon {
+    display: block;
+  }
+
+  .container {
+    padding-bottom: calc(6rem + env(safe-area-inset-bottom));
+  }
+
+  /* Log out lives in Profile on a phone */
+  .app-header > .link {
+    display: none;
   }
 }
 
@@ -140,10 +183,10 @@ textarea {
   min-width: 0;
   padding: 0.5rem 0.6rem;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-field);
   font: inherit;
-  background: Canvas;
-  color: CanvasText;
+  background: var(--raised);
+  color: var(--text);
 }
 
 fieldset {
@@ -152,8 +195,20 @@ fieldset {
   border: none;
 }
 
+input,
+select,
+textarea {
+  border-color: var(--line);
+  color: var(--text);
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--muted);
+}
+
 :is(input, select, textarea, button):focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--focus);
   outline-offset: 1px;
 }
 
@@ -169,16 +224,16 @@ fieldset {
 button {
   padding: 0.55rem 1rem;
   border: none;
-  border-radius: 8px;
+  border-radius: var(--radius-field);
   font: inherit;
   font-weight: 600;
-  color: white;
-  background: var(--accent);
+  color: var(--on-accent);
+  background: var(--accent-fill);
   cursor: pointer;
 }
 
 button:hover:not(:disabled) {
-  background: var(--accent-hover);
+  background: var(--accent-fill-hover);
 }
 
 button:disabled {
@@ -189,7 +244,7 @@ button:disabled {
 button.secondary,
 button.icon,
 button.tab {
-  color: CanvasText;
+  color: var(--text);
   background: transparent;
 }
 
@@ -215,20 +270,20 @@ button.tab {
 }
 
 button.tab[aria-current='page'] {
-  color: white;
-  background: var(--accent);
+  color: var(--on-accent);
+  background: var(--accent-fill);
 }
 
 /* More specific than button.tab:hover, so the active tab keeps its color */
 button.tab[aria-current='page']:hover:not(:disabled) {
-  background: var(--accent-hover);
+  background: var(--accent-fill-hover);
 }
 
 button.link {
   align-self: flex-start;
   padding: 0.25rem 0;
   font-weight: 500;
-  color: var(--accent);
+  color: var(--accent-text);
   background: none;
 }
 
@@ -238,6 +293,17 @@ button.link:hover:not(:disabled) {
 }
 
 /* Profile */
+
+.profile-logout {
+  align-self: flex-start;
+}
+
+/* Exactly one Log out on screen: the header's above a phone's width */
+@media (min-width: 30.0625rem) {
+  .profile-logout {
+    display: none;
+  }
+}
 
 dl {
   display: grid;
@@ -268,20 +334,21 @@ dd {
 }
 
 .calories .big {
+  font-family: var(--font-num);
   font-size: 2.25rem;
   font-weight: 700;
 }
 
 .progress {
   height: 0.6rem;
-  border-radius: 999px;
+  border-radius: var(--radius-chip);
   background: var(--border);
   overflow: hidden;
 }
 
 .progress > div {
   height: 100%;
-  background: var(--accent);
+  background: var(--accent-fill);
 }
 
 /* Over target: a full, striped bar */
@@ -310,7 +377,7 @@ dd {
 
 /* A favourite's star: filled and in the accent colour when marked */
 button.star[aria-pressed='true'] {
-  color: var(--accent);
+  color: var(--accent-text);
 }
 
 /* One-tap picks above the entry form; they wrap instead of scrolling */
@@ -326,11 +393,11 @@ button.chip {
   overflow: hidden;
   padding: 0.3rem 0.75rem;
   border: 1px solid var(--border);
-  border-radius: 999px;
+  border-radius: var(--radius-chip);
   font-weight: 500;
   text-overflow: ellipsis;
   white-space: nowrap;
-  color: CanvasText;
+  color: var(--text);
   background: transparent;
 }
 
@@ -340,9 +407,9 @@ button.chip:hover:not(:disabled) {
 
 button.chip[aria-pressed='true'],
 button.chip[aria-pressed='true']:hover:not(:disabled) {
-  border-color: var(--accent);
-  color: white;
-  background: var(--accent);
+  border-color: var(--accent-text);
+  color: var(--on-accent);
+  background: var(--accent-fill);
 }
 
 .entry-fields {
@@ -540,13 +607,13 @@ button.workout-card {
   font-weight: 400;
   text-align: left;
   overflow-wrap: anywhere;
-  color: CanvasText;
-  background: Canvas;
+  color: var(--text);
+  background: var(--raised);
 }
 
 button.workout-card:hover:not(:disabled) {
-  border-color: var(--accent);
-  background: Canvas;
+  border-color: var(--accent-text);
+  background: var(--raised);
 }
 
 /* Keep the line breaks the user typed */
@@ -593,7 +660,7 @@ textarea {
   min-width: 0;
   padding: 0.75rem;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-field);
 }
 
 .exercise-block legend {
@@ -730,15 +797,15 @@ textarea {
   margin-bottom: 1rem;
   padding: 0.5rem 0.75rem;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-field);
   background: var(--card-bg);
   font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
 
 .rest-bar.over {
-  border-color: var(--accent);
-  color: var(--accent);
+  border-color: var(--accent-text);
+  color: var(--accent-text);
 }
 
 .rest-start {
@@ -761,11 +828,11 @@ textarea {
 .record {
   margin-left: 0.5rem;
   padding: 0.05rem 0.4rem;
-  border-radius: 999px;
+  border-radius: var(--radius-chip);
   font-size: 0.8rem;
   font-weight: 600;
-  color: white;
-  background: var(--accent);
+  color: var(--on-accent);
+  background: var(--accent-fill);
 }
 
 /* Credits: one block per catalog source */
@@ -803,7 +870,7 @@ textarea {
   gap: 0.5rem;
   padding: 0.6rem;
   border: 1px dashed var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-field);
 }
 
 .record-line {
