@@ -254,6 +254,24 @@ class WorkoutSetResponse(BaseModel):
     weight_kg: float
 
 
+class LastSession(BaseModel):
+    """An exercise's sets in the user's latest earlier workout with it."""
+
+    workout_id: int
+    performed_on: date
+    # Every block of the exercise in that workout, in the order logged
+    sets: list[WorkoutSetResponse]
+
+
+class BestSet(BaseModel):
+    """The user's best set of an exercise, and where it was first done."""
+
+    reps: int
+    weight_kg: float
+    performed_on: date
+    workout_id: int
+
+
 class WorkoutExerciseResponse(BaseModel):
     exercise_id: int
     exercise_name: str
