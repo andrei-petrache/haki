@@ -2,8 +2,12 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   ApiError,
   PROGRAMS_PAGE_SIZE,
+  RECENT_FOODS_LIMIT,
+  deleteMealEntry,
+  entryKey,
   fetchFoods,
   fetchPrograms,
+  fetchRecentFoods,
   login,
   setUnauthorizedHandler,
   startWorkout,
@@ -114,5 +118,44 @@ describe('programs', () => {
       url: '/api/programs/3/days/7/workouts',
       body: { performed_on: '2026-11-11' },
     })
+  })
+})
+
+describe('recent foods', () => {
+  it('asks for the few Today shows, newest first as the server sends them', async () => {
+    const fetchMock = vi.fn(
+      async () =>
+        new Response(JSON.stringify([{ id: 2, name: 'Oats' }]), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        }),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+
+    const foods = await fetchRecentFoods('a-token')
+
+    expect(foods).toEqual([{ id: 2, name: 'Oats' }])
+    const [url] = fetchMock.mock.calls[0] as unknown as [string]
+    expect(url.endsWith(`/foods/recent?limit=${RECENT_FOODS_LIMIT}`)).toBe(true)
+  })
+})
+
+describe('quick entries', () => {
+  it('keys food and quick entries apart, even with the same id', () => {
+    expect(entryKey({ id: 3 })).toBe('food-3')
+    expect(entryKey({ id: 3, quick: false })).toBe('food-3')
+    expect(entryKey({ id: 3, quick: true })).toBe('quick-3')
+  })
+
+  it('deletes each kind through its own path', async () => {
+    const fetchMock = vi.fn(async () => new Response(null, { status: 204 }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    await deleteMealEntry('a-token', { id: 3, quick: true })
+    await deleteMealEntry('a-token', { id: 3 })
+
+    const urls = (fetchMock.mock.calls as unknown as [string][]).map(([url]) => url)
+    expect(urls[0].endsWith('/entries/quick/3')).toBe(true)
+    expect(urls[1].endsWith('/entries/3')).toBe(true)
   })
 })

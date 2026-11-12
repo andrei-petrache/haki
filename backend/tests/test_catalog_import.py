@@ -510,3 +510,19 @@ def test_command_exits_3_when_the_database_is_unreachable(
     monkeypatch.setenv("DATABASE_URL", "postgresql+psycopg://x:y@127.0.0.1:1/x_test")
 
     assert main() == EXIT_DATABASE
+
+
+@pytest.mark.parametrize(("calories", "accepted"), [(950, True), (950.1, False)])
+def test_catalog_calories_stop_at_the_users_cap(
+    session: Session, data_dir: Path, edit: EditFile, calories: float, accepted: bool
+) -> None:
+    # The same bound as a user's own food, so every catalog food can be copied
+    edit("foods.json", lambda d: d["foods"][0].update(calories_per_100g=calories))
+
+    if accepted:
+        import_catalog(session, data_dir)
+        assert catalog_food(session, "171077").calories_per_100g == calories
+    else:
+        with pytest.raises(BadData, match="less than or equal to 950"):
+            import_catalog(session, data_dir)
+        assert count(session, CatalogFood) == 0
