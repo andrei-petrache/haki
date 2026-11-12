@@ -103,6 +103,20 @@ export function parseLocaleChoice(value: string | null): LocaleChoice {
   return LOCALES.find((locale) => locale === value) ?? 'auto'
 }
 
+/**
+ * The choice an account's language makes on this device: its language when
+ * it has one, else null, so the device keeps its own choice (an account
+ * from before languages were kept has none).
+ */
+export function accountLocaleChoice(language: string | null | undefined): LocaleChoice | null {
+  return LOCALES.find((locale) => locale === language) ?? null
+}
+
+/** What to keep with the account for a choice made here: 'auto' is none. */
+export function accountLanguageOf(choice: LocaleChoice): Locale | null {
+  return choice === 'auto' ? null : choice
+}
+
 export function loadLocaleChoice(storage: ChoiceStorage | null = browserStorage()): LocaleChoice {
   try {
     return parseLocaleChoice(storage?.getItem(LOCALE_KEY) ?? null)

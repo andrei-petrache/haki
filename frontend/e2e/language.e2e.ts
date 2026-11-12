@@ -6,7 +6,7 @@
 import { randomBytes } from 'node:crypto'
 import { expect, test } from '@playwright/test'
 import type { Locator, Page } from '@playwright/test'
-import { SHOTS, deleteEverything } from './helpers'
+import { SHOTS, api, deleteEverything } from './helpers'
 
 test.describe.configure({ mode: 'serial' })
 
@@ -189,6 +189,19 @@ test('choosing English in Profile wins over the browser, across a reload', async
   await expect(tab('Today')).toBeVisible()
   await tab('Profile').click()
   await expect(page.getByLabel('Language')).toHaveValue('en')
+  const { body } = await api(page, 'GET', '/auth/me')
+  expect((body as { language: string | null }).language).toBe('en')
+})
+
+test("the account's language follows to a device that has none", async () => {
+  // A new device: nothing kept in this browser, and it prefers Romanian
+  await page.evaluate(() => localStorage.removeItem('haki_locale'))
+  await page.reload()
+
+  await expect(tab('Today')).toBeVisible()
+  await expect(page.locator('html')).toHaveAttribute('lang', 'en')
+  await tab('Profile').click()
+  await expect(page.getByLabel('Language')).toHaveValue('en')
 })
 
 test('going back to the browser language gives Romanian again', async () => {
@@ -198,4 +211,8 @@ test('going back to the browser language gives Romanian again', async () => {
   await expect(page.getByLabel('Limba').locator('option[value="auto"]')).toHaveText(
     'Ca în browser (Română)',
   )
+  // Following the browser keeps no language with the account
+  await expect
+    .poll(async () => ((await api(page, 'GET', '/auth/me')).body as { language: string | null }).language)
+    .toBeNull()
 })

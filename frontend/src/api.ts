@@ -7,6 +7,8 @@ export type User = {
   email: string
   daily_calorie_target: number | null
   created_at: string
+  // The account's language; null (or missing, from an older server): no choice
+  language?: string | null
 }
 
 export const MEAL_TYPES = ['breakfast', 'lunch', 'dinner', 'snack'] as const
@@ -231,6 +233,11 @@ export function changePassword(
     json('PUT', { current_password: currentPassword, new_password: newPassword }),
     token,
   )
+}
+
+/** Keep a language with the account, or none (null: follow the browser). */
+export function setAccountLanguage(token: string, language: 'en' | 'ro' | null): Promise<User> {
+  return request<User>('/auth/me', json('PUT', { language }), token)
 }
 
 export function setCalorieTarget(token: string, target: number | null): Promise<User> {

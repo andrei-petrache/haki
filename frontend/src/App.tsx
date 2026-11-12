@@ -4,6 +4,7 @@ import {
   ApiError,
   describeError,
   fetchMe,
+  setAccountLanguage,
   login,
   setUnauthorizedHandler,
   signup,
@@ -17,6 +18,8 @@ import {
   LOCALE_NAMES,
   browserLanguages,
   detectLocale,
+  accountLanguageOf,
+  accountLocaleChoice,
   loadLocaleChoice,
   setActiveLocale,
   parseLocaleChoice,
@@ -255,7 +258,8 @@ function App() {
   const [openWorkoutId, setOpenWorkoutId] = useState<number | null>(null)
   // Per device for now: accounts get a setting with the body weight work
   const [weightUnit, setWeightUnit] = useState<WeightUnit>(() => loadWeightUnit())
-  // An explicit choice in Profile, kept on this device; 'auto' follows the browser
+  // An explicit choice in Profile, kept on this device and with the account
+  // (which wins at login when it has one); 'auto' follows the browser
   const [localeChoice, setLocaleChoice] = useState<LocaleChoice>(() => loadLocaleChoice())
   const browserLocale = detectLocale(browserLanguages())
   const locale = resolveLocale(localeChoice, browserLanguages())
@@ -300,6 +304,12 @@ function App() {
         if (cancelled) return
         setUser(me)
         setLoadError(null)
+        // The account's language follows the user to this device
+        const fromAccount = accountLocaleChoice(me.language)
+        if (fromAccount) {
+          saveLocaleChoice(fromAccount)
+          setLocaleChoice(fromAccount)
+        }
       })
       .catch((err) => {
         if (!cancelled) setLoadError(describeError(err))
@@ -386,6 +396,10 @@ function App() {
           onLocaleChoiceChange={(choice) => {
             saveLocaleChoice(choice)
             setLocaleChoice(choice)
+            // Here first, then with the account: if that fails, this device keeps it
+            setAccountLanguage(token, accountLanguageOf(choice))
+              .then(setUser)
+              .catch(() => {})
           }}
         />
       )}
