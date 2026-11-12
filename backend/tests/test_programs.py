@@ -531,6 +531,7 @@ def test_start_workout_copies_the_days_plan_in_order(
             },
         ],
         "program_day_id": created["days"][0]["id"],
+        "program_id": created["id"],
     }
     stored = client.get(f"/workouts/{started['id']}", headers=auth_headers)
     assert stored.json() == started
@@ -567,7 +568,7 @@ def test_deleting_the_program_keeps_the_started_workout(
 
     stored = client.get(f"/workouts/{started['id']}", headers=auth_headers)
     # Whole, only no longer linked to the day that is gone
-    assert stored.json() == {**started, "program_day_id": None}
+    assert stored.json() == {**started, "program_day_id": None, "program_id": None}
 
 
 def test_editing_the_started_workout_leaves_the_program_alone(

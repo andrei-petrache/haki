@@ -87,6 +87,7 @@ def test_create_workout_returns_it_with_exercises_and_sets(
             },
         ],
         "program_day_id": None,
+        "program_id": None,
     }
 
 
@@ -259,6 +260,7 @@ def test_replace_workout_replaces_everything(
             }
         ],
         "program_day_id": None,
+        "program_id": None,
     }
     assert response.status_code == 200
     assert response.json() == expected
