@@ -178,7 +178,8 @@ jobs:
 
   # The Kubernetes manifests, without a cluster: every overlay builds, matches
   # the API schemas, runs the PostgreSQL image pinned in compose.yaml and pins
-  # the app images to a commit SHA; and the alert rules pass their tests
+  # the app images to a commit SHA; the alert rules pass their tests; and
+  # prod-guard's fetch retry behaves as its tests say
   manifests:
     runs-on: ubuntu-24.04
     timeout-minutes: 5
@@ -202,6 +203,13 @@ jobs:
       # no longer fires as its tests say, fails here and not on staging
       - name: Test the alert rules
         run: k8s/scripts/check-alert-rules.sh
+
+      # Runs guard.yml's own fetch step (read with yq) against a fake git:
+      # the retry and its fail-closed end stay tested. Here, in a
+      # pull_request job, it reads the pull request's copy of guard.yml,
+      # so a change to that step is tested before it reaches main
+      - name: Test prod-guard's fetch retry
+        run: scripts/test-guard-fetch.sh
 
   # The scope of the tag bot's pull request is checked by prod-guard
   # (.github/workflows/guard.yml), from main's copy of the rule.
