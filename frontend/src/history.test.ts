@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { Workout } from './api'
-import { beats, bestBefore, lastTime, loadHistory, recordPositions, topSet } from './history'
+import { beats, bestBefore, lastTime, liveRecordIndex, loadHistory, recordPositions, topSet } from './history'
 
 const BENCH = 1
 const SQUAT = 2
@@ -124,5 +124,20 @@ describe('recordPositions', () => {
     const today = workout(9, '2026-11-10', [3, [[12, 0], [8, 0]]])
 
     expect([...recordPositions(today, [today, before])]).toEqual(['0.0'])
+  })
+})
+
+describe('liveRecordIndex', () => {
+  const best = { reps: 3, weight_kg: 72.5 }
+
+  it('points at the typed set that beats the best before', () => {
+    expect(liveRecordIndex([{ reps: 5, weight_kg: 70 }, { reps: 2, weight_kg: 75 }], best)).toBe(1)
+  })
+
+  it('skips sets still being typed, and needs something to beat', () => {
+    expect(liveRecordIndex([null, { reps: 4, weight_kg: 72.5 }], best)).toBe(1)
+    expect(liveRecordIndex([{ reps: 3, weight_kg: 72.5 }], best)).toBeNull()
+    expect(liveRecordIndex([{ reps: 10, weight_kg: 100 }], null)).toBeNull()
+    expect(liveRecordIndex([null, null], best)).toBeNull()
   })
 })

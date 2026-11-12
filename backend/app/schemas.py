@@ -54,7 +54,20 @@ class UserResponse(BaseModel):
     id: int
     email: str
     daily_calorie_target: int | None
+    # A plain string, not the Literal of the input: a response must not fail
+    # on a language that another version of the app accepted
+    language: str | None = None
     created_at: datetime
+
+
+# The app's languages; null means "follow the browser"
+AppLanguage = Literal["en", "ro"]
+
+
+class AccountSettingsIn(BaseModel):
+    """Required field: clients send null explicitly to follow the browser."""
+
+    language: AppLanguage | None
 
 
 class CalorieTargetIn(BaseModel):
@@ -241,6 +254,24 @@ class WorkoutSetResponse(BaseModel):
     weight_kg: float
 
 
+class LastSession(BaseModel):
+    """An exercise's sets in the user's latest earlier workout with it."""
+
+    workout_id: int
+    performed_on: date
+    # Every block of the exercise in that workout, in the order logged
+    sets: list[WorkoutSetResponse]
+
+
+class BestSet(BaseModel):
+    """The user's best set of an exercise, and where it was first done."""
+
+    reps: int
+    weight_kg: float
+    performed_on: date
+    workout_id: int
+
+
 class WorkoutExerciseResponse(BaseModel):
     exercise_id: int
     exercise_name: str
@@ -336,6 +367,26 @@ class MealEntryIn(BaseModel):
     grams: float = Field(gt=0, le=5000)
 
 
+QuickName = Annotated[
+    str, StringConstraints(strip_whitespace=True, min_length=1, max_length=100)
+]
+# Grams of one macronutrient in one quick entry
+QuickMacro = Annotated[float, Field(ge=0, le=500)]
+
+
+class QuickEntryIn(BaseModel):
+    """Calories (and maybe macros) eaten, without a food: the amounts
+    themselves, not per 100 g."""
+
+    eaten_on: date
+    meal_type: MealType
+    calories: float = Field(ge=0, le=5000)
+    name: QuickName = "Quick add"
+    protein: QuickMacro = 0
+    carbs: QuickMacro = 0
+    fat: QuickMacro = 0
+
+
 class MealCopyIn(BaseModel):
     """Copy every entry of one meal on one day to another meal or day."""
 
@@ -377,12 +428,17 @@ class Nutrients(BaseModel):
 
 
 class MealEntryResponse(Nutrients):
+    """A logged food, or a quick entry (quick: true). Quick entries have
+    their own ids, which may equal a food entry's: a client tells them
+    apart by `quick`, and deletes one at /entries/quick/{id}."""
+
     id: int
-    food_id: int
+    food_id: int | None
     food_name: str
     eaten_on: date
     meal_type: MealType
-    grams: float
+    grams: float | None
+    quick: bool = False
 
 
 class DailySummary(BaseModel):

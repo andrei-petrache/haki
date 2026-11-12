@@ -172,6 +172,29 @@ def create_program(
     return to_response(program)
 
 
+@router.put("/{program_id}", response_model=ProgramResponse)
+def replace_program(
+    program_id: IdPath, data: ProgramIn, current_user: CurrentUser, session: SessionDep
+) -> ProgramResponse:
+    """Replace one of the current user's programs: its name and all its days,
+    in one transaction. The days are new rows with new ids; workouts already
+    started from the old days are copies and stay as they are.
+    """
+    program = get_own_program(session, current_user, program_id)
+    # Every exercise is checked before anything changes
+    days = build_days(session, current_user, data)
+    # The old days go first, so the new ones can take the same positions
+    # (unique per program) without the database seeing both at once. The
+    # name changes after this flush, so a taken name fails at the commit,
+    # where commit_or_conflict turns it into a 409 and rolls it all back.
+    program.days = []
+    session.flush()
+    program.name = data.name
+    program.days = days
+    commit_or_conflict(session, CONFLICT)
+    return to_response(program)
+
+
 @router.delete("/{program_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_program(
     program_id: IdPath, current_user: CurrentUser, session: SessionDep

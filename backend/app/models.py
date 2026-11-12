@@ -33,6 +33,8 @@ class User(Base):
     email: Mapped[str] = mapped_column(String(255), unique=True, index=True)
     password_hash: Mapped[str] = mapped_column(String(255))
     daily_calorie_target: Mapped[int | None] = mapped_column(default=None)
+    # "en" or "ro"; null follows the browser's language
+    language: Mapped[str | None] = mapped_column(String(5), default=None)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
@@ -252,6 +254,43 @@ class MealEntry(Base):
     )
 
     food: Mapped[Food] = relationship()
+
+
+class QuickEntry(Base):
+    """A one-off amount of calories (and maybe macros) logged without a food.
+
+    A table of its own, not a meal_entries row with a null food_id: the
+    previous version reads entry.food on every meal entry, so after a
+    rollback a null food would turn a whole day into a 500. This table it
+    simply never reads.
+    """
+
+    __tablename__ = "quick_entries"
+    __table_args__ = (
+        CheckConstraint(
+            "calories >= 0 AND protein >= 0 AND carbs >= 0 AND fat >= 0",
+            name="ck_quick_entries_non_negative_nutrients",
+        ),
+        CheckConstraint(
+            "meal_type IN ('breakfast', 'lunch', 'dinner', 'snack')",
+            name="ck_quick_entries_meal_type",
+        ),
+        Index("ix_quick_entries_user_id_eaten_on", "user_id", "eaten_on"),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
+    eaten_on: Mapped[date]
+    meal_type: Mapped[str] = mapped_column(String(20))
+    name: Mapped[str] = mapped_column(String(100))
+    # The amounts themselves, not per 100 g: there is no food to scale
+    calories: Mapped[float]
+    protein: Mapped[float]
+    carbs: Mapped[float]
+    fat: Mapped[float]
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
 
 
 class Exercise(Base):

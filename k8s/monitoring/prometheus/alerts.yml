@@ -71,3 +71,58 @@ groups:
         annotations:
           summary: "Job {{ $labels.job_name }} failed"
           description: "Job {{ $labels.job_name }} in haki-staging failed. kubectl -n haki-staging logs job/{{ $labels.job_name }}; the import's exit code says why (k8s/README.md)."
+
+      # A scrape target that answers nothing for 5 minutes: without it every
+      # alert that reads its metrics stays silent, whatever happens
+      - alert: HakiScrapeTargetDown
+        expr: up == 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Prometheus cannot scrape {{ $labels.job }}"
+          description: "Target {{ $labels.instance }} of job {{ $labels.job }} has answered nothing for 5 minutes, so the alerts that read it cannot fire. Prometheus, Status, Targets."
+
+      # No staging backend to scrape at all for 10 minutes: its targets come
+      # from Running pods only, so a backend that is gone shows no target
+      # instead of a target that is down
+      - alert: HakiStagingBackendMetricsMissing
+        expr: absent(up{job="backend-staging"} == 1)
+        for: 10m
+        labels:
+          severity: warning
+          namespace: haki-staging
+        annotations:
+          summary: No staging backend has been scraped for 10 minutes
+          description: "No Running staging backend pod served its metrics on port 9000 for 10 minutes. kubectl -n haki-staging get pods; dashboard Backend (staging)."
+
+      # A container above 90% of its memory limit for 15 minutes is the next
+      # OOM kill; Grafana's first version (#113) went into an OOM loop that
+      # only a person looking saw
+      - alert: HakiMemoryNearLimit
+        expr: |
+          max by (namespace, pod, container) (
+            container_memory_working_set_bytes{namespace=~"haki-staging|monitoring", container!=""}
+          )
+          /
+          max by (namespace, pod, container) (
+            kube_pod_container_resource_limits{namespace=~"haki-staging|monitoring", resource="memory"}
+          ) > 0.9
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "{{ $labels.pod }} uses {{ $value | humanizePercentage }} of its memory limit"
+          description: "Container {{ $labels.container }} of {{ $labels.pod }} has been above 90% of its memory limit for 15 minutes; past the limit the kernel kills it. Dashboard Pods (staging)."
+
+      # A container restarted after an OOM kill, even once
+      - alert: HakiContainerOOMKilled
+        expr: |
+          increase(kube_pod_container_status_restarts_total{namespace=~"haki-staging|monitoring"}[10m]) > 0
+          and on (namespace, pod, container)
+          kube_pod_container_status_last_terminated_reason{namespace=~"haki-staging|monitoring", reason="OOMKilled"} == 1
+        labels:
+          severity: warning
+        annotations:
+          summary: "{{ $labels.pod }} was killed for using too much memory"
+          description: "Container {{ $labels.container }} of {{ $labels.pod }} restarted after an OOM kill in the last 10 minutes: raise its memory limit or find what grew. kubectl -n {{ $labels.namespace }} describe pod {{ $labels.pod }}."
