@@ -1,7 +1,100 @@
 # Next promotion: readiness
 
-Read-only report, 11 November 2026, about 20:10 UTC. Nothing was promoted;
+Read-only report, 11 November 2026, about 20:10 UTC, updated on
+12 November 2026, about 13:30 UTC (next section). Nothing was promoted;
 the promotion needs Andrei's approval in the Environment `prod`.
+
+## Update, 12 November 2026
+
+The sections after this one are the report of 11 November; where they
+differ, this section holds.
+
+### Where prod and main are now
+
+| | Revision | Images (backend, frontend, migrate) |
+| --- | --- | --- |
+| Prod now | `2817619` | `4957cfc` |
+| `main` now | `369f672` | `bc51045` |
+
+- `haki-prod`: Synced, Healthy on `2817619`, last sync still 11 November,
+  16:05:00 UTC. Every prod and staging pod shows one restart, all at
+  13:08:22 UTC on 12 November: the kind node itself restarted at 13:08:20
+  (the machine started), not a crash.
+- `scripts/check-promotion.sh 2817619 369f672 main` passes (exit 0): forward,
+  both images published, the migration image moves `4957cfc` -> `bc51045`,
+  one new migration so far (`f187f906dc7d`). 64 commits.
+- Merged since `7ff7e82`: #138, #139, #146 (journal), #140 (catalog client
+  and Credits), #149 (staging bump to `bc51045`), #142 (foods up to
+  950 kcal per 100 g, 13:17 UTC), #144 (catalog plan, docs).
+
+### A second migration: #147, `foods.favourited_at`
+
+#147 ("Let users mark their own foods as favourites", merged on
+12 November as `3de39ad`) adds
+`backend/migrations/versions/ef6cd72f7e99_add_favourited_at_to_foods.py`:
+
+- Revision `ef6cd72f7e99`, revises `f187f906dc7d`. Prod's chain becomes
+  `3bf97e2ee106` (prod now) -> `f187f906dc7d` (catalog) -> `ef6cd72f7e99`.
+  One `alembic upgrade head` in the migration hook applies both, in order.
+  The backend session confirmed the id will not change on rebase.
+- `ALTER TABLE foods ADD COLUMN favourited_at timestamptz`: nullable, no
+  default, no backfill, no index. Expand-only. In PostgreSQL a nullable
+  column without a default is a catalog change only: no table rewrite.
+- The previous image neither reads nor writes the column, so it keeps
+  working on the new schema; a favourite set after the promotion simply
+  stays in the column during a rollback pin.
+- On staging it ran on 12 November at about 13:45 UTC (images `3de39ad`):
+  `Running upgrade f187f906dc7d -> ef6cd72f7e99`, no error; the column is
+  `timestamp with time zone`, nullable, no default. The catalog import
+  after it inserted one food (lard, from #142) and left the rest unchanged.
+- A promotion from a SHA at or after `3de39ad` carries it. Run
+  `check-promotion.sh` again on the SHA staging runs: it must list both
+  `f187f906dc7d` and `ef6cd72f7e99`.
+- The dump step still applies, now for two migrations: dump prod right
+  before the merge of the promotion.
+
+### Rollback risk from #142: foods above 900 kcal
+
+#142 has no migration (the database checks only `>= 0`), but it moves a
+bound that the old code also applies to its responses: `FoodResponse`
+inherits `FoodIn`'s `le=900`. Checked on the published images:
+`FoodResponse` of `4957cfc` (prod now) refuses 902 and 950 ("Input should
+be less than or equal to 900"); `558d731` accepts both.
+
+After the promotion a user can save a food between 900 and 950 kcal, or
+copy one from the catalog once the import runs on prod (lard is 902). If
+prod were then rolled back to
+`4957cfc`, `GET /foods`, `POST /foods` and `PUT /foods/{id}` would answer
+500 for that food's owner (response validation), and the Foods screen
+would not load for them. Meal entries and other users are not affected.
+
+Before any rollback pin to `4957cfc`, read (read only):
+
+```sql
+SELECT count(*) FROM foods WHERE calories_per_100g > 900;
+```
+
+0 means the rollback is safe on this point (on staging, `catalog_foods`
+already holds one such food, lard, so a copy of it is one tap away).
+Anything else is a decision
+for Andrei (changing users' data is his gate). The lasting fix belongs to
+the backend: response models without input bounds, so a later change of
+a limit stays rollback-safe; the backend session has been told.
+
+### Rollback pin after this promotion
+
+Unchanged in shape: backend and frontend back on `4957cfc`, the migration
+image kept on the promoted tag, because the older `alembic upgrade head`
+knows neither `f187f906dc7d` nor `ef6cd72f7e99`. Plus the check above.
+
+### Still open before the promotion
+
+- #141 (the catalog import on prod) stays a draft until the promotion; it
+  must be in `main` before the promote-prod run, with a fresh dump and
+  Andrei's OK.
+- Announced by the backend session, no migration: #145 (recent foods),
+  #148 (copy a meal) and a pull request that streams the catalog import
+  in batches of 1,000 (same command and exit codes).
 
 ## Where prod and main are
 

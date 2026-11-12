@@ -533,10 +533,15 @@ kubectl -n argocd get application monitoring \
   -o jsonpath='{.status.sync.status} {.status.health.status}{"\n"}'   # Synced Healthy
 ```
 
-Two alert rules, in `k8s/monitoring/prometheus/alerts.yml`: the API answers
-5xx to more than 5% of requests for 10 minutes (with a little traffic), and
-a staging container restarts 3 times in 15 minutes or waits in
-CrashLoopBackOff for 5 minutes. They show as pending, then firing, in
+Four alert rules, in `k8s/monitoring/prometheus/alerts.yml`: the API answers
+5xx to more than 5% of requests for 10 minutes (with a little traffic); a
+staging container restarts 3 times in 15 minutes or waits in
+CrashLoopBackOff for 5 minutes; a staging container waits on its image
+for 5 minutes (ErrImagePull or ImagePullBackOff: the tag names an image
+GHCR does not have); and a staging Job fails (the migration or the catalog
+import). A publish that fails as a whole shows in none of them: CI on
+`main` goes red, the staging bump is skipped and staging keeps the
+previous version, healthy. They show as pending, then firing, in
 Prometheus (Alerts); nothing sends them anywhere yet, since an Alertmanager
 needs an e-mail or chat service. Their tests, run by CI in the job
 `manifests` with promtool from the Prometheus image that
@@ -736,6 +741,7 @@ update, and change nothing. Turning them on, in this order:
    for `.github/workflows/guard.yml` and `.github/workflows/automerge.yml`.
    `prod-guard` needs it anyway: GitHub blocks the event by default on
    public repositories from 2 December 2026 (a brownout on 16 November).
+   Done: `allow-pull-request-target`, saved on 12 November 2026.
 2. Settings → General: **Allow auto-merge** (on since S9).
 3. One Monday batch of Dependabot pull requests in dry run, its logs read.
 4. The variables, one kind at a time.
