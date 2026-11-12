@@ -2,7 +2,8 @@
 
 Labels use the route template ("/workouts/{workout_id}"), never the raw
 path, so ids in URLs cannot create new time series. A request that matches
-no route is labelled "unmatched".
+no route is labelled "unmatched", and a method outside the standard ones
+"OTHER": every label a client can pick has a fixed set of values.
 
 Why a second port (METRICS_PORT, 9000) and not a route on 8000: the
 frontend's Nginx forwards /api/* to port 8000 with the prefix stripped, so
@@ -25,6 +26,10 @@ from prometheus_client import Counter, Histogram, start_http_server
 from starlette.routing import BaseRoute
 
 UNMATCHED = "unmatched"
+# The method is a label too, and the client picks it: any other method
+# becomes "OTHER", or 20,000 made-up methods make 20,000 time series
+KNOWN_METHODS = frozenset({"GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"})
+OTHER_METHOD = "OTHER"
 
 REQUESTS = Counter(
     "haki_http_requests_total",
@@ -38,6 +43,12 @@ DURATION = Histogram(
     # From a cached read to a slow Argon2 hash (64 MiB, about 0.1-0.5 s)
     buckets=(0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10),
 )
+
+
+def method_label(request: Request) -> str:
+    """The request's method if it is a known one, else "OTHER"."""
+    method = request.method
+    return method if method in KNOWN_METHODS else OTHER_METHOD
 
 
 def route_template(request: Request) -> str:
@@ -58,8 +69,9 @@ async def record_request(
         return response
     finally:
         route = route_template(request)
-        DURATION.labels(request.method, route).observe(time.perf_counter() - start)
-        REQUESTS.labels(request.method, route, str(status)).inc()
+        method = method_label(request)
+        DURATION.labels(method, route).observe(time.perf_counter() - start)
+        REQUESTS.labels(method, route, str(status)).inc()
 
 
 def start_metrics_server(port: int) -> WSGIServer:
