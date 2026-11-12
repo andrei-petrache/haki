@@ -56,6 +56,12 @@ class PasswordChangeIn(BaseModel):
     new_password: NewPassword
 
 
+class AccountDeleteIn(BaseModel):
+    """The current password, so a stolen session alone cannot delete it."""
+
+    password: CurrentPassword
+
+
 class UserResponse(BaseModel):
     """Public view of a user. Never includes the password hash."""
 
