@@ -178,8 +178,9 @@ jobs:
 
   # The Kubernetes manifests, without a cluster: every overlay builds, matches
   # the API schemas, runs the PostgreSQL image pinned in compose.yaml and pins
-  # the app images to a commit SHA; the alert rules pass their tests; and
-  # prod-guard's fetch retry behaves as its tests say
+  # the app images to a commit SHA; the alert rules pass their tests;
+  # prod-guard's fetch retry behaves as its tests say; and so does the
+  # auto-merge decision
   manifests:
     runs-on: ubuntu-24.04
     timeout-minutes: 5
@@ -210,6 +211,12 @@ jobs:
       # so a change to that step is tested before it reaches main
       - name: Test prod-guard's fetch retry
         run: scripts/test-guard-fetch.sh
+
+      # The 46 synthetic cases of scripts/check-automerge.py, which decides
+      # which pull requests may merge without a person: standard library
+      # only, no network, the runner's own python3
+      - name: Test the auto-merge decision
+        run: python3 -I -m unittest discover -s scripts -p 'test_check_automerge.py'
 
   # The scope of the tag bot's pull request is checked by prod-guard
   # (.github/workflows/guard.yml), from main's copy of the rule.
