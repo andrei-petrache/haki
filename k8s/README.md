@@ -563,12 +563,14 @@ kubectl -n monitoring port-forward svc/prometheus 9090:9090   # http://127.0.0.1
 kubectl -n monitoring port-forward svc/grafana 3000:3000      # http://127.0.0.1:3000
 ```
 
-Grafana (13.3.0; 50m-300m CPU, 192-384 MiB) shows three dashboards, in the
+Grafana (13.3.0; 50m-300m CPU, 192-384 MiB) shows four dashboards, in the
 folder "Haki staging": Backend (the API's request rate, 5xx share and
 latency, as Envoy sees the `/api` rule), Pods (restarts, waiting reasons,
-memory against the limit, CPU, readiness) and Database (PostgreSQL's pod:
+memory against the limit, CPU, readiness), Database (PostgreSQL's pod:
 memory, CPU, restarts, readiness, and its volume if the provisioner reports
-it). They are the JSON files in `k8s/monitoring/grafana/dashboards`, read-only
+it) and Alerts (what is pending or firing now, and since when: with no
+Alertmanager, this is where alerts are seen). They are the JSON files in
+`k8s/monitoring/grafana/dashboards`, read-only
 in the UI: change the file and merge. Grafana has no admin account and no
 login form, only anonymous viewers, so there is no password to keep.
 
