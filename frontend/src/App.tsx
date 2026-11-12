@@ -58,15 +58,25 @@ function AuthForm({ onLoggedIn }: { onLoggedIn: (token: string) => void }) {
   async function handleSubmit() {
     setError(null)
     setBusy(true)
+    let created = false
     try {
       if (mode === 'signup') {
         await signup(email, password)
+        created = true
       }
       const { access_token } = await login(email, password)
       onLoggedIn(access_token)
     } catch (err) {
       // The API's own messages stay in English until it sends error codes
-      setError(err instanceof ApiError ? err.message : t('app.cannotReach'))
+      const message = err instanceof ApiError ? err.message : t('app.cannotReach')
+      if (created) {
+        // The account exists, only the login after it failed (e.g. 429):
+        // trying again must log in, not sign up a taken email again
+        setMode('login')
+        setError(`${t('auth.created')} ${message}`)
+      } else {
+        setError(message)
+      }
     } finally {
       setBusy(false)
     }
