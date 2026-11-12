@@ -308,6 +308,11 @@ dd {
   max-width: 12rem;
 }
 
+/* A favourite's star: filled and in the accent colour when marked */
+button.star[aria-pressed='true'] {
+  color: var(--accent);
+}
+
 /* One-tap picks above the entry form; they wrap instead of scrolling */
 .quick-picks {
   display: flex;

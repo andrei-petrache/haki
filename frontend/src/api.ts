@@ -25,6 +25,8 @@ export type Food = FoodInput & {
   id: number
   // The catalog food this one was copied from; null when typed in by hand
   catalog_food_id?: number | null
+  // Marked by the user; such foods come first on Today
+  favourite?: boolean
 }
 
 export type Nutrients = {
@@ -197,6 +199,11 @@ export function setCalorieTarget(token: string, target: number | null): Promise<
 
 export function fetchFoods(token: string): Promise<Food[]> {
   return request<Food[]>('/foods', {}, token)
+}
+
+/** Mark or unmark one of the user's foods as a favourite. Both are idempotent. */
+export function setFavourite(token: string, id: number, favourite: boolean): Promise<void> {
+  return request<void>(`/foods/${id}/favourite`, { method: favourite ? 'PUT' : 'DELETE' }, token)
 }
 
 /** How many recent foods Today offers as one-tap picks. */

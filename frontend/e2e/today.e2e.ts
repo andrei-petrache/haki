@@ -1,6 +1,6 @@
 /**
  * Fast logging on Today: the foods logged most recently come back as
- * one-tap picks above the form, newest first.
+ * one-tap picks above the form, newest first, after the favourites.
  */
 import { expect, test } from '@playwright/test'
 import type { Locator, Page } from '@playwright/test'
@@ -83,4 +83,37 @@ test('newest first; one tap picks the food and moves on to the grams', async () 
   await expect(picks().getByRole('button')).toHaveText(['Milk', 'Oats'])
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390)
   await page.screenshot({ path: `${SHOTS}/21-recent-foods-phone.png`, fullPage: true })
+})
+
+test('a starred food comes first on Today, once, and unstarring removes it', async () => {
+  const tab = (name: string) =>
+    page.getByRole('navigation').getByRole('button', { name, exact: true })
+  await tab('Foods').click()
+  const star = page.getByRole('button', { name: 'Favourite: Oats' })
+  await expect(star).toHaveAttribute('aria-pressed', 'false')
+  await star.click()
+  await expect(star).toHaveAttribute('aria-pressed', 'true')
+  const { body } = await api(page, 'GET', '/foods?favourite=true')
+  expect((body as { name: string }[]).map((food) => food.name)).toEqual(['Oats'])
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390)
+
+  await tab('Today').click()
+  const favourites = page.getByRole('group', { name: 'Favourite foods' })
+  await expect(favourites.getByRole('button')).toHaveText(['Oats'])
+  // Oats was logged recently too, but shows only among the favourites
+  await expect(picks().getByRole('button')).toHaveText(['Milk'])
+  await favourites.getByRole('button', { name: 'Oats' }).click()
+  await expect(form().locator('.food-field select')).toHaveValue(String(foodIds.Oats))
+  await expect(form().getByLabel('Grams')).toBeFocused()
+  await page.screenshot({ path: `${SHOTS}/22-favourite-foods-phone.png`, fullPage: true })
+
+  await tab('Foods').click()
+  await page.getByRole('button', { name: 'Favourite: Oats' }).click()
+  await expect(page.getByRole('button', { name: 'Favourite: Oats' })).toHaveAttribute(
+    'aria-pressed',
+    'false',
+  )
+  await tab('Today').click()
+  await expect(picks().getByRole('button')).toHaveText(['Milk', 'Oats'])
+  await expect(page.getByRole('group', { name: 'Favourite foods' })).toHaveCount(0)
 })
