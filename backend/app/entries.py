@@ -2,7 +2,7 @@ from datetime import date
 from typing import Annotated
 
 from fastapi import APIRouter, HTTPException, Query, Response, status
-from sqlalchemy import case, select
+from sqlalchemy import case, func, select
 from sqlalchemy.orm import Session, joinedload
 
 from app.auth import CurrentUser, SessionDep
@@ -18,6 +18,11 @@ from app.schemas import (
 )
 
 router = APIRouter(prefix="/entries", tags=["entries"])
+
+# Far above any real meal. Without it, copying a meal onto another and
+# back doubles a user's rows each time: 27 requests made 514,229 rows
+MAX_ENTRIES_PER_MEAL = 100
+MEAL_FULL = f"A meal holds at most {MAX_ENTRIES_PER_MEAL} entries"
 
 # The client always sends the day: its local day may differ from the server's.
 DayQuery = Annotated[date, Query(alias="date")]
@@ -106,6 +111,31 @@ def day_entries(session: Session, user: User, day: date) -> list[MealEntryRespon
     return [response for *_, response in rows]
 
 
+def check_room(session: Session, user: User, day: date, meal: str, adding: int) -> None:
+    """409 if `adding` entries would take one meal of one day past
+    MAX_ENTRIES_PER_MEAL, food and quick entries counted together.
+
+    Two requests at once can both pass and overshoot by one request's
+    worth; the bound stays linear, which is what it is for.
+    """
+    count = 0
+    for model in (MealEntry, QuickEntry):
+        count += (
+            session.scalar(
+                select(func.count())
+                .select_from(model)
+                .where(
+                    model.user_id == user.id,
+                    model.eaten_on == day,
+                    model.meal_type == meal,
+                )
+            )
+            or 0
+        )
+    if count + adding > MAX_ENTRIES_PER_MEAL:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=MEAL_FULL)
+
+
 def get_own_entry(session: Session, user: User, entry_id: int) -> MealEntry:
     """Load one of the user's entries, or reject with 404 (see get_own_food)."""
     entry = session.get(MealEntry, entry_id)
@@ -131,6 +161,7 @@ def create_entry(
     """Log an amount of one of the current user's foods."""
     # Checking only the entry isn't enough: the food must be the user's too
     food = get_own_food(session, current_user, data.food_id)
+    check_room(session, current_user, data.eaten_on, data.meal_type, 1)
     entry = MealEntry(
         user_id=current_user.id,
         food=food,
@@ -150,6 +181,7 @@ def create_quick_entry(
     data: QuickEntryIn, current_user: CurrentUser, session: SessionDep
 ) -> MealEntryResponse:
     """Log calories (and maybe macros) without a food."""
+    check_room(session, current_user, data.eaten_on, data.meal_type, 1)
     entry = QuickEntry(user_id=current_user.id, **data.model_dump())
     session.add(entry)
     session.commit()
@@ -207,6 +239,14 @@ def copy_meal(
             session, current_user, data.from_day, data.from_meal
         )
     ]
+    # The target meal must have room for all of them, or nothing is copied
+    check_room(
+        session,
+        current_user,
+        data.to_day,
+        data.to_meal,
+        len(copies) + len(quick_copies),
+    )
     session.add_all([*copies, *quick_copies])
     session.commit()
     return [to_response(entry) for entry in copies] + [
