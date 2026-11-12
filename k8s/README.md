@@ -533,13 +533,18 @@ kubectl -n argocd get application monitoring \
   -o jsonpath='{.status.sync.status} {.status.health.status}{"\n"}'   # Synced Healthy
 ```
 
-Four alert rules, in `k8s/monitoring/prometheus/alerts.yml`: the API answers
+Eight alert rules, in `k8s/monitoring/prometheus/alerts.yml`: the API answers
 5xx to more than 5% of requests for 10 minutes (with a little traffic); a
 staging container restarts 3 times in 15 minutes or waits in
 CrashLoopBackOff for 5 minutes; a staging container waits on its image
 for 5 minutes (ErrImagePull or ImagePullBackOff: the tag names an image
 GHCR does not have); and a staging Job fails (the migration or the catalog
-import). A publish that fails as a whole shows in none of them: CI on
+import). Four more watch the watchers and memory: a scrape target that
+answers nothing for 5 minutes; no staging backend to scrape for 10
+minutes; a staging or monitoring container above 90% of its memory limit
+for 15 minutes; and a restart after an OOM kill. No rule watches disk: the
+local-path provisioner reports no volume statistics. A publish that fails
+as a whole shows in none of them: CI on
 `main` goes red, the staging bump is skipped and staging keeps the
 previous version, healthy. They show as pending, then firing, in
 Prometheus (Alerts); nothing sends them anywhere yet, since an Alertmanager
@@ -558,12 +563,14 @@ kubectl -n monitoring port-forward svc/prometheus 9090:9090   # http://127.0.0.1
 kubectl -n monitoring port-forward svc/grafana 3000:3000      # http://127.0.0.1:3000
 ```
 
-Grafana (13.3.0; 50m-300m CPU, 192-384 MiB) shows three dashboards, in the
+Grafana (13.3.0; 50m-300m CPU, 192-384 MiB) shows four dashboards, in the
 folder "Haki staging": Backend (the API's request rate, 5xx share and
 latency, as Envoy sees the `/api` rule), Pods (restarts, waiting reasons,
-memory against the limit, CPU, readiness) and Database (PostgreSQL's pod:
+memory against the limit, CPU, readiness), Database (PostgreSQL's pod:
 memory, CPU, restarts, readiness, and its volume if the provisioner reports
-it). They are the JSON files in `k8s/monitoring/grafana/dashboards`, read-only
+it) and Alerts (what is pending or firing now, and since when: with no
+Alertmanager, this is where alerts are seen). They are the JSON files in
+`k8s/monitoring/grafana/dashboards`, read-only
 in the UI: change the file and merge. Grafana has no admin account and no
 login form, only anonymous viewers, so there is no password to keep.
 

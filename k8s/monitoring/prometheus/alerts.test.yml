@@ -209,3 +209,142 @@ tests:
       - eval_time: 5m
         alertname: HakiStagingJobFailed
         exp_alerts: []
+
+  - name: a target that answers nothing fires after 5 minutes
+    interval: 30s
+    input_series:
+      - series: 'up{job="envoy-staging", instance="10.244.0.5:19001", pod="envoy-abc"}'
+        values: "1x4 0x30"
+      - series: 'up{job="kube-state-metrics", instance="kube-state-metrics.monitoring.svc:8080"}'
+        values: "1x34"
+    alert_rule_test:
+      - eval_time: 5m
+        alertname: HakiScrapeTargetDown
+        exp_alerts: []
+      - eval_time: 10m
+        alertname: HakiScrapeTargetDown
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+              job: envoy-staging
+              instance: 10.244.0.5:19001
+              pod: envoy-abc
+            exp_annotations:
+              summary: Prometheus cannot scrape envoy-staging
+              description: "Target 10.244.0.5:19001 of job envoy-staging has answered nothing for 5 minutes, so the alerts that read it cannot fire. Prometheus, Status, Targets."
+
+  - name: no staging backend to scrape fires after 10 minutes, a scraped one stays quiet
+    interval: 30s
+    input_series:
+      # The only backend pod goes away after 2 minutes: its series ends
+      - series: 'up{job="backend-staging", instance="10.244.0.34:9000", pod="haki-backend-abc"}'
+        values: "1x4"
+    alert_rule_test:
+      - eval_time: 4m
+        alertname: HakiStagingBackendMetricsMissing
+        exp_alerts: []
+      - eval_time: 20m
+        alertname: HakiStagingBackendMetricsMissing
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+              namespace: haki-staging
+            exp_annotations:
+              summary: No staging backend has been scraped for 10 minutes
+              description: "No Running staging backend pod served its metrics on port 9000 for 10 minutes. kubectl -n haki-staging get pods; dashboard Backend (staging)."
+
+  - name: a backend that is scraped keeps the missing-metrics alert quiet
+    interval: 30s
+    input_series:
+      - series: 'up{job="backend-staging", instance="10.244.0.34:9000", pod="haki-backend-abc"}'
+        values: "1x60"
+    alert_rule_test:
+      - eval_time: 25m
+        alertname: HakiStagingBackendMetricsMissing
+        exp_alerts: []
+
+  - name: memory above 90% of the limit fires after 15 minutes
+    interval: 30s
+    input_series:
+      - series: 'container_memory_working_set_bytes{namespace="monitoring", pod="grafana-abc", container="grafana", id="/x"}'
+        values: "380000000x50"
+      - series: 'kube_pod_container_resource_limits{namespace="monitoring", pod="grafana-abc", container="grafana", resource="memory", unit="byte"}'
+        values: "400000000x50"
+    alert_rule_test:
+      - eval_time: 10m
+        alertname: HakiMemoryNearLimit
+        exp_alerts: []
+      - eval_time: 20m
+        alertname: HakiMemoryNearLimit
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+              namespace: monitoring
+              pod: grafana-abc
+              container: grafana
+            exp_annotations:
+              summary: grafana-abc uses 95% of its memory limit
+              description: "Container grafana of grafana-abc has been above 90% of its memory limit for 15 minutes; past the limit the kernel kills it. Dashboard Pods (staging)."
+
+  - name: memory at 76% of the limit, a CPU limit and prod stay quiet
+    interval: 30s
+    input_series:
+      # Grafana's real share on 12 November 2026
+      - series: 'container_memory_working_set_bytes{namespace="monitoring", pod="grafana-abc", container="grafana"}'
+        values: "304000000x50"
+      - series: 'kube_pod_container_resource_limits{namespace="monitoring", pod="grafana-abc", container="grafana", resource="memory", unit="byte"}'
+        values: "400000000x50"
+      - series: 'kube_pod_container_resource_limits{namespace="monitoring", pod="grafana-abc", container="grafana", resource="cpu", unit="core"}'
+        values: "0.3x50"
+      - series: 'container_memory_working_set_bytes{namespace="haki", pod="haki-backend-prod", container="backend"}'
+        values: "390000000x50"
+      - series: 'kube_pod_container_resource_limits{namespace="haki", pod="haki-backend-prod", container="backend", resource="memory", unit="byte"}'
+        values: "400000000x50"
+    alert_rule_test:
+      - eval_time: 25m
+        alertname: HakiMemoryNearLimit
+        exp_alerts: []
+
+  - name: a restart after an OOM kill fires at once
+    interval: 30s
+    input_series:
+      - series: 'kube_pod_container_status_restarts_total{namespace="monitoring", pod="grafana-abc", container="grafana"}'
+        values: "0x6 1x20"
+      - series: 'kube_pod_container_status_last_terminated_reason{namespace="monitoring", pod="grafana-abc", container="grafana", reason="OOMKilled"}'
+        values: "0x6 1x20"
+    alert_rule_test:
+      - eval_time: 2m
+        alertname: HakiContainerOOMKilled
+        exp_alerts: []
+      - eval_time: 5m
+        alertname: HakiContainerOOMKilled
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+              namespace: monitoring
+              pod: grafana-abc
+              container: grafana
+            exp_annotations:
+              summary: grafana-abc was killed for using too much memory
+              description: "Container grafana of grafana-abc restarted after an OOM kill in the last 10 minutes: raise its memory limit or find what grew. kubectl -n monitoring describe pod grafana-abc."
+
+  - name: a restart for another reason, and an old OOM kill, stay quiet
+    interval: 30s
+    input_series:
+      # Restarted once at 3 minutes, after an error, not an OOM kill
+      - series: 'kube_pod_container_status_restarts_total{namespace="haki-staging", pod="haki-backend-abc", container="backend"}'
+        values: "0x6 1x40"
+      - series: 'kube_pod_container_status_last_terminated_reason{namespace="haki-staging", pod="haki-backend-abc", container="backend", reason="Error"}'
+        values: "0x6 1x40"
+      # Killed for memory long ago, no restart since
+      - series: 'kube_pod_container_status_restarts_total{namespace="haki-staging", pod="haki-db-0", container="postgres"}'
+        values: "1x46"
+      - series: 'kube_pod_container_status_last_terminated_reason{namespace="haki-staging", pod="haki-db-0", container="postgres", reason="OOMKilled"}'
+        values: "1x46"
+    alert_rule_test:
+      - eval_time: 5m
+        alertname: HakiContainerOOMKilled
+        exp_alerts: []
+      - eval_time: 20m
+        alertname: HakiContainerOOMKilled
+        exp_alerts: []

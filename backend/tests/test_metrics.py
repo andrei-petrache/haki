@@ -133,3 +133,24 @@ def test_unknown_paths_share_one_label(client: TestClient) -> None:
 
     assert requests_total("GET", "unmatched", "404") == before + 2
     assert "no-such-page" not in scrape()[2]
+
+
+def test_made_up_methods_share_one_label(client: TestClient) -> None:
+    # The client picks the method: each made-up one must not be a new series
+    before = sum(requests_total("OTHER", "/foods", status) for status in ("401", "405"))
+
+    for method in ("FOOBAR", "BAZQUX", "X-ANYTHING"):
+        client.request(method, "/foods")
+
+    after = sum(requests_total("OTHER", "/foods", status) for status in ("401", "405"))
+    assert after == before + 3
+    text = scrape()[2]
+    assert "FOOBAR" not in text and "BAZQUX" not in text
+
+
+def test_known_methods_keep_their_label(client: TestClient) -> None:
+    before = requests_total("DELETE", "/foods/{food_id}", "401")
+
+    client.delete("/foods/1")
+
+    assert requests_total("DELETE", "/foods/{food_id}", "401") == before + 1

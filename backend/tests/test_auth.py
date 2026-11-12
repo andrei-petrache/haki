@@ -1,5 +1,9 @@
 from fastapi.testclient import TestClient
 from httpx2 import Response
+from sqlalchemy import delete
+from sqlalchemy.orm import Session
+
+from app.models import User
 
 EMAIL = "andrei@example.com"
 PASSWORD = "correct-horse-battery"
@@ -106,5 +110,18 @@ def test_me_requires_token(client: TestClient) -> None:
 
 def test_me_rejects_invalid_token(client: TestClient) -> None:
     response = client.get("/auth/me", headers=auth_header("not-a-real-token"))
+
+    assert response.status_code == 401
+
+
+def test_me_rejects_the_token_of_a_user_who_no_longer_exists(
+    client: TestClient, session: Session
+) -> None:
+    signup(client)
+    token = login(client).json()["access_token"]
+    session.execute(delete(User).where(User.email == EMAIL))
+    session.commit()
+
+    response = client.get("/auth/me", headers=auth_header(token))
 
     assert response.status_code == 401

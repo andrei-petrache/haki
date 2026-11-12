@@ -1,7 +1,7 @@
 from logging.config import fileConfig
 
 from alembic import context
-from sqlalchemy import create_engine, pool
+from sqlalchemy import create_engine, pool, text
 
 from app.db_config import DatabaseSettings
 from app.models import Base
@@ -23,6 +23,12 @@ if config.config_file_name is not None:
 # The models' metadata lets autogenerate compare code against the database.
 target_metadata = Base.metadata
 
+# How long a migration waits for a table lock before it fails. An ALTER
+# TABLE waits behind any open transaction on that table, and every
+# request on the table queues behind the ALTER: failing fast keeps the app
+# answering, and the migration Job retries.
+LOCK_TIMEOUT = "10s"
+
 
 def run_migrations_offline() -> None:
     """Generate SQL scripts without connecting to the database."""
@@ -42,6 +48,9 @@ def run_migrations_online() -> None:
     with connectable.connect() as connection:
         context.configure(connection=connection, target_metadata=target_metadata)
         with context.begin_transaction():
+            if connection.dialect.name == "postgresql":
+                # LOCAL: for this transaction only, which holds every migration
+                connection.execute(text(f"SET LOCAL lock_timeout = '{LOCK_TIMEOUT}'"))
             context.run_migrations()
 
 
