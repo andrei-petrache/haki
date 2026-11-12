@@ -376,6 +376,31 @@ button.chip[aria-pressed='true']:hover:not(:disabled) {
   justify-content: space-between;
 }
 
+/* Delete account: a step of its own, in the error colour */
+.delete-account {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+}
+
+.delete-account input[type='password'] {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.delete-account .check {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+button.link.danger {
+  color: var(--accent);
+}
+
 /* Change password, in Profile: one field per row */
 .password-form {
   display: flex;

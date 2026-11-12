@@ -235,6 +235,16 @@ export function changePassword(
   )
 }
 
+/**
+ * Delete the account and everything in it, at once and for good. Needs
+ * the password: a wrong one is 403 and deletes nothing. Afterwards the
+ * token gets 401 and the email can sign up again.
+ */
+export function deleteAccount(token: string, password: string): Promise<void> {
+  // A JSON body on DELETE: request() always sends Content-Type: application/json
+  return request<void>('/auth/me', json('DELETE', { password }), token)
+}
+
 /** Keep a language with the account, or none (null: follow the browser). */
 export function setAccountLanguage(token: string, language: 'en' | 'ro' | null): Promise<User> {
   return request<User>('/auth/me', json('PUT', { language }), token)

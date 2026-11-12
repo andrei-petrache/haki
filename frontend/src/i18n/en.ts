@@ -41,6 +41,16 @@ export const en = {
   'profile.unitNote':
     'Saved on this device. Your weights are stored in kilograms whatever you choose here.',
   'profile.language': 'Language',
+  'account.deleteOpen': 'Delete account',
+  'account.deleteTitle': 'Delete your account',
+  'account.deleteWarning':
+    'This deletes the account {email} and everything in it (foods, meals, workouts, programs) at once. It cannot be undone.',
+  'account.password': 'Your password',
+  'account.understand': 'I understand: my account and data are deleted for good.',
+  'account.deleteConfirm': 'Delete my account',
+  'account.deleting': 'Deleting…',
+  'account.wrongPassword': 'The password is wrong. Nothing was deleted.',
+  'account.deleted': 'Your account and its data were deleted.',
   'password.open': 'Change password',
   'password.title': 'Change password',
   'password.current': 'Current password',

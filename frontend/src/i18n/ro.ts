@@ -41,6 +41,16 @@ export const ro: Dictionary = {
   'profile.unitNote':
     'Se salvează pe acest dispozitiv. Greutățile rămân stocate în kilograme, orice ai alege.',
   'profile.language': 'Limba',
+  'account.deleteOpen': 'Șterge contul',
+  'account.deleteTitle': 'Ștergi contul',
+  'account.deleteWarning':
+    'Se șterge contul {email} și tot ce e în el (alimente, mese, antrenamente, programe), imediat. Nu se poate anula.',
+  'account.password': 'Parola ta',
+  'account.understand': 'Înțeleg: contul și datele mele se șterg definitiv.',
+  'account.deleteConfirm': 'Șterge-mi contul',
+  'account.deleting': 'Se șterge…',
+  'account.wrongPassword': 'Parola e greșită. Nu s-a șters nimic.',
+  'account.deleted': 'Contul tău și datele lui au fost șterse.',
   'password.open': 'Schimbă parola',
   'password.title': 'Schimbă parola',
   'password.current': 'Parola actuală',
