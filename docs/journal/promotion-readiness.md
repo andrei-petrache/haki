@@ -29,8 +29,8 @@ differ, this section holds.
 
 ### A second migration: #147, `foods.favourited_at`
 
-#147 ("Let users mark their own foods as favourites", auto-merge armed,
-not merged at the time of writing) adds
+#147 ("Let users mark their own foods as favourites", merged on
+12 November as `3de39ad`) adds
 `backend/migrations/versions/ef6cd72f7e99_add_favourited_at_to_foods.py`:
 
 - Revision `ef6cd72f7e99`, revises `f187f906dc7d`. Prod's chain becomes
@@ -43,8 +43,11 @@ not merged at the time of writing) adds
 - The previous image neither reads nor writes the column, so it keeps
   working on the new schema; a favourite set after the promotion simply
   stays in the column during a rollback pin.
-- The promotion carries it only if #147 is in `main` before the
-  promote-prod run, with its staging bump Synced and Healthy. Run
+- On staging it ran on 12 November at about 13:45 UTC (images `3de39ad`):
+  `Running upgrade f187f906dc7d -> ef6cd72f7e99`, no error; the column is
+  `timestamp with time zone`, nullable, no default. The catalog import
+  after it inserted one food (lard, from #142) and left the rest unchanged.
+- A promotion from a SHA at or after `3de39ad` carries it. Run
   `check-promotion.sh` again on the SHA staging runs: it must list both
   `f187f906dc7d` and `ef6cd72f7e99`.
 - The dump step still applies, now for two migrations: dump prod right
@@ -71,7 +74,9 @@ Before any rollback pin to `4957cfc`, read (read only):
 SELECT count(*) FROM foods WHERE calories_per_100g > 900;
 ```
 
-0 means the rollback is safe on this point. Anything else is a decision
+0 means the rollback is safe on this point (on staging, `catalog_foods`
+already holds one such food, lard, so a copy of it is one tap away).
+Anything else is a decision
 for Andrei (changing users' data is his gate). The lasting fix belongs to
 the backend: response models without input bounds, so a later change of
 a limit stays rollback-safe; the backend session has been told.
