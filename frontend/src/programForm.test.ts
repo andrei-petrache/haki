@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { Exercise } from './api'
+import type { Exercise, Program } from './api'
 import {
   DAYS_KEY,
   NAME_KEY,
@@ -14,6 +14,7 @@ import {
   plannedExerciseKey,
   plannedValuesKey,
   programExercisesToCreate,
+  programToFields,
   toProgramInput,
   validateProgram,
 } from './programForm'
@@ -303,5 +304,48 @@ describe('weights in pounds', () => {
     expect(validateProgram(program(day(1, planned('1', '3', '5', '2205'))), 'lb')).toEqual({
       [plannedValuesKey(0, 0)]: 'Weight must be from 0 to 2204.62 lb',
     })
+  })
+})
+
+describe('editing a saved program', () => {
+  const saved: Program = {
+    id: 7,
+    name: 'Push pull',
+    days: [
+      {
+        id: 31,
+        position: 1,
+        name: 'Push',
+        exercises: [
+          { exercise_id: 1, exercise_name: 'Bench press', sets: 5, reps: 5, weight_kg: 61.25 },
+          { exercise_id: 2, exercise_name: 'Squat', sets: 3, reps: 10, weight_kg: 0 },
+        ],
+      },
+      { id: 32, position: 4, name: 'Pull', exercises: [] },
+    ],
+  }
+
+  it('shows the saved program in the fields, weights in the chosen unit', () => {
+    const fields = programToFields(saved, 'lb')
+
+    expect(fields.name).toBe('Push pull')
+    expect(fields.days.map((d) => d.position)).toEqual([1, 4])
+    expect(fields.days[0].exercises[0]).toMatchObject({ exercise: '1', sets: '5', reps: '5', weight: '135.03' })
+  })
+
+  it('sends untouched weights back to the gram, even shown in pounds', () => {
+    const fields = programToFields(saved, 'lb')
+
+    const input = toProgramInput(fields, CATALOG, 'lb')
+
+    expect(input.days[0].exercises.map((e) => e.weight_kg)).toEqual([61.25, 0])
+    expect(input.days[0].exercises[0]).toEqual({ exercise_id: 1, sets: 5, reps: 5, weight_kg: 61.25 })
+  })
+
+  it('sends a weight the user changed as typed', () => {
+    const fields = programToFields(saved, 'kg')
+    fields.days[0].exercises[0] = { ...fields.days[0].exercises[0], weight: '62.5' }
+
+    expect(toProgramInput(fields, CATALOG, 'kg').days[0].exercises[0].weight_kg).toBe(62.5)
   })
 })

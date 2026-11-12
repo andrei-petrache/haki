@@ -158,6 +158,7 @@ export const ro: Dictionary = {
   'count.days': { one: '{count} zi', few: '{count} zile', other: '{count} de zile' },
   'programs.yours': 'Programele tale',
   'programs.new': 'Program nou',
+  'programs.editTitle': 'Modifică {name}',
   'programs.none': 'Niciun program încă',
   'programs.deleteConfirm': 'Ștergi programul „{name}”? Antrenamentele făcute rămân.',
   'programs.back': '‹ Înapoi la programe',

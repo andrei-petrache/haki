@@ -14,7 +14,11 @@ import ProgramEditor from './ProgramEditor'
 import { dateError } from './workoutForm'
 import type { WeightUnit } from './units'
 
-type View = { kind: 'list' } | { kind: 'detail'; id: number } | { kind: 'new' }
+type View =
+  | { kind: 'list' }
+  | { kind: 'detail'; id: number }
+  | { kind: 'new' }
+  | { kind: 'edit'; program: Program }
 
 /**
  * The programs, by name, a page at a time.
@@ -112,12 +116,14 @@ function ProgramDetail({
   token,
   id,
   onBack,
+  onEdit,
   onWorkoutStarted,
   weightUnit,
 }: {
   token: string
   id: number
   onBack: () => void
+  onEdit: (program: Program) => void
   onWorkoutStarted: (workoutId: number) => void
   weightUnit: WeightUnit
 }) {
@@ -236,6 +242,14 @@ function ProgramDetail({
               type="button"
               className="secondary"
               disabled={busy}
+              onClick={() => onEdit(program)}
+            >
+              {t('common.edit')}
+            </button>
+            <button
+              type="button"
+              className="secondary"
+              disabled={busy}
               onClick={() => void handleDelete(program)}
             >
               {deleting ? t('common.deleting') : t('common.delete')}
@@ -274,6 +288,7 @@ export default function ProgramsPage({
           token={token}
           id={view.id}
           onBack={showList}
+          onEdit={(program) => setView({ kind: 'edit', program })}
           onWorkoutStarted={onWorkoutStarted}
           weightUnit={weightUnit}
         />
@@ -283,6 +298,17 @@ export default function ProgramsPage({
           token={token}
           onSaved={showDetail}
           onCancel={showList}
+          weightUnit={weightUnit}
+        />
+      )}
+      {view.kind === 'edit' && (
+        <ProgramEditor
+          // A fresh editor per program: its fields start from that program
+          key={view.program.id}
+          token={token}
+          initial={view.program}
+          onSaved={showDetail}
+          onCancel={() => showDetail(view.program.id)}
           weightUnit={weightUnit}
         />
       )}
