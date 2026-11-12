@@ -36,14 +36,30 @@ IdPath = Annotated[int, Path(ge=1, le=MAX_DB_ID)]  # in URL paths
 PASSWORD_MAX_LENGTH = 128
 
 
+NewPassword = Annotated[str, Field(min_length=8, max_length=PASSWORD_MAX_LENGTH)]
+# Any length up to the cap: an old password may predate today's rules
+CurrentPassword = Annotated[str, Field(max_length=PASSWORD_MAX_LENGTH)]
+
+
 class SignupRequest(BaseModel):
     email: EmailStr
-    password: str = Field(min_length=8, max_length=PASSWORD_MAX_LENGTH)
+    password: NewPassword
 
 
 class LoginRequest(BaseModel):
     email: EmailStr
-    password: str = Field(max_length=PASSWORD_MAX_LENGTH)
+    password: CurrentPassword
+
+
+class PasswordChangeIn(BaseModel):
+    current_password: CurrentPassword
+    new_password: NewPassword
+
+
+class AccountDeleteIn(BaseModel):
+    """The current password, so a stolen session alone cannot delete it."""
+
+    password: CurrentPassword
 
 
 class UserResponse(BaseModel):

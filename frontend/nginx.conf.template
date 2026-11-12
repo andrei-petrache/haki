@@ -4,11 +4,23 @@
 # NGINX_ENVSUBST_FILTER (see the Dockerfile): nginx's own variables are left
 # alone.
 
-# Login and signup run Argon2 (64 MiB each, deliberately slow), so they are
-# rate limited per client IP. Only POST counts: an empty key is never limited.
-map $request_method $auth_limit_key {
-    POST    $binary_remote_addr;
-    default "";
+# Login, signup, a password change and deleting the account run Argon2
+# (64 MiB each, deliberately slow), so they are rate limited per client IP,
+# in one shared budget. The last two also check the current password:
+# limited, a stolen token cannot guess it at full speed. Only those
+# requests count, by method and path: GET /auth/me (the profile) and
+# PUT /auth/me (settings) stay unlimited. An empty key is never limited.
+#
+# The path is $uri as limit_req sees it: inside the limited location below,
+# after its rewrite, so without /api, and normalized like the location
+# match itself (slashes merged, %XX decoded). Never $request_uri: raw, it
+# lets /api//auth/login or /api/auth/%6cogin reach the location without
+# matching here, so without a limit.
+map "$request_method:$uri" $auth_limit_key {
+    ~^POST:/auth/(login|signup)$    $binary_remote_addr;
+    PUT:/auth/me/password           $binary_remote_addr;
+    DELETE:/auth/me                 $binary_remote_addr;
+    default                         "";
 }
 # 5 requests per minute per IP; 10 MB of state tracks ~160,000 addresses
 limit_req_zone $auth_limit_key zone=auth:10m rate=5r/m;
@@ -102,9 +114,11 @@ server {
         proxy_pass $backend;
     }
 
-    # Login and signup: a burst of 5 at once, then one every 12 s, else 429.
-    # A regex location wins over the /api/ prefix above.
-    location ~ ^/api/auth/(login|signup)$ {
+    # Login, signup, password change and account deletion (the map above
+    # picks which methods count, from $uri after this rewrite): a burst of 5
+    # at once, then one every 12 s, else 429. A regex location wins over the
+    # /api/ prefix above.
+    location ~ ^/api/auth/(login|signup|me|me/password)$ {
         limit_req zone=auth burst=5 nodelay;
         rewrite ^/api(/.*)$ $1 break;
         proxy_pass $backend;
