@@ -368,6 +368,19 @@ button.chip[aria-pressed='true']:hover:not(:disabled) {
   justify-content: space-between;
 }
 
+/* Copy a meal: day and meal side by side, wrapping on a phone */
+.copy-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 0.75rem;
+}
+
+.copy-form .actions,
+.copy-form p {
+  flex-basis: 100%;
+}
+
 .meal h3 .muted {
   font-weight: 400;
 }
