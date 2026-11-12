@@ -68,6 +68,7 @@ def test_create_entry_returns_computed_nutrients(
         "protein": 3.9,
         "carbs": 42.0,
         "fat": 0.5,
+        "quick": False,
     }
 
 

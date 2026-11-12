@@ -336,6 +336,26 @@ class MealEntryIn(BaseModel):
     grams: float = Field(gt=0, le=5000)
 
 
+QuickName = Annotated[
+    str, StringConstraints(strip_whitespace=True, min_length=1, max_length=100)
+]
+# Grams of one macronutrient in one quick entry
+QuickMacro = Annotated[float, Field(ge=0, le=500)]
+
+
+class QuickEntryIn(BaseModel):
+    """Calories (and maybe macros) eaten, without a food: the amounts
+    themselves, not per 100 g."""
+
+    eaten_on: date
+    meal_type: MealType
+    calories: float = Field(ge=0, le=5000)
+    name: QuickName = "Quick add"
+    protein: QuickMacro = 0
+    carbs: QuickMacro = 0
+    fat: QuickMacro = 0
+
+
 class MealCopyIn(BaseModel):
     """Copy every entry of one meal on one day to another meal or day."""
 
@@ -377,12 +397,17 @@ class Nutrients(BaseModel):
 
 
 class MealEntryResponse(Nutrients):
+    """A logged food, or a quick entry (quick: true). Quick entries have
+    their own ids, which may equal a food entry's: a client tells them
+    apart by `quick`, and deletes one at /entries/quick/{id}."""
+
     id: int
-    food_id: int
+    food_id: int | None
     food_name: str
     eaten_on: date
     meal_type: MealType
-    grams: float
+    grams: float | None
+    quick: bool = False
 
 
 class DailySummary(BaseModel):

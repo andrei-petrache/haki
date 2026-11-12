@@ -1,7 +1,7 @@
 from fastapi import APIRouter
 
 from app.auth import CurrentUser, SessionDep
-from app.entries import DayQuery, entries_for_day, nutrients_for
+from app.entries import DayQuery, entries_for_day, nutrients_for, quick_entries_for
 from app.models import MEAL_TYPES
 from app.schemas import DailySummary, Nutrients
 
@@ -12,10 +12,18 @@ router = APIRouter(prefix="/summary", tags=["summary"])
 def daily_summary(
     day: DayQuery, current_user: CurrentUser, session: SessionDep
 ) -> DailySummary:
-    """Totals for one day, overall and per meal, against the calorie target."""
+    """Totals for one day, overall and per meal, against the calorie target.
+    Quick entries count like any other."""
     meals = {meal: Nutrients() for meal in MEAL_TYPES}
     for entry in entries_for_day(session, current_user, day):
         meals[entry.meal_type] += nutrients_for(entry.food, entry.grams)
+    for quick in quick_entries_for(session, current_user, day):
+        meals[quick.meal_type] += Nutrients(
+            calories=quick.calories,
+            protein=quick.protein,
+            carbs=quick.carbs,
+            fat=quick.fat,
+        )
     totals = sum(meals.values(), Nutrients())
 
     target = current_user.daily_calorie_target
