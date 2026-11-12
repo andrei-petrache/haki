@@ -54,7 +54,7 @@ export const ro: Dictionary = {
   'password.same': 'Parola nouă e la fel ca cea actuală.',
   'password.wrongCurrent': 'Parola actuală e greșită.',
   'password.changed':
-    'Parola a fost schimbată. Dispozitivele deja conectate rămân conectate până le expiră sesiunea.',
+    'Parola a fost schimbată. Celelalte dispozitive sunt deconectate și au nevoie de parola nouă.',
   'profile.languageAuto': 'Ca în browser ({language})',
   'profile.languageNote':
     'Se salvează pe acest dispozitiv. Unele mesaje de la server pot apărea în engleză.',

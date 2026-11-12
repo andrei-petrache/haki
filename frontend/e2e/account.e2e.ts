@@ -1,6 +1,7 @@
 /**
  * The account in Profile: changing the password. A wrong current password
- * is refused without logging out; the new one works for the next login.
+ * is refused without logging out; afterwards this tab keeps going with the
+ * new token, the old token is refused, and the new password logs in.
  */
 import { expect, test } from '@playwright/test'
 import type { Locator, Page } from '@playwright/test'
@@ -45,10 +46,22 @@ test('change the password: checked here first, then by the server', async () => 
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390)
   await page.screenshot({ path: `${SHOTS}/25-change-password-phone.png`, fullPage: true })
 
+  const oldToken = await page.evaluate(() => localStorage.getItem('haki_token'))
   await form.getByLabel('Current password').fill(account.password)
   await form.getByRole('button', { name: 'Change password' }).click()
   await expect(page.getByRole('status')).toContainText('Password changed.')
   await expect(form).toHaveCount(0)
+
+  // This tab carries on with the new token, across a reload; the old one,
+  // like every other device's, is refused
+  const newToken = await page.evaluate(() => localStorage.getItem('haki_token'))
+  expect(newToken).not.toBe(oldToken)
+  await page.reload()
+  await expect(page.getByRole('button', { name: 'Log out' })).toBeVisible()
+  const me = (value: string | null) =>
+    page.request.get('/api/auth/me', { headers: { Authorization: `Bearer ${value}` } })
+  expect((await me(oldToken)).status()).toBe(401)
+  expect((await me(newToken)).status()).toBe(200)
 
   // The new password logs in, the old one no longer does
   const login = (password: string) =>

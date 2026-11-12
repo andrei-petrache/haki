@@ -216,15 +216,17 @@ export function fetchMe(token: string): Promise<User> {
 }
 
 /**
- * Replace the password, given the current one. A wrong current password
- * is 403, not 401: the session is fine, so it must not log the user out.
+ * Replace the password, given the current one. Answers with a new token:
+ * every token from before, this one included, is refused from then on.
+ * A wrong current password is 403, not 401: the session is fine, so it
+ * must not log the user out.
  */
 export function changePassword(
   token: string,
   currentPassword: string,
   newPassword: string,
-): Promise<void> {
-  return request<void>(
+): Promise<TokenResponse> {
+  return request<TokenResponse>(
     '/auth/me/password',
     json('PUT', { current_password: currentPassword, new_password: newPassword }),
     token,
