@@ -166,6 +166,19 @@ server {
         expires -1;
     }
 
+    # The service worker and the manifest: checked every time too, so a new
+    # version reaches installed apps on their next visit
+    location ~ ^/(sw\.js|manifest\.webmanifest)$ {
+        # The image's mime.types knows no .webmanifest (it would go out as
+        # octet-stream); this map covers the two files the location serves
+        types {
+            application/javascript js;
+            application/manifest+json webmanifest;
+        }
+        expires -1;
+        try_files $uri =404;
+    }
+
     # Unknown paths get the app, ready for client-side routing later
     location / {
         try_files $uri $uri/ /index.html;
