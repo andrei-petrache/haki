@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   createFood,
   deleteFood,
+  deleteFoodOnLeave,
   describeError,
   fetchFoods,
   setFavourite,
@@ -198,15 +199,21 @@ export default function FoodsPage({ token }: { token: string }) {
     }
   }, [token])
 
-  // Leaving the page does not cancel a deletion: it goes at once
-  useEffect(
-    () => () => {
+  // Leaving does not cancel a deletion: another tab of the app, a reload or
+  // closing the browser tab sends it at once, in a request that outlives
+  // the page (a plain fetch would be cancelled with it)
+  useEffect(() => {
+    function leave() {
       const food = pending.current
       pending.current = null
-      if (food) deleteFood(token, food.id).catch(() => {})
-    },
-    [token],
-  )
+      if (food) deleteFoodOnLeave(token, food.id)
+    }
+    window.addEventListener('pagehide', leave)
+    return () => {
+      window.removeEventListener('pagehide', leave)
+      leave()
+    }
+  }, [token])
 
   const toastDone = useCallback(() => {
     setToast(null)

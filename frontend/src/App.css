@@ -1523,3 +1523,24 @@ h1 {
   padding: 0;
   border: none;
 }
+
+/* The day's date input lies transparent over its words, so a tap or click
+   lands on the input itself: its own picker opens even without
+   showPicker(), and WebKit's picker indicator fills it, for a click
+   anywhere on it */
+.day-choice .day-input {
+  inset: 0;
+  z-index: 1;
+  height: 100%;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.day-choice .day-input::-webkit-calendar-picker-indicator {
+  position: absolute;
+  inset: 0;
+  width: auto;
+  height: auto;
+  margin: 0;
+  cursor: pointer;
+}
