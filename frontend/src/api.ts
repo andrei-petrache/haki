@@ -1,4 +1,4 @@
-import { tActive } from './i18n/i18n'
+import { hasMessage, tActive } from './i18n/i18n'
 
 const API_BASE = '/api'
 
@@ -159,8 +159,15 @@ function errorCode(body: unknown): string | undefined {
   return typeof code === 'string' ? code : undefined
 }
 
-/** Turn FastAPI's error body into a readable message. */
+/**
+ * A readable message for the server's error body, in the UI language: by
+ * its stable code when the app knows it ("error.<code>"), so the server's
+ * English never reaches a Romanian screen; else its own text.
+ */
 function errorMessage(body: unknown): string {
+  const code = errorCode(body)
+  const key = code === undefined ? null : `error.${code}`
+  if (key !== null && hasMessage(key)) return tActive(key)
   if (body && typeof body === 'object' && 'detail' in body) {
     const detail = (body as { detail: unknown }).detail
     if (typeof detail === 'string') return detail
