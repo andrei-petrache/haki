@@ -7,6 +7,9 @@ import {
   bodyWeightToKg,
   chartScale,
   formatBodyWeight,
+  GOAL_OPTIONS,
+  goalAmount,
+  knownReasons,
   nearestPoint,
   niceTicks,
   rangeStart,
@@ -88,5 +91,18 @@ describe('the chart', () => {
     const points = [point('2026-11-01', 82), point('2026-11-05', 81), point('2026-11-12', 80)]
     expect(nearestPoint(points, '2026-11-04')?.measured_on).toBe('2026-11-05')
     expect(nearestPoint([], '2026-11-04')).toBeNull()
+  })
+})
+
+describe('the goal and the adaptive target', () => {
+  it('offers goals inside the API range, and says them in the unit', () => {
+    expect(Math.min(...GOAL_OPTIONS)).toBe(-1)
+    expect(Math.max(...GOAL_OPTIONS)).toBe(0.5)
+    expect(goalAmount(-0.5, 'kg')).toBe('0.5 kg')
+    expect(goalAmount(-0.5, 'lb')).toBe('1.1 lb')
+  })
+
+  it('keeps known reasons in a fixed order and drops unknown ones', () => {
+    expect(knownReasons(['few_weigh_ins', 'something_new', 'few_days'])).toEqual(['few_days', 'few_weigh_ins'])
   })
 })

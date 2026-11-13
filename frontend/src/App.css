@@ -1677,3 +1677,33 @@ h1 {
   min-width: 4.5rem;
   text-align: right;
 }
+
+/* The adaptive target: the mode, the goal, and its status on Today */
+.goal-form {
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--line);
+}
+
+.mode-choice {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  min-width: 0;
+}
+
+.mode-choice button {
+  white-space: normal;
+}
+
+.target-status {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.6rem 0.8rem;
+  border-radius: var(--radius-field);
+  background: var(--raised);
+}
+
+/* A caution, not an error: the text colour with its sign, red stays for errors */
+.warning {
+  color: var(--text);
+  font-weight: 600;
+}

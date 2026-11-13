@@ -2,6 +2,7 @@ import { Fragment, useCallback, useEffect, useMemo, useState } from 'react'
 import DeleteAccount from './DeleteAccount'
 import ChangePassword from './ChangePassword'
 import TargetEditor from './TargetEditor'
+import { GoalEditor } from './Goal'
 import {
   ApiError,
   describeError,
@@ -201,6 +202,7 @@ function Profile({
           {user.daily_calorie_target === null ? '—' : <span className="kcal">{user.daily_calorie_target}</span>}
         </p>
         <TargetEditor token={token} target={user.daily_calorie_target} onSaved={onUserChange} />
+        <GoalEditor token={token} user={user} unit={weightUnit} onSaved={onUserChange} />
       </section>
 
       <section className="card">

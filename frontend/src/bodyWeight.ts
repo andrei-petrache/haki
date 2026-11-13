@@ -136,3 +136,25 @@ export function nearestPoint(points: WeightPoint[], day: string): WeightPoint | 
   }
   return best
 }
+
+/** The goals offered, in kg a week: the API takes -1 to 0.5. */
+export const GOAL_OPTIONS = [-1, -0.75, -0.5, -0.25, 0, 0.25, 0.5] as const
+
+/** A goal's amount in the unit, without its sign: "0.5 kg", "1.1 lb". */
+export function goalAmount(kgPerWeek: number, unit: WeightUnit): string {
+  const value = unit === 'kg' ? Math.abs(kgPerWeek) : Math.round((Math.abs(kgPerWeek) / KG_PER_LB) * 10) / 10
+  return `${formatNumber(value)} ${unit}`
+}
+
+const REASONS = [
+  'few_days',
+  'few_weigh_ins',
+  'few_logged_days',
+  'no_weigh_ins_at_start',
+  'no_weigh_ins_at_end',
+] as const
+
+/** What the adaptive target still waits for, as known reasons in a fixed order; unknown ones are left out. */
+export function knownReasons(reasons: string[]): (typeof REASONS)[number][] {
+  return REASONS.filter((reason) => reasons.includes(reason))
+}
