@@ -450,7 +450,10 @@ def test_copy_whose_name_is_taken_is_409(
     response = copy_food(client, auth_headers, catalog_food_id(session, FETA), "ro")
 
     assert response.status_code == 409
-    assert response.json() == {"detail": "A food with this name already exists"}
+    assert response.json() == {
+        "detail": "A food with this name already exists",
+        "code": "food_name_taken",
+    }
     assert len(client.get("/foods", headers=auth_headers).json()) == 1
 
 

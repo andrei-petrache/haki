@@ -79,5 +79,8 @@ def test_login_returns_503_with_retry_after_when_hashing_is_saturated(
         )
 
     assert response.status_code == 503
-    assert response.json() == {"detail": "Server busy, try again shortly"}
+    assert response.json() == {
+        "detail": "Server busy, try again shortly",
+        "code": "server_busy",
+    }
     assert response.headers["Retry-After"] == "2"

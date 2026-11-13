@@ -13,6 +13,7 @@ from app.catalog import router as catalog_router
 from app.config import settings
 from app.db import database_is_reachable
 from app.entries import router as entries_router
+from app.errors import ErrorCode, error_response, install_error_handlers
 from app.exercises import router as exercises_router
 from app.foods import router as foods_router
 from app.metrics import record_request, start_metrics_server
@@ -53,6 +54,8 @@ app.include_router(exercises_router)
 app.include_router(workouts_router)
 app.include_router(programs_router)
 app.include_router(catalog_router)
+# Every HTTPException and every 422 answers {"detail", "code"} (app/errors.py)
+install_error_handlers(app)
 # Outermost: it also counts responses from the exception handlers below
 app.middleware("http")(record_request)
 
@@ -71,11 +74,7 @@ def database_unavailable(request: Request, exc: Exception) -> JSONResponse:
         request.url.path,
         exc_info=exc,
     )
-    return JSONResponse(
-        status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-        content={"detail": "Service temporarily unavailable, try again shortly"},
-        headers={"Retry-After": "5"},
-    )
+    return error_response(ErrorCode.DATABASE_UNAVAILABLE, headers={"Retry-After": "5"})
 
 
 @app.exception_handler(HashingBusy)
@@ -86,11 +85,7 @@ def hashing_busy(request: Request, exc: Exception) -> JSONResponse:
     (try again shortly), not a 429 (you sent too many requests).
     """
     logger.warning("All password hashing slots busy during %s", request.url.path)
-    return JSONResponse(
-        status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-        content={"detail": "Server busy, try again shortly"},
-        headers={"Retry-After": "2"},
-    )
+    return error_response(ErrorCode.SERVER_BUSY, headers={"Retry-After": "2"})
 
 
 @app.get("/health")

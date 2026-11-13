@@ -1,13 +1,14 @@
 from datetime import UTC, datetime
 from typing import Annotated
 
-from fastapi import APIRouter, Body, Depends, HTTPException, Response, status
+from fastapi import APIRouter, Body, Depends, Response, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy import delete, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.db import get_session
+from app.errors import ApiError, ErrorCode
 from app.models import User
 from app.schemas import (
     AccountDeleteIn,
@@ -37,13 +38,9 @@ bearer_scheme = HTTPBearer(auto_error=False)
 DUMMY_PASSWORD_HASH = hash_password("dummy-password-for-timing")
 
 
-def unauthorized(detail: str) -> HTTPException:
+def unauthorized(code: ErrorCode) -> ApiError:
     """Build a 401 response that tells clients to use a bearer token."""
-    return HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail=detail,
-        headers={"WWW-Authenticate": "Bearer"},
-    )
+    return ApiError(code, headers={"WWW-Authenticate": "Bearer"})
 
 
 def get_current_user(
@@ -52,24 +49,22 @@ def get_current_user(
 ) -> User:
     """Resolve the user from the bearer token, or reject the request with 401."""
     if credentials is None:
-        raise unauthorized("Not authenticated")
+        raise unauthorized(ErrorCode.NOT_AUTHENTICATED)
     claims = decode_token(credentials.credentials)
     if claims is None:
-        raise unauthorized("Invalid or expired token")
+        raise unauthorized(ErrorCode.INVALID_TOKEN)
     user = session.get(User, claims.user_id)
     # A token from before the user's last password change is refused
     if user is None or claims.password_stamp != password_stamp(
         user.password_changed_at
     ):
-        raise unauthorized("Invalid or expired token")
+        raise unauthorized(ErrorCode.INVALID_TOKEN)
     return user
 
 
-def wrong_password() -> HTTPException:
+def wrong_password() -> ApiError:
     """403, not 401: the token is valid, and clients sign out on a 401."""
-    return HTTPException(
-        status_code=status.HTTP_403_FORBIDDEN, detail="Current password is wrong"
-    )
+    return ApiError(ErrorCode.WRONG_PASSWORD)
 
 
 def token_for(user: User) -> TokenResponse:
@@ -92,10 +87,7 @@ def signup(data: SignupRequest, session: SessionDep) -> User:
         session.commit()
     except IntegrityError:
         session.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="Email already registered",
-        ) from None
+        raise ApiError(ErrorCode.EMAIL_TAKEN) from None
     session.refresh(user)
     return user
 
@@ -107,7 +99,7 @@ def login(data: LoginRequest, session: SessionDep) -> TokenResponse:
     stored_hash = user.password_hash if user else DUMMY_PASSWORD_HASH
     password_ok = verify_password(data.password, stored_hash)
     if user is None or not password_ok:
-        raise unauthorized("Invalid email or password")
+        raise unauthorized(ErrorCode.INVALID_CREDENTIALS)
     return token_for(user)
 
 

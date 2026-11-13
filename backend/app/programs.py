@@ -3,6 +3,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
 
 from app.auth import CurrentUser, SessionDep
+from app.errors import ApiError, ErrorCode
 from app.foods import commit_or_conflict
 from app.models import (
     Exercise,
@@ -24,14 +25,10 @@ from app.schemas import (
     WorkoutResponse,
     WorkoutStartIn,
 )
-from app.workouts import LimitQuery, OffsetQuery, not_found
+from app.workouts import LimitQuery, OffsetQuery
 from app.workouts import to_response as workout_response
 
 router = APIRouter(prefix="/programs", tags=["programs"])
-
-CONFLICT = (
-    "A program with this name already exists, or two of its days have the same position"
-)
 
 
 def check_own(program: Program | None, user: User) -> Program:
@@ -40,7 +37,7 @@ def check_own(program: Program | None, user: User) -> Program:
     Another user's program gets 404, not 403 (see get_own_food).
     """
     if program is None or program.user_id != user.id:
-        raise not_found("Program not found")
+        raise ApiError(ErrorCode.PROGRAM_NOT_FOUND)
     return program
 
 
@@ -74,7 +71,7 @@ def build_days(session: Session, user: User, data: ProgramIn) -> list[ProgramDay
     query = select(Exercise).where(Exercise.id.in_(ids), Exercise.user_id == user.id)
     own = {exercise.id: exercise for exercise in session.scalars(query)}
     if len(own) != len(ids):
-        raise not_found("Exercise not found")
+        raise ApiError(ErrorCode.EXERCISE_NOT_FOUND)
     return [
         ProgramDay(
             position=day.position,
@@ -167,7 +164,7 @@ def create_program(
     )
     session.add(program)
     # The name is unique per user ignoring case, the position per program
-    commit_or_conflict(session, CONFLICT)
+    commit_or_conflict(session, ErrorCode.PROGRAM_CONFLICT)
     # The rows just written, still in the session (expire_on_commit=False)
     return to_response(program)
 
@@ -191,7 +188,7 @@ def replace_program(
     session.flush()
     program.name = data.name
     program.days = days
-    commit_or_conflict(session, CONFLICT)
+    commit_or_conflict(session, ErrorCode.PROGRAM_CONFLICT)
     return to_response(program)
 
 
@@ -229,7 +226,7 @@ def start_workout(
     # A day of another program, even one of the user's own, is a 404 as well
     day = next((day for day in program.days if day.id == day_id), None)
     if day is None:
-        raise not_found("Program day not found")
+        raise ApiError(ErrorCode.PROGRAM_DAY_NOT_FOUND)
     workout = Workout(
         user_id=current_user.id,
         performed_on=data.performed_on,
