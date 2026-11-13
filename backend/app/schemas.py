@@ -73,6 +73,9 @@ class UserResponse(BaseModel):
     # A plain string, not the Literal of the input: a response must not fail
     # on a language that another version of the app accepted
     language: str | None = None
+    # Plain types, as language above; floats, never Decimal (a JSON string)
+    target_mode: str = "manual"
+    goal_kg_per_week: float | None = None
     created_at: datetime
 
 
@@ -90,6 +93,58 @@ class CalorieTargetIn(BaseModel):
     """Required field: clients send null explicitly to clear the target."""
 
     daily_calorie_target: int | None = Field(ge=500, le=10000)
+
+
+# Body weight and the adaptive target (app/body.py)
+
+
+class GoalIn(BaseModel):
+    """Both fields required: clients send null explicitly for no goal."""
+
+    target_mode: Literal["manual", "adaptive"]
+    # Kg a week: negative to lose, positive to gain; stored to 10 g
+    goal_kg_per_week: float | None = Field(ge=-1, le=0.5)
+
+
+class WeightIn(BaseModel):
+    weight_kg: float = Field(ge=20, le=400)
+
+
+class WeightResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    measured_on: date
+    weight_kg: float
+
+
+class WeightPoint(WeightResponse):
+    """A weigh-in with the trend line at that day, for the chart."""
+
+    trend_kg: float
+    # Far from the trend (2%): kept, but the chart may mark it
+    outlier: bool
+
+
+class TargetResponse(BaseModel):
+    """The target for one day, and how it was reached.
+
+    status "manual": the user's own daily_calorie_target. "collecting": the
+    same, while the adaptive estimate waits for data (`reasons` says what is
+    missing). "adaptive": the estimated TDEE plus the goal.
+    """
+
+    target_mode: str
+    status: Literal["manual", "collecting", "adaptive"]
+    target_kcal: int | None
+    tdee_kcal: int | None = None
+    week_start: date | None = None
+    weigh_ins: int | None = None
+    logged_days: int | None = None
+    reasons: list[str] = []
+    trend_kg_per_week: float | None = None
+    goal_kg_per_week: float | None = None
+    # The floor (1200, or 1000 under the TDEE) set the number, not the goal
+    floor_applied: bool = False
 
 
 class TokenResponse(BaseModel):

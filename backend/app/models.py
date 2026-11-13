@@ -6,6 +6,7 @@ from sqlalchemy import (
     DateTime,
     ForeignKey,
     Index,
+    Numeric,
     String,
     UniqueConstraint,
     func,
@@ -28,6 +29,14 @@ class User(Base):
     """A registered user of the app."""
 
     __tablename__ = "users"
+    __table_args__ = (
+        CheckConstraint(
+            "target_mode IN ('manual', 'adaptive')", name="ck_users_target_mode"
+        ),
+        CheckConstraint(
+            "goal_kg_per_week BETWEEN -1 AND 0.5", name="ck_users_goal_kg_per_week"
+        ),
+    )
 
     id: Mapped[int] = mapped_column(primary_key=True)
     email: Mapped[str] = mapped_column(String(255), unique=True, index=True)
@@ -40,6 +49,91 @@ class User(Base):
     daily_calorie_target: Mapped[int | None] = mapped_column(default=None)
     # "en" or "ro"; null follows the browser's language
     language: Mapped[str | None] = mapped_column(String(5), default=None)
+    # "manual": daily_calorie_target is the target. "adaptive": it is only
+    # the fallback while the estimate is collecting (app/body.py). The
+    # server default fills existing rows, and the previous version's inserts.
+    target_mode: Mapped[str] = mapped_column(
+        String(10), default="manual", server_default="manual"
+    )
+    # Kg a week the user wants to gain (positive) or lose (negative)
+    goal_kg_per_week: Mapped[float | None] = mapped_column(
+        Numeric(3, 2, asdecimal=False), default=None
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+
+class BodyWeight(Base):
+    """One weigh-in: at most one per user and day. Health data (GDPR Art. 9):
+    never logged, never in a metric label."""
+
+    __tablename__ = "body_weights"
+    __table_args__ = (
+        # Its leading user_id column also serves lookups by user
+        UniqueConstraint(
+            "user_id", "measured_on", name="uq_body_weights_user_id_measured_on"
+        ),
+        CheckConstraint(
+            "weight_kg BETWEEN 20 AND 400", name="ck_body_weights_weight_kg"
+        ),
+        CheckConstraint(
+            "measured_on >= '2000-01-01'", name="ck_body_weights_measured_on"
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
+    measured_on: Mapped[date]
+    # Exact to 10 g; read as a float, so JSON never gets a string
+    weight_kg: Mapped[float] = mapped_column(Numeric(5, 2, asdecimal=False))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+
+class TdeeEstimate(Base):
+    """A user's estimated daily energy use for one week (app/adaptive.py).
+
+    Written once, at the first read of the week, and never changed: each
+    estimate is smoothed against the one before, so the history must stay
+    as it was computed. The target is not stored: it follows from the TDEE
+    and the goal the user has when it is read.
+    """
+
+    __tablename__ = "tdee_estimates"
+    __table_args__ = (
+        UniqueConstraint(
+            "user_id", "week_start", name="uq_tdee_estimates_user_id_week_start"
+        ),
+        CheckConstraint(
+            "status IN ('collecting', 'adaptive')", name="ck_tdee_estimates_status"
+        ),
+        CheckConstraint(
+            "(status = 'collecting') = (tdee_kcal IS NULL)",
+            name="ck_tdee_estimates_tdee_when_adaptive",
+        ),
+        CheckConstraint(
+            "tdee_kcal BETWEEN 1200 AND 5000", name="ck_tdee_estimates_tdee_kcal"
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
+    # The Monday of the week it is for; it looks at the 21 days before
+    week_start: Mapped[date]
+    status: Mapped[str] = mapped_column(String(20))
+    tdee_kcal: Mapped[int | None]
+    slope_kg_per_week: Mapped[float | None]
+    trend_weight_kg: Mapped[float | None]
+    # The user's goal when it was computed, for the history only
+    goal_kg_per_week: Mapped[float | None] = mapped_column(
+        Numeric(3, 2, asdecimal=False)
+    )
+    weigh_ins: Mapped[int]
+    logged_days: Mapped[int]
+    # What was still missing while collecting, comma-separated; "" otherwise
+    reasons: Mapped[str] = mapped_column(String(200))
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )

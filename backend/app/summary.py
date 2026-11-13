@@ -1,6 +1,8 @@
 from fastapi import APIRouter
 
 from app.auth import CurrentUser, SessionDep
+from app.body import server_today, target_for
+from app.config import settings
 from app.entries import DayQuery, entries_for_day, nutrients_for, quick_entries_for
 from app.models import MEAL_TYPES
 from app.schemas import DailySummary, Nutrients
@@ -27,6 +29,12 @@ def daily_summary(
     totals = sum(meals.values(), Nutrients())
 
     target = current_user.daily_calorie_target
+    if settings.body_weight_enabled:
+        # The adaptive target when the user chose it. Only a day near today
+        # may compute the week's estimate (see check_near_today); another
+        # day reads the one it has, or the user's own number.
+        near_today = abs((day - server_today()).days) <= 1
+        target = target_for(session, current_user, day, create=near_today).target_kcal
     # Negative when the user ate more than the target
     remaining = None if target is None else round(target - totals.calories, 1)
     return DailySummary(

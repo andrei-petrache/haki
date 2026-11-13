@@ -5,6 +5,8 @@ from fastapi.testclient import TestClient
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from app.body import server_today
+from app.config import settings
 from app.models import Base
 from tests.conftest import register_and_login
 
@@ -85,6 +87,24 @@ def fill_account(client: TestClient, headers: dict[str, str]) -> None:
             ],
         },
     )
+    # Body weight sits behind a flag, off by default: on for this part only
+    enabled = settings.body_weight_enabled
+    settings.body_weight_enabled = True
+    try:
+        today = server_today().isoformat()
+        weighed = client.put(
+            f"/weights/{today}", json={"weight_kg": 80}, headers=headers
+        )
+        assert weighed.status_code == 201, weighed.text
+        goal = {"target_mode": "adaptive", "goal_kg_per_week": -0.5}
+        assert (
+            client.put("/auth/me/goal", json=goal, headers=headers).status_code == 200
+        )
+        # The first read of the week stores the week's estimate
+        target = client.get("/targets/current", params={"date": today}, headers=headers)
+        assert target.status_code == 200, target.text
+    finally:
+        settings.body_weight_enabled = enabled
 
 
 def delete_account(
