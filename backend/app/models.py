@@ -65,6 +65,24 @@ class User(Base):
     )
 
 
+class PasswordResetRequest(Base):
+    """When a reset link was asked for an account: at most 3 an hour per
+    account (app/password_reset.py). The token itself is never stored: it
+    is a signed JWT that the reset uses up (app.security.create_reset_token).
+    Rows older than an hour are deleted at the account's next request."""
+
+    __tablename__ = "password_reset_requests"
+    __table_args__ = (
+        Index("ix_password_reset_requests_user_id_created_at", "user_id", "created_at"),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+
 class BodyWeight(Base):
     """One weigh-in: at most one per user and day. Health data (GDPR Art. 9):
     never logged, never in a metric label."""

@@ -56,6 +56,20 @@ class PasswordChangeIn(BaseModel):
     new_password: NewPassword
 
 
+class PasswordResetIn(BaseModel):
+    email: EmailStr
+
+
+class PasswordResetConfirmIn(BaseModel):
+    # A JWT from the reset link: a few hundred characters
+    token: str = Field(min_length=1, max_length=2000)
+    new_password: NewPassword
+
+
+class AcceptedResponse(BaseModel):
+    detail: str
+
+
 class AccountDeleteIn(BaseModel):
     """The current password, so a stolen session alone cannot delete it."""
 

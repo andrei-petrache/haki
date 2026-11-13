@@ -24,6 +24,7 @@ class ErrorCode(StrEnum):
     INVALID_TOKEN = "invalid_token"
     INVALID_CREDENTIALS = "invalid_credentials"
     WRONG_PASSWORD = "wrong_password"
+    INVALID_RESET_TOKEN = "invalid_reset_token"
     EMAIL_TAKEN = "email_taken"
     FOOD_NOT_FOUND = "food_not_found"
     FOOD_NAME_TAKEN = "food_name_taken"
@@ -64,6 +65,11 @@ ERRORS: dict[ErrorCode, tuple[HTTPStatus, str]] = {
     ),
     # 403, not 401: the token is valid, and clients sign out on a 401
     ErrorCode.WRONG_PASSWORD: (HTTPStatus.FORBIDDEN, "Current password is wrong"),
+    # Expired, used up (the password changed since), or not a reset token
+    ErrorCode.INVALID_RESET_TOKEN: (
+        HTTPStatus.BAD_REQUEST,
+        "This reset link is invalid or has expired",
+    ),
     ErrorCode.EMAIL_TAKEN: (HTTPStatus.CONFLICT, "Email already registered"),
     ErrorCode.FOOD_NOT_FOUND: (HTTPStatus.NOT_FOUND, "Food not found"),
     ErrorCode.FOOD_NAME_TAKEN: (

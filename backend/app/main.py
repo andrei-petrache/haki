@@ -19,6 +19,7 @@ from app.exercises import router as exercises_router
 from app.food_search import router as food_search_router
 from app.foods import router as foods_router
 from app.metrics import record_request, start_metrics_server
+from app.password_reset import router as password_reset_router
 from app.programs import router as programs_router
 from app.security import HashingBusy
 from app.summary import router as summary_router
@@ -58,6 +59,7 @@ app.include_router(workouts_router)
 app.include_router(programs_router)
 app.include_router(catalog_router)
 app.include_router(body_router)
+app.include_router(password_reset_router)
 # Every HTTPException and every 422 answers {"detail", "code"} (app/errors.py)
 install_error_handlers(app)
 # Outermost: it also counts responses from the exception handlers below
