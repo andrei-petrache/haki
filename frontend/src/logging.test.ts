@@ -1,5 +1,15 @@
 import { describe, expect, it } from 'vitest'
-import { displayName, entryName, headline, kcalFor, keepOrder, mealForHour, startGrams, stepGrams } from './logging'
+import {
+  displayName,
+  entryName,
+  headline,
+  kcalFor,
+  keepOrder,
+  matchesFilter,
+  mealForHour,
+  startGrams,
+  stepGrams,
+} from './logging'
 
 describe('mealForHour', () => {
   it('follows the day: breakfast, lunch, dinner, then snacks late', () => {
@@ -79,5 +89,19 @@ describe('keepOrder', () => {
 
   it('drops nothing and keeps the list as is without an order', () => {
     expect(keepOrder([{ id: 2 }, { id: 1 }], []).map((x) => x.id)).toEqual([2, 1])
+  })
+})
+
+describe('matchesFilter', () => {
+  it('finds every word, in any order, ignoring case and diacritics', () => {
+    expect(matchesFilter('Iaurt grecesc', 'iaurt gre')).toBe(true)
+    expect(matchesFilter('Iaurt grecesc', 'GRECESC iaurt')).toBe(true)
+    expect(matchesFilter('Brânză de vaci', 'branza')).toBe(true)
+    expect(matchesFilter('Șuncă presată', 'sunca')).toBe(true)
+    expect(matchesFilter('Iaurt grecesc', 'iaurt lapte')).toBe(false)
+  })
+
+  it('lets everything through for an empty filter', () => {
+    expect(matchesFilter('Oats', '   ')).toBe(true)
   })
 })

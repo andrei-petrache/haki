@@ -49,6 +49,7 @@ test('Credits lists the catalog sources with licence and version', async () => {
 
 test('a food from the catalog: search, add, add again, and a name taken by hand', async () => {
   await tab('Foods').click()
+  await page.getByRole('button', { name: 'From the catalog' }).click()
   const search = page.getByLabel('Search the catalog')
 
   // Romanian name without diacritics, on an English screen: the API matches either name
@@ -63,7 +64,7 @@ test('a food from the catalog: search, add, add again, and a name taken by hand'
   await page.getByRole('button', { name: 'Add Feta cheese', exact: true }).click()
   await expect(page.getByRole('status')).toHaveText('Added "Feta cheese" to your foods.')
   const yours = page.locator('section').filter({ has: page.getByRole('heading', { name: 'Your foods' }) })
-  await expect(yours.getByText('Feta cheese', { exact: true })).toBeVisible()
+  await expect(yours.locator('.food-list').getByText('Feta cheese', { exact: true })).toBeVisible()
 
   // Asking twice is harmless: the same copy, nothing duplicated
   await page.getByRole('button', { name: 'Add Feta cheese', exact: true }).click()
@@ -96,22 +97,26 @@ test('a food from the catalog: search, add, add again, and a name taken by hand'
 
 test('a catalog food over 900 kcal (lard, 902) can be edited and saved', async () => {
   await tab('Foods').click()
+  // Still open from the test before: Foods keeps its panel while the tab shows
+  if ((await page.getByLabel('Search the catalog').count()) === 0) {
+    await page.getByRole('button', { name: 'From the catalog' }).click()
+  }
   await page.getByLabel('Search the catalog').fill('lard')
   await page.getByRole('button', { name: 'Add Lard', exact: true }).click()
   await expect(page.getByRole('status')).toHaveText('Added "Lard" to your foods.')
 
   // Saving the copy unchanged: with the old 900 the browser refused the form
   const yours = page.locator('section').filter({ has: page.getByRole('heading', { name: 'Your foods' }) })
-  await yours.locator('li', { hasText: 'Lard' }).getByRole('button', { name: 'Edit' }).click()
+  await yours.locator('.food-list li', { hasText: 'Lard' }).getByRole('button', { name: 'Edit' }).click()
   const calories = yours.getByLabel('Calories')
   await expect(calories).toHaveValue('902')
   expect(await calories.evaluate((input: HTMLInputElement) => input.checkValidity())).toBe(true)
   await yours.getByRole('button', { name: 'Save' }).click()
   await expect(yours.getByLabel('Calories')).toHaveCount(0)
-  await expect(yours.locator('li', { hasText: 'Lard' })).toContainText('902 kcal')
+  await expect(yours.locator('.food-list li', { hasText: 'Lard' })).toContainText('902 kcal')
 
   // Over the backend's 950 the browser still says no, before any request
-  await yours.locator('li', { hasText: 'Lard' }).getByRole('button', { name: 'Edit' }).click()
+  await yours.locator('.food-list li', { hasText: 'Lard' }).getByRole('button', { name: 'Edit' }).click()
   await yours.getByLabel('Calories').fill('951')
   expect(
     await yours.getByLabel('Calories').evaluate((input: HTMLInputElement) => input.validity.rangeOverflow),
