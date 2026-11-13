@@ -9,7 +9,12 @@ export type User = {
   created_at: string
   // The account's language; null (or missing, from an older server): no choice
   language?: string | null
+  // Phase 3: how the daily target is set, and the weekly goal (kg, signed)
+  target_mode?: TargetMode
+  goal_kg_per_week?: number | null
 }
+
+export type TargetMode = 'manual' | 'adaptive'
 
 export const MEAL_TYPES = ['breakfast', 'lunch', 'dinner', 'snack'] as const
 export type MealType = (typeof MEAL_TYPES)[number]
@@ -706,4 +711,43 @@ export function putWeight(token: string, day: string, weightKg: number): Promise
 
 export function deleteWeight(token: string, day: string): Promise<void> {
   return request<void>(`/weights/${day}`, { method: 'DELETE' }, token)
+}
+
+/** Why the adaptive target still waits for data (GET /targets/current). */
+export type TargetReason =
+  | 'few_days'
+  | 'few_weigh_ins'
+  | 'few_logged_days'
+  | 'no_weigh_ins_at_start'
+  | 'no_weigh_ins_at_end'
+
+/**
+ * The target for one day and how it was reached. "manual": the user's own
+ * daily_calorie_target; "collecting": the same while the estimate waits
+ * (reasons says what is missing); "adaptive": the estimated energy use
+ * plus the goal. target_kcal is null with no target of the user's own.
+ */
+export type CurrentTarget = {
+  target_mode: TargetMode
+  status: 'manual' | 'collecting' | 'adaptive'
+  target_kcal: number | null
+  tdee_kcal: number | null
+  week_start: string | null
+  weigh_ins: number | null
+  logged_days: number | null
+  reasons: string[]
+  trend_kg_per_week: number | null
+  goal_kg_per_week: number | null
+  // The floor (1200 kcal, or 1000 under the energy use) set it, not the goal
+  floor_applied: boolean
+}
+
+/** The target for `day`, the client's local today (the server allows ±1 day). */
+export function fetchCurrentTarget(token: string, day: string): Promise<CurrentTarget> {
+  return request<CurrentTarget>(`/targets/current?${new URLSearchParams({ date: day })}`, {}, token)
+}
+
+/** How the target is set, and the goal in kg a week (null: none). Both always sent. */
+export function setGoal(token: string, mode: TargetMode, goalKgPerWeek: number | null): Promise<User> {
+  return request<User>('/auth/me/goal', json('PUT', { target_mode: mode, goal_kg_per_week: goalKgPerWeek }), token)
 }

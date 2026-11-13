@@ -6,7 +6,7 @@
  * (every /weights answer 404) nothing of it shows.
  */
 import { expect, test } from '@playwright/test'
-import type { Locator, Page } from '@playwright/test'
+import type { Locator, Page, Route } from '@playwright/test'
 import { SHOTS, api, signUp } from './helpers'
 
 test.describe.configure({ mode: 'serial' })
@@ -122,14 +122,61 @@ test('in pounds: typed and shown in lb, stored in kg', async () => {
   await page.getByLabel('Weights in').selectOption('kg')
 })
 
-test('with the server switch off (404), Today shows no weight at all', async () => {
-  await page.route('**/api/weights**', (route) =>
-    route.fulfill({ status: 404, contentType: 'application/json', body: '{"detail":"Not Found","code":"not_found"}' }),
+test('the goal: adaptive in Profile, and Today says what the target still waits for', async () => {
+  const nav = (name: string) => page.getByRole('navigation').getByRole('button', { name, exact: true })
+  await nav('Profile').click()
+  const form = page.locator('form.goal-form')
+  await expect(form.getByRole('heading', { name: 'Target from your weight' })).toBeVisible()
+  await form.getByRole('button', { name: 'Adapt it to my weight' }).click()
+  await form.getByLabel('Goal').selectOption({ label: 'Lose 0.5 kg a week' })
+  await form.getByRole('button', { name: 'Save' }).click()
+  await expect(form.getByRole('status')).toHaveText('Saved.')
+  const me = (await api(page, 'GET', '/auth/me')).body as { target_mode: string; goal_kg_per_week: number }
+  expect(me).toMatchObject({ target_mode: 'adaptive', goal_kg_per_week: -0.5 })
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390)
+
+  // Three weeks of weigh-ins but no meals logged: still collecting
+  await nav('Today').click()
+  const status = card().locator('.target-status')
+  await expect(status).toContainText('Collecting data for an adaptive target')
+  await expect(status).toContainText('10 days with every meal logged')
+  await card().scrollIntoViewIfNeeded()
+  await page.screenshot({ path: `${SHOTS}/47-weight-collecting-phone.png` })
+
+  // A device clock more than a day off: one short line, nothing breaks
+  await page.route('**/api/targets/current**', (route) =>
+    route.fulfill({ status: 422, contentType: 'application/json', body: '{"detail":"Date out of range","code":"date_out_of_range"}' }),
   )
+  await nav('Foods').click()
+  await nav('Today').click()
+  await expect(card()).toContainText('check the date and time on this device')
+  await expect(card().getByLabel('Weight (kg)')).toBeVisible()
+  await page.unroute('**/api/targets/current**')
+
+  // Back to manual: no status line
+  await nav('Profile').click()
+  await form.getByRole('button', { name: 'I set it myself' }).click()
+  await form.getByRole('button', { name: 'Save' }).click()
+  await expect(form.getByRole('status')).toHaveText('Saved.')
+  await nav('Today').click()
+  await expect(card()).toBeVisible()
+  await expect(card().locator('.target-status')).toHaveCount(0)
+})
+
+test('with the server switch off (404), Today shows no weight at all', async () => {
+  const off = (route: Route) =>
+    route.fulfill({ status: 404, contentType: 'application/json', body: '{"detail":"Not Found","code":"not_found"}' })
+  await page.route('**/api/weights**', off)
+  await page.route('**/api/targets/**', off)
   await page.getByRole('navigation').getByRole('button', { name: 'Today', exact: true }).click()
   await page.reload()
   await expect(page.getByPlaceholder('Search a food')).toBeVisible()
   await expect(card()).toHaveCount(0)
   await expect(page.locator('.error')).toHaveCount(0)
+  // Nor the goal in Profile
+  await page.getByRole('navigation').getByRole('button', { name: 'Profile', exact: true }).click()
+  await expect(page.getByLabel('Weights in')).toBeVisible()
+  await expect(page.locator('form.goal-form')).toHaveCount(0)
   await page.unroute('**/api/weights**')
+  await page.unroute('**/api/targets/**')
 })
