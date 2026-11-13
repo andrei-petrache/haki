@@ -1376,3 +1376,32 @@ button.food-open:hover:not(:disabled) {
 .food-list button.star[aria-pressed='true'] {
   color: var(--accent-text);
 }
+
+/* Direction A: a day as words outside Today's header (the workout
+   editor under its title, a program's start date) */
+.editor-head .day-choice,
+.start-day .day-choice {
+  margin-left: -0.4rem;
+}
+
+.editor-head button.day-label,
+.editor-head button.day-label:hover:not(:disabled) {
+  min-height: 36px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.start-day {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 0.75rem;
+}
+
+/* The pencil-like hint that the day is a choice */
+button.day-label::after {
+  content: ' ▾';
+  font-size: 0.8em;
+  color: var(--muted);
+}

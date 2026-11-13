@@ -7,7 +7,7 @@ import {
   fetchWorkouts,
 } from './api'
 import type { Workout, WorkoutSummary } from './api'
-import { formatDay, formatSet, shorten } from './format'
+import { formatSet, formatShortDay, shorten } from './format'
 import { useI18n } from './i18n/context'
 import { recordPositions, useExerciseHistory } from './history'
 import WorkoutEditor from './WorkoutEditor'
@@ -95,7 +95,7 @@ function WorkoutList({
                 className="workout-card"
                 onClick={() => onOpen(workout.id)}
               >
-                <strong>{formatDay(workout.performed_on)}</strong>
+                <strong>{formatShortDay(workout.performed_on)}</strong>
                 {workout.note && <span>{shorten(workout.note, NOTE_PREVIEW_LENGTH)}</span>}
                 <span className="muted">
                   {t('count.exercises', { count: workout.exercise_count })} ·{' '}
@@ -163,7 +163,7 @@ function WorkoutDetail({
   const records = workout ? recordPositions(workout, bests) : new Set<string>()
 
   async function handleDelete(loaded: Workout) {
-    if (!window.confirm(t('workouts.deleteConfirm', { day: formatDay(loaded.performed_on) }))) {
+    if (!window.confirm(t('workouts.deleteConfirm', { day: formatShortDay(loaded.performed_on) }))) {
       return
     }
     setError(null)
@@ -186,7 +186,7 @@ function WorkoutDetail({
       {!workout && !error && <p className="muted">{t('app.loading')}</p>}
       {workout && (
         <>
-          <h2>{formatDay(workout.performed_on)}</h2>
+          <h2>{formatShortDay(workout.performed_on)}</h2>
           {workout.note && <p className="workout-note">{workout.note}</p>}
           {workout.exercises.length === 0 && <p className="muted">{t('workouts.noExercises')}</p>}
           {workout.exercises.map((item, index) => (
