@@ -57,6 +57,21 @@ patches:
         value:
           name: ENVIRONMENT
           value: staging
+      # Password reset (phase 4) on staging with the default log-only mail
+      # backend: the link shows in the backend pod's log, acceptable here and
+      # never in prod (the backend refuses that, and check-manifests.sh keeps
+      # every *_ENABLED off there). Staging is opened through the port-forward
+      # in k8s/README.md, so its links point there.
+      - op: add
+        path: /spec/template/spec/containers/0/env/-
+        value:
+          name: PASSWORD_RESET_ENABLED
+          value: "true"
+      - op: add
+        path: /spec/template/spec/containers/0/env/-
+        value:
+          name: PUBLIC_BASE_URL
+          value: http://127.0.0.1:8081
 
 configMapGenerator:
   # The backend Service in this namespace, by its full name: Nginx resolves
