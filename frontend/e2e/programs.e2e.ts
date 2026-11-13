@@ -221,6 +221,8 @@ test('edits a program in place: renamed, the rest kept exactly', async () => {
   }
   expect(after.name).toBe('E2E Full body B')
   expect(after.days.map((day) => day.name)).toEqual(['Everything'])
+  // The same day, renamed in place: its id (and workouts' link to it) kept
+  expect(after.days.map((day) => day.id)).toEqual(before.days.map((day) => day.id))
   // The planned exercises, weights included, come back unchanged
   expect(after.days.map((day) => day.exercises)).toEqual(before.days.map((day) => day.exercises))
   expect(await ids('/programs')).toHaveLength(2)

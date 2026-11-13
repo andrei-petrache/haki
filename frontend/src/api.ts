@@ -426,6 +426,9 @@ export type PlannedExerciseInput = {
 export type PlannedExercise = PlannedExerciseInput & { exercise_name: string }
 
 export type ProgramDayInput = {
+  // PUT only: a saved day's id keeps that day (and workouts' link to it);
+  // without one the day is new. POST ignores it.
+  id?: number
   position: number // the day's place in the plan, 1 to 7
   name: string
   exercises: PlannedExerciseInput[]
@@ -479,8 +482,9 @@ export function createProgram(token: string, program: ProgramInput): Promise<Pro
 }
 
 /**
- * Replace a program with this one, whole: name and days. The days are
- * new rows afterwards (new ids), so read them from the answer.
+ * Replace a program with this one, whole: name and days. A day sent with
+ * its id is changed in place; one without is new, one left out is deleted.
+ * New days get new ids, so read them from the answer.
  */
 export function updateProgram(token: string, id: number, program: ProgramInput): Promise<Program> {
   return request<Program>(`/programs/${id}`, json('PUT', program), token)
