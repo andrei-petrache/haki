@@ -1,4 +1,6 @@
-from pydantic import Field, field_validator
+from typing import Literal
+
+from pydantic import Field, field_validator, model_validator
 
 from app.db_config import DatabaseSettings
 
@@ -31,6 +33,36 @@ class Settings(DatabaseSettings):
     # off by default and in prod; staging turns it on. Off, every endpoint
     # of it answers 404 as if it did not exist.
     body_weight_enabled: bool = False
+    # Password reset by e-mail (app/password_reset.py). Off by default and in
+    # prod until a real mail provider exists (phase 7, Andrei's choice: it
+    # costs money); off, its endpoints answer 404.
+    password_reset_enabled: bool = False
+    # "log" writes the reset link to the server log, "smtp" sends it through
+    # SMTP_HOST (locally Mailpit, from compose). The log backend hands an
+    # account to whoever can read the logs, so prod refuses it (below).
+    mail_backend: Literal["log", "smtp"] = "log"
+    smtp_host: str = "localhost"
+    smtp_port: int = Field(default=1025, ge=1, le=65535)
+    mail_from: str = "Haki <no-reply@haki.invalid>"
+    # Links in e-mails are built from this, never from a request's Host
+    public_base_url: str = "http://127.0.0.1:8080"
+    # "prod" turns on the checks that only prod needs
+    environment: Literal["dev", "staging", "prod"] = "dev"
+
+    @model_validator(mode="after")
+    def prod_never_logs_reset_links(self) -> Settings:
+        """A reset link in prod's logs would let anyone who reads them take
+        over an account: fail at startup instead."""
+        if (
+            self.environment == "prod"
+            and self.password_reset_enabled
+            and self.mail_backend == "log"
+        ):
+            raise ValueError(
+                "PASSWORD_RESET_ENABLED needs MAIL_BACKEND=smtp in prod: "
+                "the log backend writes reset links to the log"
+            )
+        return self
 
     @field_validator("jwt_secret_key")
     @classmethod

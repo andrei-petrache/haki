@@ -105,6 +105,15 @@ def fill_account(client: TestClient, headers: dict[str, str]) -> None:
         assert target.status_code == 200, target.text
     finally:
         settings.body_weight_enabled = enabled
+    # The reset too (the log backend: no e-mail leaves the test)
+    enabled = settings.password_reset_enabled
+    settings.password_reset_enabled = True
+    try:
+        email = client.get("/auth/me", headers=headers).json()["email"]
+        asked = client.post("/auth/password-reset", json={"email": email})
+        assert asked.status_code == 202, asked.text
+    finally:
+        settings.password_reset_enabled = enabled
 
 
 def delete_account(

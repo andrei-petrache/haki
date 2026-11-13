@@ -79,14 +79,20 @@ class TokenClaims:
     password_stamp: int | None
 
 
-def create_access_token(user_id: int, stamp: int | None = None) -> str:
-    """Create a signed JWT that identifies the user and expires, tied to the
-    user's current password_stamp."""
+# What a token is for (claim "typ"). Both kinds are signed with the same key,
+# so each decoder refuses the other kind: a reset link must never open the API.
+ACCESS = "access"
+RESET = "reset"
+RESET_TOKEN_MINUTES = 30
+
+
+def create_token(user_id: int, stamp: int | None, typ: str, lifetime: timedelta) -> str:
     now = datetime.now(UTC)
     payload: dict[str, object] = {
         "sub": str(user_id),
+        "typ": typ,
         "iat": now,
-        "exp": now + timedelta(minutes=settings.access_token_expire_minutes),
+        "exp": now + lifetime,
     }
     if stamp is not None:
         payload["pwc"] = stamp
@@ -95,8 +101,23 @@ def create_access_token(user_id: int, stamp: int | None = None) -> str:
     )
 
 
-def decode_token(token: str) -> TokenClaims | None:
-    """The claims of a valid token, or None if invalid or expired."""
+def create_access_token(user_id: int, stamp: int | None = None) -> str:
+    """Create a signed JWT that identifies the user and expires, tied to the
+    user's current password_stamp."""
+    lifetime = timedelta(minutes=settings.access_token_expire_minutes)
+    return create_token(user_id, stamp, ACCESS, lifetime)
+
+
+def create_reset_token(user_id: int, stamp: int | None) -> str:
+    """A password reset token: 30 minutes, tied to the current password_stamp,
+    so the reset it allows (which changes the stamp) uses it up."""
+    lifetime = timedelta(minutes=RESET_TOKEN_MINUTES)
+    return create_token(user_id, stamp, RESET, lifetime)
+
+
+def decode_claims(token: str, typ: str) -> TokenClaims | None:
+    """The claims of a valid token of kind `typ`, or None. A token without
+    "typ" is an access token: those issued before the claim existed."""
     try:
         payload = jwt.decode(
             token,
@@ -104,12 +125,25 @@ def decode_token(token: str) -> TokenClaims | None:
             algorithms=[settings.jwt_algorithm],
             options={"require": ["exp", "sub"]},
         )
+        if payload.get("typ", ACCESS) != typ:
+            return None
         stamp = payload.get("pwc")
         if stamp is not None and not isinstance(stamp, int):
             return None
         return TokenClaims(user_id=int(payload["sub"]), password_stamp=stamp)
     except jwt.InvalidTokenError, ValueError:
         return None
+
+
+def decode_token(token: str) -> TokenClaims | None:
+    """The claims of a valid access token, or None if invalid, expired or
+    of another kind."""
+    return decode_claims(token, ACCESS)
+
+
+def decode_reset_token(token: str) -> TokenClaims | None:
+    """The claims of a valid reset token, or None."""
+    return decode_claims(token, RESET)
 
 
 def decode_access_token(token: str) -> int | None:
