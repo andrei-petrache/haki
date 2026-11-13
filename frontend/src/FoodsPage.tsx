@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   createFood,
   deleteFood,
@@ -10,9 +10,11 @@ import {
 import type { Food, FoodInput } from './api'
 import CatalogFoodPicker from './CatalogFoodPicker'
 import { formatDecimal } from './format'
-import { displayName } from './logging'
+import { displayName, matchesFilter } from './logging'
 import { useI18n } from './i18n/context'
 import type { MessageKey } from './i18n/i18n'
+import Toast from './Toast'
+import type { ToastMessage } from './Toast'
 
 // Form inputs hold text; convert to numbers only on submit
 type FoodFields = Record<keyof FoodInput, string>
@@ -50,17 +52,24 @@ function toInput(fields: FoodFields): FoodInput {
   }
 }
 
-/** Add or edit form. Shows the API's error if onSubmit throws. */
+/**
+ * Add or edit form. Shows the API's error if onSubmit throws. With
+ * onDelete, an edit form also offers Delete (or says why it cannot).
+ */
 function FoodForm({
   initial,
   submitLabel,
   onSubmit,
   onCancel,
+  onDelete,
+  inDiary = false,
 }: {
   initial?: FoodInput
   submitLabel: string
   onSubmit: (food: FoodInput) => Promise<void>
   onCancel?: () => void
+  onDelete?: () => void
+  inDiary?: boolean
 }) {
   const { t } = useI18n()
   const [fields, setFields] = useState(() => toFields(initial))
@@ -128,20 +137,37 @@ function FoodForm({
             {t('common.cancel')}
           </button>
         )}
+        {onDelete &&
+          (inDiary ? (
+            <span className="muted small push-end">{t('foods.inDiary')}</span>
+          ) : (
+            <button type="button" className="link danger push-end" onClick={onDelete}>
+              {t('common.delete')}
+            </button>
+          ))}
       </div>
     </form>
   )
 }
+
+type Panel = 'new' | 'catalog' | null
 
 export default function FoodsPage({ token }: { token: string }) {
   const { t, locale } = useI18n()
   const [foods, setFoods] = useState<Food[] | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [editingId, setEditingId] = useState<number | null>(null)
-  // A new key gives a fresh, empty add form after each successful add
-  const [addFormKey, setAddFormKey] = useState(0)
+  const [filter, setFilter] = useState('')
+  // At most one of "New food" and "From the catalog" open, above the list
+  const [panel, setPanel] = useState<Panel>(null)
   const [version, setVersion] = useState(0)
   const reload = () => setVersion((v) => v + 1)
+  const [toast, setToast] = useState<ToastMessage | null>(null)
+  // Each message a new id, so the timer restarts even for the same text
+  const toastSeq = useRef(0)
+  // A deletion waits as long as its Undo shows; the food is hidden meanwhile
+  const pending = useRef<Food | null>(null)
+  const [hiddenId, setHiddenId] = useState<number | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -157,11 +183,43 @@ export default function FoodsPage({ token }: { token: string }) {
     }
   }, [token, version])
 
+  /** Send the deletion that waited, if any (Undo not used). */
+  const commitDelete = useCallback(async () => {
+    const food = pending.current
+    if (!food) return
+    pending.current = null
+    try {
+      await deleteFood(token, food.id)
+    } catch (err) {
+      setError(`${food.name}: ${describeError(err)}`)
+    } finally {
+      setHiddenId(null)
+      setVersion((v) => v + 1)
+    }
+  }, [token])
+
+  // Leaving the page does not cancel a deletion: it goes at once
+  useEffect(
+    () => () => {
+      const food = pending.current
+      pending.current = null
+      if (food) deleteFood(token, food.id).catch(() => {})
+    },
+    [token],
+  )
+
+  const toastDone = useCallback(() => {
+    setToast(null)
+    void commitDelete()
+  }, [commitDelete])
+
   // A successful change makes an older list error (e.g. a failed delete) stale
   async function handleCreate(food: FoodInput) {
-    await createFood(token, food)
+    const created = await createFood(token, food)
     setError(null)
-    setAddFormKey((key) => key + 1)
+    setPanel(null)
+    toastSeq.current += 1
+    setToast({ id: toastSeq.current, text: t('foods.added', { name: created.name }) })
     reload()
   }
 
@@ -182,91 +240,131 @@ export default function FoodsPage({ token }: { token: string }) {
     }
   }
 
-  async function handleDelete(food: Food) {
-    if (!window.confirm(t('foods.deleteConfirm', { name: food.name }))) return
+  /** No dialog: the food goes from the list, with Undo while the message shows. */
+  function handleDelete(food: Food) {
+    // An earlier deletion still waiting goes now
+    void commitDelete()
     setError(null)
-    try {
-      await deleteFood(token, food.id)
-      reload()
-    } catch (err) {
-      setError(`${food.name}: ${describeError(err)}`)
-    }
+    setEditingId(null)
+    pending.current = food
+    setHiddenId(food.id)
+    toastSeq.current += 1
+    setToast({
+      id: toastSeq.current,
+      text: t('foods.removed', { name: displayName(food, locale) }),
+      undo: async () => {
+        pending.current = null
+        setHiddenId(null)
+      },
+    })
   }
+
+  function togglePanel(next: Exclude<Panel, null>) {
+    setPanel((current) => (current === next ? null : next))
+  }
+
+  const shown = foods?.filter((food) => food.id !== hiddenId && matchesFilter(displayName(food, locale), filter)) ?? null
 
   return (
     <div className="page">
-      {/* The fastest way in: a food from the catalog, as the user's own copy */}
-      <CatalogFoodPicker token={token} onAdded={reload} />
+      <section className="card foods-card">
+        <div className="card-head">
+          <h2>{t('foods.yours')}</h2>
+          {foods && foods.length > 0 && <span className="muted kcal">{foods.length}</span>}
+        </div>
+        <label className="search-field">
+          <span className="visually-hidden">{t('foods.filter')}</span>
+          <input
+            type="search"
+            value={filter}
+            placeholder={t('foods.filter')}
+            onChange={(event) => setFilter(event.target.value)}
+          />
+        </label>
+        <div className="actions">
+          <button
+            type="button"
+            className="secondary"
+            aria-expanded={panel === 'new'}
+            onClick={() => togglePanel('new')}
+          >
+            + {t('foods.new')}
+          </button>
+          <button
+            type="button"
+            className="secondary"
+            aria-expanded={panel === 'catalog'}
+            onClick={() => togglePanel('catalog')}
+          >
+            {t('foods.fromCatalog')}
+          </button>
+        </div>
 
-      <section className="card">
-        <h2>{t('foods.addTitle')}</h2>
-        <FoodForm key={addFormKey} submitLabel={t('foods.add')} onSubmit={handleCreate} />
-      </section>
+        {panel === 'new' && (
+          <div className="panel">
+            <h3>{t('foods.addTitle')}</h3>
+            <FoodForm submitLabel={t('foods.add')} onSubmit={handleCreate} onCancel={() => setPanel(null)} />
+          </div>
+        )}
+        {/* The fastest way in: a food from the catalog, as the user's own copy */}
+        {panel === 'catalog' && <CatalogFoodPicker token={token} onAdded={reload} embedded />}
 
-      <section className="card">
-        <h2>{t('foods.yours')}</h2>
         {error && <p className="error">{error}</p>}
         {foods === null && !error && <p className="muted">{t('app.loading')}</p>}
-        {foods?.length === 0 && (
-          <p className="muted">{t('foods.none')}</p>
+        {foods?.length === 0 && <p className="muted">{t('foods.none')}</p>}
+        {shown && shown.length === 0 && foods && foods.length > 0 && (
+          <p className="muted">{t('foods.noMatch', { q: filter.trim() })}</p>
         )}
-        {foods && foods.length > 0 && (
+        {shown && shown.length > 0 && (
           <ul className="rows food-list">
-            {foods.map((food) =>
+            {shown.map((food) =>
               food.id === editingId ? (
-                <li key={food.id}>
+                <li key={food.id} className="food-editing">
                   <FoodForm
                     initial={food}
                     submitLabel={t('common.save')}
                     onSubmit={(input) => handleUpdate(food.id, input)}
                     onCancel={() => setEditingId(null)}
+                    onDelete={() => handleDelete(food)}
+                    inDiary={Boolean(food.last_logged)}
                   />
                 </li>
               ) : (
                 <li key={food.id}>
-                  <span className="grow">
-                    <strong>{displayName(food, locale)}</strong>
-                    <br />
-                    <span className="muted">
-                      {t('foods.row', {
-                        kcal: formatDecimal(food.calories_per_100g),
-                        protein: formatDecimal(food.protein_per_100g),
-                        carbs: formatDecimal(food.carbs_per_100g),
-                        fat: formatDecimal(food.fat_per_100g),
-                      })}
+                  {/* The whole row opens the food for editing */}
+                  <button type="button" className="food-open" onClick={() => setEditingId(food.id)}>
+                    <span className="grow">
+                      <span className="visually-hidden">{t('common.edit')}: </span>
+                      <strong>{displayName(food, locale)}</strong>
+                      <span className="muted small food-macros">
+                        {t('foods.macros', {
+                          protein: formatDecimal(food.protein_per_100g),
+                          carbs: formatDecimal(food.carbs_per_100g),
+                          fat: formatDecimal(food.fat_per_100g),
+                        })}
+                      </span>
                     </span>
-                  </span>
-                  <span className="actions">
-                    <button
-                      type="button"
-                      className="icon star"
-                      aria-label={t('foods.favourite', { name: displayName(food, locale) })}
-                      aria-pressed={food.favourite === true}
-                      onClick={() => void toggleFavourite(food)}
-                    >
-                      {food.favourite ? '★' : '☆'}
-                    </button>
-                    <button
-                      type="button"
-                      className="secondary"
-                      onClick={() => setEditingId(food.id)}
-                    >
-                      {t('common.edit')}
-                    </button>
-                    <button
-                      type="button"
-                      className="secondary"
-                      onClick={() => void handleDelete(food)}
-                    >
-                      {t('common.delete')}
-                    </button>
-                  </span>
+                    <span className="food-kcal">
+                      <span className="kcal">{formatDecimal(food.calories_per_100g)}</span>
+                      <span className="muted small"> kcal</span>
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    className="icon star"
+                    aria-label={t('foods.favourite', { name: displayName(food, locale) })}
+                    aria-pressed={food.favourite === true}
+                    onClick={() => void toggleFavourite(food)}
+                  >
+                    {food.favourite ? '★' : '☆'}
+                  </button>
                 </li>
               ),
             )}
           </ul>
         )}
       </section>
+      <Toast message={toast} onDone={toastDone} />
     </div>
   )
 }
