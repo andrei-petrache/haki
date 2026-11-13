@@ -2,8 +2,8 @@
 # image (python -m app.catalog_import, backend/app/catalog_data/): an upsert
 # under an advisory lock, in one transaction, that never deletes and changes
 # nothing on a second run. It writes only the catalog_* tables.
-# Staging only for now: prod gets it only with Andrei's OK at a promotion
-# (check-manifests.sh refuses it in the prod overlay until then).
+# In the base, so staging and prod both run it. It reached prod at a
+# promotion, after review's GO, with a fresh dump first.
 apiVersion: batch/v1
 kind: Job
 metadata:

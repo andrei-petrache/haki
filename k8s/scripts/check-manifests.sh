@@ -267,21 +267,18 @@ for overlay in k8s/overlays/*/; do
     || fail "$overlay: no PreSync hooks"
   # The catalog import: a PostSync hook (after the migration and a healthy
   # backend) on the migration's image, with no TTL and only the database
-  # settings. Staging only until Andrei approves it for prod.
+  # settings, in every overlay.
   import="$(yq -N 'select(.kind == "Job" and .metadata.name == "haki-catalog-import")' <<<"$rendered")"
-  if [[ "$overlay" == */prod ]]; then
-    [[ -z "$import" ]]       || fail "$overlay: haki-catalog-import is staging only until Andrei approves it for prod"
-  else
-    got="$(yq -N '[.metadata.annotations["argocd.argoproj.io/hook"],
-       .metadata.annotations["argocd.argoproj.io/hook-delete-policy"],
-       (.spec.ttlSecondsAfterFinished // "no-ttl"),
-       (.spec.template.spec.containers[0].command | join(" "))] | join(" ")' <<<"$import")"
-    [[ "$got" == "PostSync BeforeHookCreation no-ttl python -m app.catalog_import" ]]       || fail "$overlay: haki-catalog-import must be a PostSync hook with BeforeHookCreation, no TTL, running python -m app.catalog_import (got '$got')"
-    # By name in the file too: rendered, the two match whenever the tags do,
-    # and they differ only during a rollback pin
-    [[ "$(yq -N '.spec.template.spec.containers[0].image' "$overlay/catalog-import-job.yaml")" == "haki-migrate"       && "$(yq -N '.spec.template.spec.containers[0].image' <<<"$import")" == "$job_image" ]]       || fail "$overlay: haki-catalog-import must run the migration's image (haki-migrate, $job_image)"
-    [[ "$(yq -N '[.spec.template.spec.containers[0].env[].name] | join(" ")' <<<"$import")" == "DB_HOST DB_PORT DB_NAME DB_USER DB_PASSWORD" ]]       || fail "$overlay: haki-catalog-import gets only the database settings"
-  fi
+  [[ -n "$import" ]] || fail "$overlay: haki-catalog-import is missing"
+  got="$(yq -N '[.metadata.annotations["argocd.argoproj.io/hook"],
+     .metadata.annotations["argocd.argoproj.io/hook-delete-policy"],
+     (.spec.ttlSecondsAfterFinished // "no-ttl"),
+     (.spec.template.spec.containers[0].command | join(" "))] | join(" ")' <<<"$import")"
+  [[ "$got" == "PostSync BeforeHookCreation no-ttl python -m app.catalog_import" ]]     || fail "$overlay: haki-catalog-import must be a PostSync hook with BeforeHookCreation, no TTL, running python -m app.catalog_import (got '$got')"
+  # By name in the file too: rendered, the two match whenever the tags do,
+  # and they differ only during a rollback pin
+  [[ "$(yq -N '.spec.template.spec.containers[0].image' k8s/base/catalog-import-job.yaml)" == "haki-migrate"     && "$(yq -N '.spec.template.spec.containers[0].image' <<<"$import")" == "$job_image" ]]     || fail "$overlay: haki-catalog-import must run the migration's image (haki-migrate, $job_image)"
+  [[ "$(yq -N '[.spec.template.spec.containers[0].env[].name] | join(" ")' <<<"$import")" == "DB_HOST DB_PORT DB_NAME DB_USER DB_PASSWORD" ]]     || fail "$overlay: haki-catalog-import gets only the database settings"
   # The namespace and the database must survive a prune or a deleted
   # Application: deleting either would delete the data
   while read -r kind; do

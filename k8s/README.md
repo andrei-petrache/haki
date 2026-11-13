@@ -14,6 +14,7 @@ every environment shares, and each overlay in `overlays/` adds what differs.
 | `base/namespace.yaml` | the namespace, renamed by each overlay |
 | `base/postgres.yaml` | PostgreSQL: StatefulSet `haki-db` with a 1 GiB volume, headless Service |
 | `base/migrate-job.yaml` | Job `haki-migrate`: `alembic upgrade head`, once |
+| `base/catalog-import-job.yaml` | Job `haki-catalog-import`: loads the catalog after every full sync (a PostSync hook) |
 | `base/backend.yaml` | Deployment `haki-backend` (2 replicas), Service on port 8000 |
 | `base/frontend.yaml` | Deployment `haki-frontend` (1 replica), Service on port 8080 |
 | `base/gateway.yaml` | Gateway `haki` (HTTP, port 80) and HTTPRoute to the frontend; the Envoy proxy's settings (EnvoyProxy, ClientTrafficPolicy) |
@@ -467,9 +468,9 @@ ruleset's "Require branches to be up to date before merging", GitHub also
 refuses to merge it until it is updated, and the update reruns the
 `manifests` check against the pin, which fails.
 
-## Catalog import (staging)
+## Catalog import
 
-`overlays/staging/catalog-import-job.yaml` loads the food and exercise
+`base/catalog-import-job.yaml` loads the food and exercise
 catalog from the data files in the backend image (`python -m
 app.catalog_import`). ArgoCD runs it as a PostSync hook after every full
 sync: once the migration has run and the backend is healthy. A failed import
@@ -484,7 +485,7 @@ the schema the migration applied, during a rollback pin too. Exit code 2
 Read the last run with:
 
 ```bash
-kubectl -n haki-staging logs job/haki-catalog-import
+kubectl -n haki-staging logs job/haki-catalog-import   # or -n haki
 ```
 
 A change to the hook alone starts no sync: ArgoCD does not compare hooks
@@ -493,8 +494,10 @@ has nothing to do. That is what happened when #133 merged: the import first
 ran at the next full sync, the next staging bump. A full sync by hand (the
 ArgoCD UI's Sync, or `argocd app sync haki-staging`) runs it sooner.
 
-Prod does not have it: `check-manifests.sh` refuses it in `overlays/prod`
-until Andrei approves the catalog for prod, at a promotion with a dump first.
+Staging and prod both run it (`check-manifests.sh` requires it in every
+overlay). It reached prod at a promotion, after review's GO, with a fresh
+dump first. That promotion changed only the hook, so the import first runs
+on prod at the next full sync: the next promotion that moves an image.
 
 ## Monitoring
 
