@@ -348,4 +348,17 @@ describe('editing a saved program', () => {
 
     expect(toProgramInput(fields, CATALOG, 'kg').days[0].exercises[0].weight_kg).toBe(62.5)
   })
+
+  it('sends each saved day back with its id, renamed or moved, and a new day without one', () => {
+    const fields = programToFields(saved, 'kg')
+    fields.days[0] = { ...fields.days[0], name: 'Push heavy', position: 2 }
+    fields.days.push({ ...(newDay(fields.days, CATALOG) as DayFields), name: 'Legs' })
+    fields.days[2].exercises = [planned('2', '3', '8', '100')]
+
+    const days = toProgramInput(fields, CATALOG, 'kg').days
+
+    expect(days.map((d) => d.id)).toEqual([31, 32, undefined])
+    expect(days[0]).toMatchObject({ id: 31, position: 2, name: 'Push heavy' })
+    expect('id' in days[2]).toBe(false)
+  })
 })

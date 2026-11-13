@@ -38,6 +38,9 @@ export type PlannedFields = {
 }
 
 export type DayFields = {
+  // The saved day's id when editing, sent back so the day (and the link from
+  // workouts started from it) is kept; none for a day added here
+  id?: number
   position: number // the day's place in the plan, 1 to MAX_DAYS
   name: string
   exercises: PlannedFields[]
@@ -84,6 +87,7 @@ export function programToFields(program: Program, unit: WeightUnit = 'kg'): Prog
   return {
     name: program.name,
     days: program.days.map((day) => ({
+      id: day.id,
       position: day.position,
       name: day.name,
       exercises: day.exercises.map((item) => ({
@@ -216,6 +220,8 @@ export function toProgramInput(
   return {
     name: fields.name.trim(),
     days: fields.days.map((day) => ({
+      // A saved day keeps its id (PUT changes it in place); a new day has none
+      ...(day.id === undefined ? {} : { id: day.id }),
       position: day.position,
       name: day.name.trim(),
       exercises: day.exercises.map((item) => ({
