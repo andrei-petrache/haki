@@ -162,3 +162,8 @@ export function tActive(key: MessageKey, params?: Params): string {
 export function formatNumber(value: number): string {
   return new Intl.NumberFormat(active, { maximumFractionDigits: 2, useGrouping: false }).format(value)
 }
+
+/** Whether a key exists, e.g. "error.<code>" for a code the server sent. */
+export function hasMessage(key: string): key is MessageKey {
+  return Object.prototype.hasOwnProperty.call(en, key)
+}
