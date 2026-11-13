@@ -13,6 +13,7 @@ from app.body import router as body_router
 from app.catalog import router as catalog_router
 from app.config import settings
 from app.consent import router as consent_router
+from app.dashboard import router as dashboard_router
 from app.db import database_is_reachable
 from app.entries import router as entries_router
 from app.errors import ErrorCode, error_response, install_error_handlers
@@ -66,6 +67,7 @@ app.include_router(password_reset_router)
 app.include_router(export_router)
 app.include_router(features_router)
 app.include_router(consent_router)
+app.include_router(dashboard_router)
 # Every HTTPException and every 422 answers {"detail", "code"} (app/errors.py)
 install_error_handlers(app)
 # Outermost: it also counts responses from the exception handlers below
