@@ -841,7 +841,7 @@ export async function exportAccount(token: string, password: string, today: stri
 }
 
 /** Which optional features the server has switched on; no account needed, cached a minute. */
-export type Features = { password_reset: boolean; body_weight: boolean; export: boolean }
+export type Features = { password_reset: boolean; body_weight: boolean; export: boolean; barcode?: boolean }
 
 export function fetchFeatures(): Promise<Features> {
   return request<Features>('/features')
@@ -924,4 +924,34 @@ export type Week = {
 /** The week holding `day` (the server takes its Monday). */
 export function fetchWeek(token: string, day: string): Promise<Week> {
   return request<Week>(`/dashboard/week?${new URLSearchParams({ start: day })}`, {}, token)
+}
+
+// Barcodes (phase 5; backend's GET /barcode/{code}, Open Food Facts).
+// Behind BARCODE_ENABLED: off, 404 (and /features says barcode: false).
+
+/** Where a product's data comes from; shown wherever the product is (ODbL). */
+export type BarcodeSource = { key: string; license: string; attribution: string; url: string }
+
+/** A product found by its barcode. A null value: unknown, or out of range for a food. */
+export type BarcodeProduct = {
+  barcode: string
+  name: string | null
+  name_ro: string | null
+  brand: string | null
+  quantity: string | null
+  calories_per_100g: number | null
+  protein_per_100g: number | null
+  carbs_per_100g: number | null
+  fat_per_100g: number | null
+  complete: boolean
+  out_of_range: string[]
+  // Open Food Facts could not be reached: our copy, up to 180 days old
+  stale: boolean
+  fetched_at: string
+  source: BarcodeSource
+}
+
+/** Look a barcode up; creates nothing. 404 product_not_found, 422 invalid_barcode, 429, 503 barcode_unavailable. */
+export function lookupBarcode(token: string, code: string): Promise<BarcodeProduct> {
+  return request<BarcodeProduct>(`/barcode/${encodeURIComponent(code)}`, {}, token)
 }

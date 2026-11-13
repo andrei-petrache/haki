@@ -4,11 +4,14 @@ import {
   deleteFood,
   deleteFoodOnLeave,
   describeError,
+  fetchFeatures,
   fetchFoods,
   setFavourite,
   updateFood,
 } from './api'
 import type { Food, FoodInput } from './api'
+import { BarcodeLookup, SourceCredit } from './Barcode'
+import type { BarcodePrefill } from './Barcode'
 import CatalogFoodPicker from './CatalogFoodPicker'
 import { formatDecimal } from './format'
 import { displayName, matchesFilter } from './logging'
@@ -33,13 +36,17 @@ const NUTRIENT_FIELDS: { key: NutrientKey; label: MessageKey; max: number }[] = 
   { key: 'fat_per_100g', label: 'foods.fat', max: 100 },
 ]
 
-function toFields(food?: FoodInput): FoodFields {
+/** A food, or a barcode's product with gaps (null: left empty for the user to fill). */
+type InitialFood = { name: string } & Record<NutrientKey, number | null>
+
+function toFields(food?: InitialFood): FoodFields {
+  const text = (value: number | null | undefined) => (value === null || value === undefined ? '' : String(value))
   return {
     name: food?.name ?? '',
-    calories_per_100g: food ? String(food.calories_per_100g) : '',
-    protein_per_100g: food ? String(food.protein_per_100g) : '',
-    carbs_per_100g: food ? String(food.carbs_per_100g) : '',
-    fat_per_100g: food ? String(food.fat_per_100g) : '',
+    calories_per_100g: text(food?.calories_per_100g),
+    protein_per_100g: text(food?.protein_per_100g),
+    carbs_per_100g: text(food?.carbs_per_100g),
+    fat_per_100g: text(food?.fat_per_100g),
   }
 }
 
@@ -65,7 +72,7 @@ function FoodForm({
   onDelete,
   inDiary = false,
 }: {
-  initial?: FoodInput
+  initial?: InitialFood
   submitLabel: string
   onSubmit: (food: FoodInput) => Promise<void>
   onCancel?: () => void
@@ -151,7 +158,7 @@ function FoodForm({
   )
 }
 
-type Panel = 'new' | 'catalog' | null
+type Panel = 'new' | 'catalog' | 'barcode' | null
 
 export default function FoodsPage({ token }: { token: string }) {
   const { t, locale } = useI18n()
@@ -159,8 +166,23 @@ export default function FoodsPage({ token }: { token: string }) {
   const [error, setError] = useState<string | null>(null)
   const [editingId, setEditingId] = useState<number | null>(null)
   const [filter, setFilter] = useState('')
-  // At most one of "New food" and "From the catalog" open, above the list
+  // At most one of "New food", "From the catalog" and the barcode open, above the list
   const [panel, setPanel] = useState<Panel>(null)
+  // The new food form's start, from a barcode's product (with its credit)
+  const [prefill, setPrefill] = useState<BarcodePrefill | null>(null)
+  // Barcodes only when the server has them on (GET /features)
+  const [barcodeOn, setBarcodeOn] = useState(false)
+  useEffect(() => {
+    let cancelled = false
+    fetchFeatures()
+      .then((features) => {
+        if (!cancelled) setBarcodeOn(features.barcode === true)
+      })
+      .catch(() => {})
+    return () => {
+      cancelled = true
+    }
+  }, [])
   const [version, setVersion] = useState(0)
   const reload = () => setVersion((v) => v + 1)
   const [toast, setToast] = useState<ToastMessage | null>(null)
@@ -267,6 +289,7 @@ export default function FoodsPage({ token }: { token: string }) {
   }
 
   function togglePanel(next: Exclude<Panel, null>) {
+    setPrefill(null)
     setPanel((current) => (current === next ? null : next))
   }
 
@@ -305,13 +328,43 @@ export default function FoodsPage({ token }: { token: string }) {
           >
             {t('foods.fromCatalog')}
           </button>
+          {barcodeOn && (
+            <button
+              type="button"
+              className="secondary"
+              aria-expanded={panel === 'barcode'}
+              onClick={() => togglePanel('barcode')}
+            >
+              {t('barcode.open')}
+            </button>
+          )}
         </div>
 
         {panel === 'new' && (
           <div className="panel">
             <h3>{t('foods.addTitle')}</h3>
-            <FoodForm submitLabel={t('foods.add')} onSubmit={handleCreate} onCancel={() => setPanel(null)} />
+            {/* Values from Open Food Facts: credited here too, until saved */}
+            {prefill && <SourceCredit source={prefill.source} />}
+            <FoodForm
+              key={prefill ? 'barcode' : 'blank'}
+              initial={prefill ?? undefined}
+              submitLabel={t('foods.add')}
+              onSubmit={handleCreate}
+              onCancel={() => {
+                setPrefill(null)
+                setPanel(null)
+              }}
+            />
           </div>
+        )}
+        {panel === 'barcode' && (
+          <BarcodeLookup
+            token={token}
+            onUse={(found) => {
+              setPrefill(found)
+              setPanel('new')
+            }}
+          />
         )}
         {/* The fastest way in: a food from the catalog, as the user's own copy */}
         {panel === 'catalog' && <CatalogFoodPicker token={token} onAdded={reload} embedded />}

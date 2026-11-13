@@ -1883,3 +1883,47 @@ button.week-summary:hover:not(:disabled) {
   min-width: 6.5rem;
   text-align: right;
 }
+
+/* Barcodes: the camera, the code, the product with its credit */
+.scanner {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.scanner video {
+  width: 100%;
+  max-height: 16rem;
+  border-radius: var(--radius-field);
+  background: var(--ground);
+  object-fit: cover;
+}
+
+.barcode-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 0.5rem 0.75rem;
+}
+
+.barcode-form input {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 44px;
+  font-family: var(--font-num);
+  letter-spacing: 0.04em;
+}
+
+.barcode-form button {
+  min-height: 44px;
+}
+
+.barcode-result {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.source-credit a {
+  color: var(--accent-text);
+}
