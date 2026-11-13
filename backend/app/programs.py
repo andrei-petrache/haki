@@ -1,5 +1,8 @@
+from uuid import uuid4
+
 from fastapi import APIRouter, Response, status
 from sqlalchemy import func, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
 
 from app.auth import CurrentUser, SessionDep
@@ -17,6 +20,7 @@ from app.models import (
 )
 from app.schemas import (
     IdPath,
+    ProgramDayIn,
     ProgramDayResponse,
     ProgramExerciseResponse,
     ProgramIn,
@@ -59,35 +63,94 @@ def get_own_program(session: Session, user: User, program_id: int) -> Program:
     return check_own(session.scalar(query), user)
 
 
-def build_days(session: Session, user: User, data: ProgramIn) -> list[ProgramDay]:
-    """The program's days and planned exercises as rows, checking every exercise.
+def own_exercises(session: Session, user: User, data: ProgramIn) -> dict[int, Exercise]:
+    """Every exercise the program plans, by id, checked to be the user's.
 
-    All exercises are loaded in one query; any that is missing or another
-    user's makes the whole request a 404, as in a workout. Days are written
-    in position order and exercises in the order sent, so what POST returns
-    is what GET returns.
+    All are loaded in one query; any that is missing or another user's
+    makes the whole request a 404, as in a workout.
     """
     ids = {item.exercise_id for day in data.days for item in day.exercises}
     query = select(Exercise).where(Exercise.id.in_(ids), Exercise.user_id == user.id)
     own = {exercise.id: exercise for exercise in session.scalars(query)}
     if len(own) != len(ids):
         raise ApiError(ErrorCode.EXERCISE_NOT_FOUND)
+    return own
+
+
+def planned(day: ProgramDayIn, own: dict[int, Exercise]) -> list[ProgramExercise]:
+    """A day's planned exercises as rows, in the order sent."""
     return [
-        ProgramDay(
-            position=day.position,
-            name=day.name,
-            exercises=[
-                ProgramExercise(
-                    exercise=own[item.exercise_id],
-                    sets=item.sets,
-                    reps=item.reps,
-                    weight_kg=item.weight_kg,
-                )
-                for item in day.exercises
-            ],
+        ProgramExercise(
+            exercise=own[item.exercise_id],
+            sets=item.sets,
+            reps=item.reps,
+            weight_kg=item.weight_kg,
         )
+        for item in day.exercises
+    ]
+
+
+def build_days(session: Session, user: User, data: ProgramIn) -> list[ProgramDay]:
+    """The program's days and planned exercises as new rows, in position
+    order, so what POST returns is what GET returns."""
+    own = own_exercises(session, user, data)
+    return [
+        ProgramDay(position=day.position, name=day.name, exercises=planned(day, own))
         for day in sorted(data.days, key=lambda day: day.position)
     ]
+
+
+def move_days(session: Session, program: Program, positions: dict[int, int]) -> None:
+    """Move kept days to new positions without two days sharing one.
+
+    Positions are unique per program and checked row by row, and 1 to 7 is
+    all there is: a swap, or a full week reversed, has no free position to
+    pass through. So the moving days step out into a scratch program of the
+    same user first (each keeps its old position there, which are distinct),
+    then come back at their new ones. Their ids never change, so workouts
+    started from them stay linked. The scratch program lives only inside
+    this transaction: nobody else ever sees it.
+    """
+    moving = [day for day in program.days if day.position != positions[day.id]]
+    if not moving:
+        return
+    scratch = Program(user_id=program.user_id, name=f"~moving {uuid4().hex}")
+    session.add(scratch)
+    for day in moving:
+        day.program = scratch
+    session.flush()
+    for day in moving:
+        day.position = positions[day.id]
+        day.program = program
+    session.flush()
+    session.delete(scratch)
+
+
+def update_days(
+    session: Session, program: Program, data: ProgramIn, own: dict[int, Exercise]
+) -> None:
+    """Make the program's days what `data` says, keeping the days sent by id.
+
+    A day sent with its id is changed in place; a day without one is new; a
+    day left out is deleted, and workouts started from it only lose the link
+    (ON DELETE SET NULL). A body without any ids replaces every day.
+    """
+    kept = {day.id: day for day in data.days if day.id is not None}
+    # The left-out days go first, so their positions are free for the others
+    for day in [day for day in program.days if day.id not in kept]:
+        program.days.remove(day)
+    session.flush()
+    move_days(session, program, {key: day.position for key, day in kept.items()})
+    for day in program.days:
+        day.name = kept[day.id].name
+        day.exercises = planned(kept[day.id], own)
+    for item in data.days:
+        if item.id is None:
+            program.days.append(
+                ProgramDay(
+                    position=item.position, name=item.name, exercises=planned(item, own)
+                )
+            )
 
 
 def to_response(program: Program) -> ProgramResponse:
@@ -110,7 +173,8 @@ def to_response(program: Program) -> ProgramResponse:
                     for item in day.exercises
                 ],
             )
-            for day in program.days
+            # In position order also right after a PUT moved them in memory
+            for day in sorted(program.days, key=lambda day: day.position)
         ],
     )
 
@@ -174,21 +238,28 @@ def replace_program(
     program_id: IdPath, data: ProgramIn, current_user: CurrentUser, session: SessionDep
 ) -> ProgramResponse:
     """Replace one of the current user's programs: its name and all its days,
-    in one transaction. The days are new rows with new ids; workouts already
-    started from the old days are copies and stay as they are.
+    in one transaction: all of it or nothing.
+
+    Days sent with their id are kept and changed in place (see update_days),
+    so workouts started from them stay linked; the others are new rows.
+    Workouts are copies of the plan either way and never change.
     """
     program = get_own_program(session, current_user, program_id)
-    # Every exercise is checked before anything changes
-    days = build_days(session, current_user, data)
-    # The old days go first, so the new ones can take the same positions
-    # (unique per program) without the database seeing both at once. The
-    # name changes after this flush, so a taken name fails at the commit,
-    # where commit_or_conflict turns it into a 409 and rolls it all back.
-    program.days = []
-    session.flush()
-    program.name = data.name
-    program.days = days
-    commit_or_conflict(session, ErrorCode.PROGRAM_CONFLICT)
+    # Everything is checked before anything changes: another program's day
+    # (even the user's own) is a 404, as in start_workout
+    current = {day.id for day in program.days}
+    if any(day.id is not None and day.id not in current for day in data.days):
+        raise ApiError(ErrorCode.PROGRAM_DAY_NOT_FOUND)
+    own = own_exercises(session, current_user, data)
+    # A taken name or two days on one position can fail at any flush, not
+    # only at the commit: either way a 409, and nothing is kept
+    try:
+        update_days(session, program, data, own)
+        program.name = data.name
+        session.commit()
+    except IntegrityError:
+        session.rollback()
+        raise ApiError(ErrorCode.PROGRAM_CONFLICT) from None
     return to_response(program)
 
 
