@@ -36,6 +36,8 @@ spec:
     - { group: apps, kind: ReplicaSet }
     - { group: apps, kind: StatefulSet }
     - { group: batch, kind: Job }
+    # The nightly backup (k8s/overlays/prod/backup-cronjob.yaml)
+    - { group: batch, kind: CronJob }
     - { group: gateway.networking.k8s.io, kind: Gateway }
     - { group: gateway.networking.k8s.io, kind: HTTPRoute }
     - { group: gateway.envoyproxy.io, kind: EnvoyProxy }

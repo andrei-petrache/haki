@@ -1,0 +1,140 @@
+# Nightly backup of prod's database: a custom-format pg_dump, then the
+# erasure log exported next to it (newer than the dump, so a restore can
+# erase again what was erased after it), then files older than 30 days
+# deleted (the retention of 12 November). Prod only.
+#
+# The files go to the PersistentVolumeClaim haki-backups, created by hand
+# like the Secrets (k8s/README.md, "Nightly backups"): ArgoCD may not touch
+# volumes. Restore: k8s/README.md, "Restore a backup".
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: haki-backup
+  annotations:
+    # After the app: a backup never blocks a sync
+    argocd.argoproj.io/sync-wave: "3"
+  labels:
+    app.kubernetes.io/name: haki-backup
+    app.kubernetes.io/component: backup
+    app.kubernetes.io/part-of: haki
+spec:
+  schedule: "30 2 * * *"
+  timeZone: Europe/Bucharest
+  # Never two at once; a missed night does not run twice
+  concurrencyPolicy: Forbid
+  startingDeadlineSeconds: 3600
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      activeDeadlineSeconds: 900
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: haki-backup
+            app.kubernetes.io/component: backup
+            app.kubernetes.io/part-of: haki
+        spec:
+          restartPolicy: Never
+          automountServiceAccountToken: false
+          enableServiceLinks: false
+          securityContext:
+            # The backend image's haki user, for both containers; the group
+            # owns the volume, so both can write to it
+            runAsNonRoot: true
+            runAsUser: 10001
+            runAsGroup: 10001
+            fsGroup: 10001
+            seccompProfile:
+              type: RuntimeDefault
+          volumes:
+            - name: backups
+              persistentVolumeClaim:
+                claimName: haki-backups
+          initContainers:
+            # 1. The dump, with the PostgreSQL image the database runs (CI
+            #    checks it is compose.yaml's), written under a temporary name
+            #    and renamed only once pg_restore can read it whole
+            - name: dump
+              image: postgres:18.6-trixie
+              imagePullPolicy: IfNotPresent
+              command:
+                - sh
+                - -ceu
+                - |
+                  ts="$(date -u +%Y%m%d-%H%M%S)"
+                  f="/backups/haki-$ts.dump"
+                  pg_dump -Fc -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -f "$f.part"
+                  pg_restore --list "$f.part" > /dev/null
+                  mv "$f.part" "$f"
+                  printf '%s\n' "$ts" > /backups/.last
+                  ls -l "$f"
+              env: &db-env
+                - name: DB_HOST
+                  valueFrom:
+                    configMapKeyRef:
+                      name: haki-backend-config
+                      key: DB_HOST
+                - name: DB_PORT
+                  valueFrom:
+                    configMapKeyRef:
+                      name: haki-backend-config
+                      key: DB_PORT
+                - name: DB_NAME
+                  valueFrom:
+                    configMapKeyRef:
+                      name: haki-backend-config
+                      key: DB_NAME
+                - name: DB_USER
+                  valueFrom:
+                    secretKeyRef:
+                      name: haki-secrets
+                      key: DB_USER
+                - name: DB_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: haki-secrets
+                      key: DB_PASSWORD
+                # pg_dump reads the password from here
+                - name: PGPASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: haki-secrets
+                      key: DB_PASSWORD
+              volumeMounts:
+                - name: backups
+                  mountPath: /backups
+              securityContext: &container-security
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities:
+                  drop: [ALL]
+              resources: &resources
+                requests:
+                  cpu: 50m
+                  memory: 64Mi
+                limits:
+                  memory: 256Mi
+          containers:
+            # 2. The erasure log, after the dump and with its timestamp, by
+            #    the backend's own code (the migration's image, as the catalog
+            #    import); 3. the retention: files older than 30 days go
+            - name: erasures
+              image: haki-migrate
+              imagePullPolicy: IfNotPresent
+              command:
+                - sh
+                - -ceu
+                - |
+                  ts="$(cat /backups/.last)"
+                  python -m app.erasures export "/backups/erasures-$ts.jsonl"
+                  find /backups -maxdepth 1 -type f \
+                    \( -name 'haki-*.dump' -o -name 'erasures-*.jsonl' \) -mtime +30 -print -delete
+                  ls -l /backups
+              env: *db-env
+              volumeMounts:
+                - name: backups
+                  mountPath: /backups
+              securityContext: *container-security
+              resources: *resources

@@ -791,14 +791,65 @@ Restoring is a decision of its own, not part of a deploy.
 Retention and deletions (the policy since 12 November 2026; it is
 implemented with the scheduled backups):
 
-- A dump is kept at most 30 days. Deleting one is Andrei's call.
-- Deleting an account is immediate and permanent. A restore must not bring
-  a deleted account back: it re-applies every deletion made after the
-  dump, from a log of deleted accounts with no personal data (the user's
-  id, its `created_at`, the time of the deletion).
+- A dump is kept at most 30 days. The nightly backup deletes its own files
+  past 30 days (Andrei's OK, 13 November 2026); the manual dumps in
+  `~/backups` stay his call.
+- Deleting an account or withdrawing the health-data consent is immediate
+  and permanent. A restore must not bring the data back: it re-applies
+  every erasure made after the dump, from the `erasures` log (the user's id,
+  its `created_at`, kind, purpose, time; no personal data).
 - The log is applied before any traffic reaches the restored database,
   and deletes a row only where id and `created_at` both match: a restore
   sets the id sequence back, so an id can be given out again.
+
+### Nightly backups
+
+`k8s/overlays/prod/backup-cronjob.yaml` (prod only) runs at 02:30
+Europe/Bucharest: a custom-format `pg_dump` with the database's own
+PostgreSQL image, checked with `pg_restore --list` before it is renamed into
+place, then `python -m app.erasures export` with the backend's code, then
+every `haki-*.dump` and `erasures-*.jsonl` older than 30 days is deleted.
+The erasure log is exported after the dump, so it is always the newer one.
+
+The files go to the PersistentVolumeClaim `haki-backups`, created once by
+hand like the Secrets (ArgoCD may not touch volumes), and the project
+`haki-prod` must allow CronJobs (applied by hand, as every project):
+
+```bash
+kubectl apply -f k8s/argocd/project-prod.yaml
+kubectl -n haki apply -f - <<'EOF'
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: haki-backups
+  labels: {app.kubernetes.io/component: backup, app.kubernetes.io/part-of: haki}
+spec:
+  accessModes: [ReadWriteOnce]
+  resources: {requests: {storage: 1Gi}}
+EOF
+```
+
+Read the last run with `kubectl -n haki get jobs -l app.kubernetes.io/name=haki-backup`
+and its logs (`-c dump`, `-c erasures`). The volume is on the same machine
+as the database: copying the files off it is go-live work (an off-site
+bucket, Andrei's account).
+
+### Restore a backup
+
+Into a throwaway database first, never over `haki`; the name ends in
+`_test`, so the backend's guards accept it. On the restored copy, before
+any traffic:
+
+```bash
+pg_restore --no-owner -d haki_restore_test haki-<ts>.dump
+python -m app.erasures reapply erasures-<newest>.jsonl   # with DB_NAME=haki_restore_test
+```
+
+Use the newest erasure log, not the one of the same night: it holds every
+erasure up to its export. Before a planned restore of prod, export the log
+once more (`kubectl -n haki exec deploy/haki-backend -- python -m
+app.erasures export /tmp/erasures.jsonl`, then `kubectl cp`). Restoring
+over prod itself is a decision of its own (Andrei's).
 
 ### Moving a cluster from before Kustomize
 

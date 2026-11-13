@@ -8,6 +8,9 @@ namespace: haki
 
 resources:
   - ../../base
+  # Prod only: the nightly dump and erasure log, onto the volume haki-backups
+  # created by hand (k8s/README.md, "Nightly backups")
+  - backup-cronjob.yaml
 
 # The app images come from the shared component, as for staging: prod runs
 # the commit haki-prod's targetRevision points to, and at that commit the
