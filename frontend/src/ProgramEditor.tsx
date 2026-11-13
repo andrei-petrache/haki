@@ -202,8 +202,8 @@ function DayBlock({
             onChange={(event) => onChange({ ...day, name: event.target.value })}
           />
         </label>
-        <button type="button" className="secondary" onClick={onRemove}>
-          {t('programs.removeDay')}
+        <button type="button" className="icon remove-block" aria-label={t('programs.removeDay')} title={t('programs.removeDay')} onClick={onRemove}>
+          ×
         </button>
       </div>
       <FieldError errors={errors} field={dayPositionKey(index)} />

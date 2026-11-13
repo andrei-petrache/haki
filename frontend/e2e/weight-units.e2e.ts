@@ -152,7 +152,7 @@ test('a program planned in lb is stored in kg and starts a workout in lb', async
 
   await page.getByRole('button', { name: 'Save' }).click()
 
-  await expect(page.getByText('E2E Bench: 3 × 5 × 135 lb')).toBeVisible()
+  await expect(page.locator('.plan-list li', { hasText: 'E2E Bench' })).toHaveText('E2E Bench3 × 5 × 135 lb')
   const { body: programs } = await api(page, 'GET', '/programs')
   const programId = (programs as { id: number }[])[0].id
   const { body: program } = await api(page, 'GET', `/programs/${programId}`)
@@ -172,5 +172,5 @@ test('back to kg, the same weights show in kg', async () => {
   await tab('Programs').click()
   await page.locator('.workout-card', { hasText: 'E2E Pounds' }).click()
 
-  await expect(page.getByText(/^E2E Bench: 3 × 5 × 61[.,]2[34] kg$/)).toBeVisible()
+  await expect(page.locator('.plan-list li', { hasText: 'E2E Bench' })).toHaveText(/^E2E Bench3 × 5 × 61[.,]2[34] kg$/)
 })

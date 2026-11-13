@@ -115,10 +115,10 @@ test('creates a two-day program with new exercises', async () => {
 
   await expect(page.getByRole('heading', { name: 'E2E Push/Pull' })).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Day 1 · Push' })).toBeVisible()
-  await expect(page.getByText('E2E Bench: 3 × 8 × 60 kg')).toBeVisible()
-  await expect(page.getByText('E2E Dips: 3 × 10 × bodyweight')).toBeVisible()
+  await expect(page.locator('.plan-list li', { hasText: 'E2E Bench' })).toHaveText('E2E Bench3 × 8 × 60 kg')
+  await expect(page.locator('.plan-list li', { hasText: 'E2E Dips' })).toHaveText('E2E Dips3 × 10 × bodyweight')
   await expect(page.getByRole('heading', { name: 'Day 2 · Pull' })).toBeVisible()
-  await expect(page.getByText(/^E2E Row: 4 × 10 × 52[.,]5 kg$/)).toBeVisible()
+  await expect(page.locator('.plan-list li', { hasText: 'E2E Row' })).toHaveText(/^E2E Row4 × 10 × 52[.,]5 kg$/)
   await page.screenshot({ path: `${SHOTS}/2-detail.png`, fullPage: true })
 })
 

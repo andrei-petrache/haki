@@ -135,8 +135,8 @@ function ExerciseBlock({
             />
           </label>
         )}
-        <button type="button" className="secondary" onClick={onRemove}>
-          {t('workouts.removeExercise')}
+        <button type="button" className="icon remove-block" aria-label={t('workouts.removeExercise')} title={t('workouts.removeExercise')} onClick={onRemove}>
+          ×
         </button>
       </div>
       <FieldError errors={errors} field={exerciseKey(index)} />
