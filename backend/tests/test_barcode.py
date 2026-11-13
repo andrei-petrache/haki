@@ -6,6 +6,7 @@ import threading
 from collections.abc import Iterator
 from datetime import UTC, datetime, timedelta
 from http.server import BaseHTTPRequestHandler, HTTPServer
+from pathlib import Path
 from typing import Any
 
 import pytest
@@ -15,7 +16,7 @@ from sqlalchemy.orm import Session
 
 from app import barcode
 from app.config import settings
-from app.models import OffProduct
+from app.models import Base, OffProduct
 
 EAN13 = "5901234123457"  # GS1's own example, valid check digit
 UPCA = "036000291452"  # the UPC-A on GS1's example, check digit 2
@@ -320,3 +321,58 @@ def test_the_client_gives_up_on_an_unreachable_host(
 
     with pytest.raises(barcode.OffUnavailable):
         barcode.fetch_off(EAN13)
+
+
+# Open Food Facts data stays in off_products (Andrei, 14 Nov: never copied
+# into our catalog, attributed wherever it appears)
+
+
+def test_a_lookup_writes_off_products_and_nothing_else(
+    client: TestClient, auth_headers: dict[str, str], off: list[str], session: Session
+) -> None:
+    def counts() -> dict[str, int]:
+        return {
+            table.name: session.scalar(select(func.count()).select_from(table)) or 0
+            for table in Base.metadata.sorted_tables
+        }
+
+    before = counts()
+    look_up(client, auth_headers, EAN13)
+    after = counts()
+
+    changed = {name for name in before if before[name] != after[name]}
+    assert changed == {"off_products"}
+
+
+def test_the_catalog_import_never_reads_open_food_facts_data() -> None:
+    import app.catalog_import as catalog_import
+
+    assert "OffProduct" not in vars(catalog_import)
+    assert "off_products" not in Path(catalog_import.__file__).read_text()
+
+
+@pytest.mark.parametrize("stale", [False, True])
+def test_every_product_answer_carries_its_attribution(
+    client: TestClient,
+    auth_headers: dict[str, str],
+    off: list[str],
+    session: Session,
+    monkeypatch: pytest.MonkeyPatch,
+    stale: bool,
+) -> None:
+    if stale:
+        fetched = datetime.now(UTC) - timedelta(days=40)
+        session.add(barcode.to_row("0" + EAN13, PRODUCT, fetched))
+        session.commit()
+
+        def down(code: str) -> None:
+            raise barcode.OffUnavailable("timeout")
+
+        monkeypatch.setattr(barcode, "fetch_off", down)
+
+    body = look_up(client, auth_headers, EAN13).json()
+
+    assert body["stale"] is stale
+    assert body["source"]["license"] == "ODbL-1.0"
+    assert body["source"]["attribution"] == "Open Food Facts contributors"
+    assert body["source"]["url"].startswith("https://world.openfoodfacts.org/")
