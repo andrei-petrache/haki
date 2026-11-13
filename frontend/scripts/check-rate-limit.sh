@@ -78,12 +78,22 @@ rm -f /tmp/"$name".body
 retry="$(awk -F': ' 'tolower($1) == "retry-after" {print $2}' <<<"$headers")"
 type="$(awk -F': ' 'tolower($1) == "content-type" {print $2}' <<<"$headers")"
 nosniff="$(awk -F': ' 'tolower($1) == "x-content-type-options" {print $2}' <<<"$headers")"
+csp="$(awk -F': ' 'tolower($1) == "content-security-policy" {print $2}' <<<"$headers")"
 echo "503 body:                  $body"
 echo "503 headers:               Retry-After ${retry:-<missing>}, $type, nosniff ${nosniff:-<missing>}"
 [[ "$body" == '{"detail":"Service temporarily unavailable, try again shortly"}' ]] ||
   fail "the 503 should carry the backend's JSON body"
 [[ "$retry" == 5 && "$type" == application/json && "$nosniff" == nosniff ]] ||
   fail "the 503 should carry Retry-After: 5, JSON and the security headers"
+
+# The strict Content-Security-Policy, exactly, on the app and on Nginx's own
+# answers alike (server level: a location with its own add_header drops it)
+want_csp="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
+app_csp="$(curl -s -o /dev/null -D - "$base/" | tr -d '\r' | awk -F': ' 'tolower($1) == "content-security-policy" {print $2}')"
+health_csp="$(curl -s -o /dev/null -D - "$base/health" | tr -d '\r' | awk -F': ' 'tolower($1) == "content-security-policy" {print $2}')"
+echo "CSP on / , /health, 503:   ${app_csp:+set} ${health_csp:+set} ${csp:+set}"
+[[ "$app_csp" == "$want_csp" && "$health_csp" == "$want_csp" && "$csp" == "$want_csp" ]] ||
+  fail "every answer should carry the strict Content-Security-Policy: got '${app_csp}'"
 stop
 
 start --network-alias backend

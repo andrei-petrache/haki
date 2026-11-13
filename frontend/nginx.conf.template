@@ -48,6 +48,14 @@ server {
     add_header X-Content-Type-Options "nosniff" always;
     add_header X-Frame-Options "DENY" always;
     add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+    # Only this origin's own files run, style, load or connect: the build has
+    # no inline script or style (fonts are bundled, React sets styles through
+    # the DOM, which CSP allows), so a script injected into a page cannot
+    # run or send data elsewhere. base-uri and form-action are not covered by
+    # default-src; frame-ancestors replaces X-Frame-Options in new browsers.
+    # Checked by scripts/check-rate-limit.sh, and every e2e run fails on a
+    # violation (layout.e2e.ts).
+    add_header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'" always;
     add_header Retry-After $retry_after always;
 
     limit_req_status 429;
