@@ -11,6 +11,7 @@ import {
 import type { Exercise, PlannedExercise, ProgramDay, Workout, WorkoutSet } from './api'
 import { formatDay, formatSet, localDateString } from './format'
 import { liveRecordIndex, useExerciseHistory } from './history'
+import DayChoice from './DayChoice'
 import { withoutKeys } from './formErrors'
 import { useI18n } from './i18n/context'
 import { weightToSend } from './units'
@@ -449,23 +450,20 @@ export default function WorkoutEditor({
       <div className="editor-head">
         <div>
           <h2>{planDay ? planDay.name || t('programs.dayTitle', { position: planDay.position, name: '' }) : title}</h2>
-          <p className="muted">{formatDay(fields.performedOn)}</p>
+          {/* The day as words, under the title: a tap opens the date picker */}
+          <DayChoice
+            day={fields.performedOn}
+            fieldLabel={t('workouts.date')}
+            onChange={(day) => {
+              setErrors((old) => withoutKeys(old, DATE_KEY))
+              setFields({ ...fields, performedOn: day })
+            }}
+          />
         </div>
         <button type="submit" disabled={busy}>
           {busy ? t('common.saving') : t('common.save')}
         </button>
       </div>
-      <label className="date-field">
-        {t('workouts.date')}
-        <input
-          type="date"
-          value={fields.performedOn}
-          onChange={(event) => {
-            setErrors((old) => withoutKeys(old, DATE_KEY))
-            setFields({ ...fields, performedOn: event.target.value })
-          }}
-        />
-      </label>
       <FieldError errors={errors} field={DATE_KEY} />
       <label>
         {t('workouts.note')}

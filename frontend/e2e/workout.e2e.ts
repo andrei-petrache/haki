@@ -109,3 +109,21 @@ test('a set changed from the plan stops being marked as the plan, and saves as t
   await page.getByRole('button', { name: 'Save' }).click()
   await expect(page.locator('.workout-exercise .sets li').nth(1)).toHaveText(/^7 × 72[.,]5 kg/)
 })
+
+test('the day is words under the title, not a native field, and the picker moves it', async () => {
+  await page.getByRole('button', { name: 'Edit' }).click()
+  const label = page.locator('.editor-head button.day-label')
+  await expect(label).toHaveText(/^Today, \d{1,2} [A-Z][a-z]{2}$/)
+  // The native input stays invisible under the label
+  const field = page.getByLabel('Date', { exact: true })
+  expect(await field.evaluate((input) => getComputedStyle(input).opacity)).toBe('0')
+  await field.fill(localDay(-1))
+  await expect(label).toHaveText(/^Yesterday, /)
+  await page.getByRole('button', { name: 'Save' }).click()
+  // In the list: weekday, day and month, no year within this one
+  await tab('Workouts').click()
+  await page.getByRole('button', { name: /Back to workouts/ }).click()
+  await expect(page.locator('.workout-card').first()).toContainText(
+    new RegExp(`^[A-Z][a-z]{2} ${Number(localDay(-1).slice(8))} [A-Z][a-z]{2}`),
+  )
+})

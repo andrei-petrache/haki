@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   formatDayLabel,
+  formatShortDay,
   formatPlanned,
   formatSet,
   formatWeight,
@@ -111,5 +112,12 @@ describe('formatDayLabel', () => {
       'Azi, 12 nov.',
     )
     setActiveLocale('en')
+  })
+})
+
+describe('formatShortDay', () => {
+  it('drops the year within the current one, keeps it otherwise', () => {
+    expect(formatShortDay('2026-11-11', '2026-11-13')).toBe('Wed 11 Nov')
+    expect(formatShortDay('2025-12-05', '2026-11-13')).toBe('Fri 5 Dec 2025')
   })
 })
