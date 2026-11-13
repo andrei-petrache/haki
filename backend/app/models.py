@@ -83,6 +83,60 @@ class PasswordResetRequest(Base):
     )
 
 
+class Consent(Base):
+    """A consent the user gave (GDPR Art. 7 and 9), kept as history: giving
+    adds a row, withdrawing sets withdrawn_at. Valid while the latest row of
+    the purpose is not withdrawn and its version is the current one
+    (app/consent.py). The text accepted is in the repository under its
+    version; text_sha256 proves which one was shown."""
+
+    __tablename__ = "consents"
+    __table_args__ = (
+        CheckConstraint("purpose IN ('health_data')", name="ck_consents_purpose"),
+        Index("ix_consents_user_id_purpose", "user_id", "purpose"),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
+    purpose: Mapped[str] = mapped_column(String(30))
+    version: Mapped[str] = mapped_column(String(20))
+    # The language the text was shown in, and its hash
+    locale: Mapped[str] = mapped_column(String(5))
+    text_sha256: Mapped[str] = mapped_column(String(64))
+    given_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    withdrawn_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), default=None
+    )
+
+
+class Erasure(Base):
+    """What a restore from an older dump must erase again (app/erasures.py):
+    a deleted account, or health data deleted when its consent was
+    withdrawn. No personal data: the user's id and created_at (the id alone
+    could match a new user after a restore resets the id sequence).
+
+    Not user data: no foreign key, so a row outlives the account it is
+    about, and neither the export nor the account deletion touches it."""
+
+    __tablename__ = "erasures"
+    __table_args__ = (
+        CheckConstraint("kind IN ('account', 'consent')", name="ck_erasures_kind"),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int]
+    user_created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    kind: Mapped[str] = mapped_column(String(20))
+    # The consent withdrawn, for kind "consent"
+    purpose: Mapped[str | None] = mapped_column(String(30), default=None)
+    erased_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+
+
+# Tables that hold no user's data, though they name users: left out of the
+# export and of the deletion (see Erasure)
+SYSTEM_TABLES = {"erasures"}
+
+
 class BodyWeight(Base):
     """One weigh-in: at most one per user and day. Health data (GDPR Art. 9):
     never logged, never in a metric label."""

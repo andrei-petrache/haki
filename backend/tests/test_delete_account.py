@@ -7,7 +7,8 @@ from sqlalchemy.orm import Session
 
 from app.body import server_today
 from app.config import settings
-from app.models import Base
+from app.consent import CURRENT_VERSIONS
+from app.export import user_tables
 from tests.conftest import register_and_login
 
 EMAIL = "andrei@example.com"
@@ -15,14 +16,7 @@ EMAIL = "andrei@example.com"
 PASSWORD = "correct-horse-battery"
 DAY = "2026-11-12"
 
-
-def user_tables() -> list[Any]:
-    """Every table that can hold a user's data: all but the shared catalog."""
-    return [
-        table
-        for table in Base.metadata.sorted_tables
-        if not table.name.startswith("catalog_")
-    ]
+__all__ = ["user_tables"]
 
 
 def row_counts(session: Session) -> dict[str, int]:
@@ -92,6 +86,12 @@ def fill_account(client: TestClient, headers: dict[str, str]) -> None:
     settings.body_weight_enabled = True
     try:
         today = server_today().isoformat()
+        # Weight needs the health-data consent first
+        consent = {"version": CURRENT_VERSIONS["health_data"], "locale": "en"}
+        given = client.put(
+            "/auth/me/consents/health_data", json=consent, headers=headers
+        )
+        assert given.status_code == 200, given.text
         weighed = client.put(
             f"/weights/{today}", json={"weight_kg": 80}, headers=headers
         )

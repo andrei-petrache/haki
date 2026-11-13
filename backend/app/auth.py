@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 
 from app.db import get_session
 from app.errors import ApiError, ErrorCode
-from app.models import User
+from app.models import Erasure, User
 from app.schemas import (
     AccountDeleteIn,
     AccountSettingsIn,
@@ -167,6 +167,16 @@ def delete_account(
     """
     if not verify_password(data.password, current_user.password_hash):
         raise wrong_password()
+    # In the same transaction: a restore from an older dump deletes the
+    # account again (app/erasures.py); id and created_at, nothing personal
+    session.add(
+        Erasure(
+            user_id=current_user.id,
+            user_created_at=current_user.created_at,
+            kind="account",
+            erased_at=datetime.now(UTC),
+        )
+    )
     session.execute(delete(User).where(User.id == current_user.id))
     session.commit()
     return Response(status_code=status.HTTP_204_NO_CONTENT)
