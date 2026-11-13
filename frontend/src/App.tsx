@@ -3,9 +3,11 @@ import DeleteAccount from './DeleteAccount'
 import ChangePassword from './ChangePassword'
 import TargetEditor from './TargetEditor'
 import { GoalEditor } from './Goal'
+import { ExportData, ForgotPassword, ResetPassword } from './Trust'
 import {
   ApiError,
   describeError,
+  fetchFeatures,
   fetchMe,
   setAccountLanguage,
   login,
@@ -59,6 +61,21 @@ function AuthForm({ onLoggedIn }: { onLoggedIn: (token: string) => void }) {
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  // "Forgot password?" only once the server says the reset is on (GET
+  // /features, an ordinary GET, not the rate-limited login budget); off,
+  // unknown or a later 404: no link
+  const [resetOff, setResetOff] = useState(true)
+  useEffect(() => {
+    let cancelled = false
+    fetchFeatures()
+      .then((features) => {
+        if (!cancelled) setResetOff(!features.password_reset)
+      })
+      .catch(() => {})
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   async function handleSubmit() {
     setError(null)
@@ -90,6 +107,7 @@ function AuthForm({ onLoggedIn }: { onLoggedIn: (token: string) => void }) {
   const isSignup = mode === 'signup'
 
   return (
+    <>
     <form
       className="card"
       onSubmit={(event) => {
@@ -140,6 +158,11 @@ function AuthForm({ onLoggedIn }: { onLoggedIn: (token: string) => void }) {
         {isSignup ? t('auth.toLogIn') : t('auth.toSignUp')}
       </button>
     </form>
+    {/* Its own form, under the login one: forms do not nest */}
+    {!isSignup && !resetOff && (
+      <ForgotPassword initialEmail={email} onUnavailable={() => setResetOff(true)} />
+    )}
+    </>
   )
 }
 
@@ -241,6 +264,7 @@ function Profile({
 
       <section className="card">
         <ChangePassword token={token} onNewToken={onNewToken} />
+        <ExportData token={token} />
         <button type="button" className="link" onClick={() => setShowCredits(true)}>
           {t('credits.open')}
         </button>
@@ -320,9 +344,14 @@ function Header({
   )
 }
 
-function App() {
+function App({ resetToken }: { resetToken?: string | null }) {
   const [token, setToken] = useState<string | null>(() =>
     localStorage.getItem(TOKEN_KEY),
+  )
+  // On /reset (from the e-mailed link): the reset page, whoever is logged
+  // in; undefined anywhere else. The token is already out of the address.
+  const [reset, setReset] = useState<{ token: string | null } | null>(() =>
+    resetToken === undefined ? null : { token: resetToken },
   )
   const [user, setUser] = useState<User | null>(null)
   // Shown on the login screen right after the account was deleted
@@ -412,6 +441,28 @@ function App() {
   useEffect(() => {
     document.documentElement.lang = locale
   }, [locale])
+
+  if (reset) {
+    const leave = () => {
+      setReset(null)
+      window.history.replaceState(null, '', '/')
+    }
+    return (
+      <I18nContext.Provider value={i18n}>
+        <main className="container">
+          <h1>Haki</h1>
+          <ResetPassword
+            token={reset.token}
+            onDone={(accessToken) => {
+              leave()
+              handleLoggedIn(accessToken)
+            }}
+            onBackToLogin={leave}
+          />
+        </main>
+      </I18nContext.Provider>
+    )
+  }
 
   if (!token) {
     return (

@@ -1707,3 +1707,22 @@ h1 {
   color: var(--text);
   font-weight: 600;
 }
+
+/* Trust: "Forgot password?" under the login card, the export step in Profile */
+.container > .link {
+  margin-top: 0.75rem;
+}
+
+.forgot-form {
+  margin-top: 1rem;
+}
+
+.export-form {
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--line);
+}
+
+.export-form input[type='password'] {
+  width: 100%;
+  box-sizing: border-box;
+}

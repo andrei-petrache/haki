@@ -11,9 +11,14 @@ import '@fontsource/space-grotesk/500.css'
 import '@fontsource/space-grotesk/700.css'
 import './index.css'
 import App from './App.tsx'
+import { takeResetToken } from './reset'
+
+// Once, before React renders (StrictMode runs initializers twice): on
+// /reset the token leaves the address bar and history right away
+const resetToken = takeResetToken(window.location, window.history)
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <App />
+    <App resetToken={resetToken} />
   </StrictMode>,
 )
