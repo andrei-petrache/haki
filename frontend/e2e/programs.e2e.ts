@@ -194,7 +194,8 @@ test('keeps an exercise a program uses from being deleted (409)', async () => {
 
   // Only the Pull day uses it: no workout does
   expect(response.status).toBe(409)
-  expect(response.body).toEqual({ detail: 'Exercise is used by workouts or programs' })
+  // Since the error codes, the body carries a stable code next to the message
+  expect(response.body).toEqual({ detail: 'Exercise is used by workouts or programs', code: 'exercise_in_use' })
 })
 
 test('edits a program in place: renamed, the rest kept exactly', async () => {
