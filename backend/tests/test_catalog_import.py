@@ -172,6 +172,27 @@ def test_a_new_source_version_updates_the_source(
     assert source.version == "abc123"
 
 
+def test_a_source_of_estimates_says_so_and_can_stop_saying_it(
+    session: Session, data_dir: Path, edit: EditFile
+) -> None:
+    import_catalog(session, data_dir)
+    edit("foods.json", lambda d: d["source"].update(estimated=True))
+
+    counts = import_catalog(session, data_dir)
+
+    assert counts["catalog_sources"].updated == 1
+    assert usda_source(session).estimated
+    # A file without the field means measured data: it is set back to false
+    edit("foods.json", lambda d: d["source"].pop("estimated"))
+    import_catalog(session, data_dir)
+    assert not usda_source(session).estimated
+
+
+def usda_source(session: Session) -> CatalogSource:
+    query = select(CatalogSource).where(CatalogSource.key == "usda-fdc-sr-legacy")
+    return session.scalars(query).one()
+
+
 def test_an_item_dropped_from_the_files_is_kept(
     session: Session, data_dir: Path, edit: EditFile
 ) -> None:

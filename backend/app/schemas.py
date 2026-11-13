@@ -277,6 +277,8 @@ class CatalogSourceResponse(BaseModel):
     attribution_required: bool
     share_alike: bool
     version: str
+    # Haki's own estimates: the UI says "estimated" next to their values
+    estimated: bool = False
 
 
 class CatalogFoodResponse(BaseModel):

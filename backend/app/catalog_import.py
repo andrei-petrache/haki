@@ -106,6 +106,8 @@ class SourceData(Strict):
     attribution_required: bool
     share_alike: bool
     version: Annotated[str, StringConstraints(min_length=1, max_length=100)]
+    # Our own estimates, not the source's measurements; absent means false
+    estimated: bool = False
 
 
 class FoodData(Named):

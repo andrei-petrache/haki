@@ -9,6 +9,7 @@ from sqlalchemy import (
     Numeric,
     String,
     UniqueConstraint,
+    false,
     func,
 )
 from sqlalchemy.dialects.postgresql import JSONB
@@ -162,6 +163,11 @@ class CatalogSource(Base):
     attribution_required: Mapped[bool]
     # Whether a database derived from it must keep the same licence
     share_alike: Mapped[bool]
+    # Whether its values are Haki's own estimates (haki-ro-staples: recipes
+    # of USDA ingredients) rather than measured or published by the source.
+    # The server default fills existing rows and the previous version's
+    # import, whose sources are all measured data.
+    estimated: Mapped[bool] = mapped_column(default=False, server_default=false())
     # The dataset's own version: a release date or a commit SHA
     version: Mapped[str] = mapped_column(String(100))
     created_at: Mapped[datetime] = mapped_column(

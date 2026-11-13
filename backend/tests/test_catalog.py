@@ -84,6 +84,9 @@ def test_sources_carry_licence_and_credit(
     assert sources["free-exercise-db"]["license"] == "Unlicense"
     assert "FoodData Central" in sources["usda-fdc-sr-legacy"]["attribution"]
     assert sources["free-exercise-db"]["version"]
+    # Both publish their own data: neither is our estimate
+    assert not sources["usda-fdc-sr-legacy"]["estimated"]
+    assert not sources["free-exercise-db"]["estimated"]
 
 
 # Searching foods
