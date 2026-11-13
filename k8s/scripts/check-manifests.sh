@@ -323,6 +323,14 @@ EOF
   [[ "$(yq -N 'select(.kind == "Secret" or .kind == "PersistentVolumeClaim")
     | .metadata.name' <<<"$rendered")" == "" ]] \
     || fail "$overlay: Secrets and PersistentVolumeClaims stay out of Git"
+  # Feature flags stay off in prod: body weight waits for consent, password
+  # reset for a real e-mail provider. Turning one on there is a decision of
+  # its own, made in this check, not in the overlay alone.
+  if [[ "$overlay" == k8s/overlays/prod ]]; then
+    flags="$(yq -N '.. | select(has("containers")) | .containers[] | .env // [] | .[]
+      | select(.name | test("_ENABLED$")) | select(.value == "true") | .name' <<<"$rendered")"
+    [[ -z "$flags" ]] || fail "$overlay: feature flags must stay off in prod (got: $(tr '\n' ' ' <<<"$flags"))"
+  fi
 
   echo "PostgreSQL: $k8s_db_image"
   echo "Backend URL: $backend_url"

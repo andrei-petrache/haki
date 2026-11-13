@@ -38,6 +38,19 @@ patches:
           backendRefs:
             - name: haki-frontend
               port: 8080
+  # Body weight and the adaptive target (phase 3) on staging only. Prod keeps
+  # the default (off) until consent exists (phase 4); check-manifests.sh
+  # refuses any *_ENABLED=true in the prod overlay. An image without the
+  # setting ignores the variable.
+  - target:
+      kind: Deployment
+      name: haki-backend
+    patch: |-
+      - op: add
+        path: /spec/template/spec/containers/0/env/-
+        value:
+          name: BODY_WEIGHT_ENABLED
+          value: "true"
 
 configMapGenerator:
   # The backend Service in this namespace, by its full name: Nginx resolves
