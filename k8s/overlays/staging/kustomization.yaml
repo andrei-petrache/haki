@@ -72,6 +72,16 @@ patches:
         value:
           name: PUBLIC_BASE_URL
           value: http://127.0.0.1:8081
+      # Barcode lookup through Open Food Facts on staging only (Andrei, 13
+      # November 2026): its data stays in its own table, never in our
+      # catalog, attributed wherever it shows. Prod waits for the go-live
+      # checklist; check-manifests.sh keeps *_ENABLED off there. One backend
+      # replica here, so OFF_REQUESTS_PER_MINUTE (45) stays under OFF's 100.
+      - op: add
+        path: /spec/template/spec/containers/0/env/-
+        value:
+          name: BARCODE_ENABLED
+          value: "true"
 
 configMapGenerator:
   # The backend Service in this namespace, by its full name: Nginx resolves
