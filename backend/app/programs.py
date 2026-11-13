@@ -45,11 +45,15 @@ def check_own(program: Program | None, user: User) -> Program:
     return program
 
 
-def get_own_program(session: Session, user: User, program_id: int) -> Program:
+def get_own_program(
+    session: Session, user: User, program_id: int, lock: bool = False
+) -> Program:
     """Load one of the user's programs with everything in it, or reject with 404.
 
     The days, their exercises and the exercise names come in a fixed number
-    of queries, however many there are (no query per day or exercise).
+    of queries, however many there are (no query per day or exercise). With
+    `lock`, the program's row is locked until the commit (FOR UPDATE), and
+    its days are read after the lock is held, so they are current.
     """
     query = (
         select(Program)
@@ -60,6 +64,10 @@ def get_own_program(session: Session, user: User, program_id: int) -> Program:
         )
         .where(Program.id == program_id)
     )
+    if lock:
+        # The days and exercises come in separate SELECTs (selectinload),
+        # which run after this one, so only the program's row is locked
+        query = query.with_for_update(of=Program)
     return check_own(session.scalar(query), user)
 
 
@@ -109,7 +117,9 @@ def move_days(session: Session, program: Program, positions: dict[int, int]) -> 
     same user first (each keeps its old position there, which are distinct),
     then come back at their new ones. Their ids never change, so workouts
     started from them stay linked. The scratch program lives only inside
-    this transaction: nobody else ever sees it.
+    this transaction: nobody else ever sees it, and a rollback leaves
+    nothing behind. Its id is spent, so the programs' id sequence advances
+    on every reorder (harmless).
     """
     moving = [day for day in program.days if day.position != positions[day.id]]
     if not moving:
@@ -123,6 +133,14 @@ def move_days(session: Session, program: Program, positions: dict[int, int]) -> 
         day.position = positions[day.id]
         day.program = program
     session.flush()
+    # Deleting the scratch program cascades to whatever is still in it: a
+    # day left behind would vanish and unlink its workouts behind a 200.
+    # Fail loudly instead (a 500, and the request's transaction rolls back).
+    left = session.scalar(
+        select(func.count()).where(ProgramDay.program_id == scratch.id)
+    )
+    if left:
+        raise RuntimeError(f"{left} program day(s) left in the scratch program")
     session.delete(scratch)
 
 
@@ -244,7 +262,10 @@ def replace_program(
     so workouts started from them stay linked; the others are new rows.
     Workouts are copies of the plan either way and never change.
     """
-    program = get_own_program(session, current_user, program_id)
+    # Two edits of one program at once would move the same day rows in
+    # opposite orders and could deadlock: the second waits for the first to
+    # commit, then works on what it wrote
+    program = get_own_program(session, current_user, program_id, lock=True)
     # Everything is checked before anything changes: another program's day
     # (even the user's own) is a 404, as in start_workout
     current = {day.id for day in program.days}
