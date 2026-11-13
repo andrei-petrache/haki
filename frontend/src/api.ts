@@ -880,3 +880,48 @@ export function giveConsent(token: string, version: string, locale: string): Pro
 export function withdrawConsent(token: string): Promise<void> {
   return request<void>('/auth/me/consents/health_data', { method: 'DELETE' }, token)
 }
+
+// The weekly dashboard (phase 6; backend's GET /dashboard/week)
+
+export type WeekDay = {
+  date: string
+  kcal: number
+  protein: number
+  carbs: number
+  fat: number
+  target_kcal: number | null
+  // Anything logged that day, food or quick entry
+  logged: boolean
+  workouts: number
+  sets: number
+  reps: number
+  volume_kg: number
+}
+
+export type WeekTotals = {
+  kcal: number
+  protein: number
+  carbs: number
+  fat: number
+  days_logged: number
+  // Over the logged days; null with none
+  avg_kcal: number | null
+  workouts: number
+  sets: number
+  reps: number
+  volume_kg: number
+}
+
+export type Week = {
+  week_start: string
+  days: WeekDay[]
+  totals: WeekTotals & { volume_by_muscle: Record<string, number> }
+  previous_week: WeekTotals
+  // Only with body weight on and its consent given
+  body_weight: { weigh_ins: number; start_trend_kg: number | null; end_trend_kg: number | null; change_kg: number | null } | null
+}
+
+/** The week holding `day` (the server takes its Monday). */
+export function fetchWeek(token: string, day: string): Promise<Week> {
+  return request<Week>(`/dashboard/week?${new URLSearchParams({ start: day })}`, {}, token)
+}

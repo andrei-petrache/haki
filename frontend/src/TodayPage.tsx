@@ -23,6 +23,7 @@ import { tokenSubject } from './session'
 import type { OutboxItem } from './outbox'
 import Toast from './Toast'
 import type { WeightUnit } from './units'
+import { WeekSummary, WeekView } from './Week'
 import { WeightCard, WeightView } from './Weight'
 import type { ToastMessage } from './Toast'
 import { formatDay, formatDecimal, formatKcal, localDateString, shiftDate } from './format'
@@ -494,6 +495,8 @@ export default function TodayPage({
   const reload = () => setVersion((v) => v + 1)
   // The weight's chart and list, instead of the day, until its back link
   const [showWeight, setShowWeight] = useState(false)
+  // The week at a glance, the same way
+  const [showWeek, setShowWeek] = useState(false)
   // Entries logged with no connection, waiting on this device (outbox.ts)
   const [pending, setPending] = useState<OutboxItem[]>(() => loadOutbox(localStorage).filter((i) => i.owner === userId))
   const refreshPending = useCallback(
@@ -668,6 +671,9 @@ export default function TodayPage({
   if (showWeight) {
     return <WeightView token={token} unit={weightUnit} onBack={() => setShowWeight(false)} />
   }
+  if (showWeek) {
+    return <WeekView token={token} unit={weightUnit} onBack={() => setShowWeek(false)} />
+  }
 
   return (
     <div className="page">
@@ -741,6 +747,7 @@ export default function TodayPage({
         />
       )}
       {/* Under the meals: logging food stays the first thing on screen */}
+      <WeekSummary token={token} onOpen={() => setShowWeek(true)} />
       <WeightCard token={token} day={day} unit={weightUnit} onOpen={() => setShowWeight(true)} />
       <Toast message={toast} onDone={clearToast} />
     </div>
