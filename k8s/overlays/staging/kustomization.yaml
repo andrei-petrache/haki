@@ -51,6 +51,12 @@ patches:
         value:
           name: BODY_WEIGHT_ENABLED
           value: "true"
+      # Which environment this is, as prod says it (check-manifests.sh)
+      - op: add
+        path: /spec/template/spec/containers/0/env/-
+        value:
+          name: ENVIRONMENT
+          value: staging
 
 configMapGenerator:
   # The backend Service in this namespace, by its full name: Nginx resolves

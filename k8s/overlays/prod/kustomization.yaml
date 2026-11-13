@@ -16,6 +16,20 @@ resources:
 components:
   - ../../components/images
 
+# The backend knows it runs in prod, so its own guards apply: it refuses to
+# start there with password reset on and the log-only mail backend (threat
+# model R8). check-manifests.sh requires it.
+patches:
+  - target:
+      kind: Deployment
+      name: haki-backend
+    patch: |-
+      - op: add
+        path: /spec/template/spec/containers/0/env/-
+        value:
+          name: ENVIRONMENT
+          value: prod
+
 configMapGenerator:
   # The backend Service in this namespace, by its full name: Nginx resolves
   # it itself and ignores resolv.conf's search domains. CI checks that the
