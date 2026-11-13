@@ -495,8 +495,9 @@ ran at the next full sync, the next staging bump. A full sync by hand (the
 ArgoCD UI's Sync, or `argocd app sync haki-staging`) runs it sooner.
 
 Staging and prod both run it (`check-manifests.sh` requires it in every
-overlay). It reached prod at a promotion, with a fresh dump first and
-Andrei's OK.
+overlay). It reached prod at a promotion, after review's GO, with a fresh
+dump first. That promotion changed only the hook, so the import first runs
+on prod at the next full sync: the next promotion that moves an image.
 
 ## Monitoring
 
