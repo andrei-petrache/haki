@@ -117,6 +117,13 @@ test('the day is words under the title, not a native field, and the picker moves
   // The native input stays invisible under the label
   const field = page.getByLabel('Date', { exact: true })
   expect(await field.evaluate((input) => getComputedStyle(input).opacity)).toBe('0')
+  // A tap on the words lands on the date input itself, so its own picker
+  // opens even where showPicker() is missing
+  const hit = await label.evaluate((element) => {
+    const box = element.getBoundingClientRect()
+    return document.elementFromPoint(box.x + box.width / 2, box.y + box.height / 2)?.getAttribute('type')
+  })
+  expect(hit).toBe('date')
   await field.fill(localDay(-1))
   await expect(label).toHaveText(/^Yesterday, /)
   await page.getByRole('button', { name: 'Save' }).click()

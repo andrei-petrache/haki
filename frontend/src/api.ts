@@ -304,6 +304,20 @@ export function deleteFood(token: string, id: number): Promise<void> {
   return request<void>(`/foods/${id}`, { method: 'DELETE' }, token)
 }
 
+/**
+ * The same DELETE, sent so it outlives the page (fetch keepalive): for a
+ * deletion still waiting on its Undo when the tab closes, reloads or the
+ * user leaves Foods. Nobody reads the answer: if the food got logged
+ * meanwhile (409), it simply stays.
+ */
+export function deleteFoodOnLeave(token: string, id: number): void {
+  fetch(`${API_BASE}/foods/${id}`, {
+    method: 'DELETE',
+    keepalive: true,
+    headers: { Authorization: `Bearer ${token}` },
+  }).catch(() => {})
+}
+
 export function fetchEntries(token: string, day: string): Promise<MealEntry[]> {
   const query = new URLSearchParams({ date: day })
   return request<MealEntry[]>(`/entries?${query}`, {}, token)

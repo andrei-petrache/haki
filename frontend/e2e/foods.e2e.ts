@@ -112,6 +112,19 @@ test('a tap on a row edits it; Delete has Undo and no dialog', async () => {
   expect(dialogs).toBe(0)
 })
 
+test('a deletion still waiting goes even when the page reloads', async () => {
+  await row('Zacuscă').getByRole('button', { name: /^Edit/ }).click()
+  await editing().getByRole('button', { name: 'Delete' }).click()
+  await expect(page.getByRole('status')).toHaveText(/Deleted Zacuscă\./)
+  await page.reload()
+  await expect
+    .poll(async () => ((await api(page, 'GET', '/foods')).body as { name: string }[]).map((f) => f.name))
+    .not.toContain('Zacuscă')
+  await page.getByRole('navigation').getByRole('button', { name: 'Foods', exact: true }).click()
+  await expect(row('Oats')).toBeVisible()
+  await expect(row('Zacuscă')).toHaveCount(0)
+})
+
 test('a food in the diary says it cannot be deleted', async () => {
   await row('Oats').getByRole('button', { name: /^Edit/ }).click()
   const form = editing()
