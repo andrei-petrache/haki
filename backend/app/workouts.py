@@ -1,10 +1,11 @@
 from typing import Annotated
 
-from fastapi import APIRouter, HTTPException, Query, Response, status
+from fastapi import APIRouter, Query, Response, status
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
 
 from app.auth import CurrentUser, SessionDep
+from app.errors import ApiError, ErrorCode
 from app.models import Exercise, User, Workout, WorkoutExercise, WorkoutSet
 from app.schemas import (
     MAX_DB_ID,
@@ -23,17 +24,13 @@ LimitQuery = Annotated[int, Query(ge=1, le=100)]
 OffsetQuery = Annotated[int, Query(ge=0, le=MAX_DB_ID)]
 
 
-def not_found(detail: str) -> HTTPException:
-    return HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=detail)
-
-
 def check_own(workout: Workout | None, user: User) -> Workout:
     """Reject a missing workout, and another user's, with the same 404.
 
     Another user's workout gets 404, not 403 (see get_own_food).
     """
     if workout is None or workout.user_id != user.id:
-        raise not_found("Workout not found")
+        raise ApiError(ErrorCode.WORKOUT_NOT_FOUND)
     return workout
 
 
@@ -66,7 +63,7 @@ def build_exercises(
     query = select(Exercise).where(Exercise.id.in_(ids), Exercise.user_id == user.id)
     own = {exercise.id: exercise for exercise in session.scalars(query)}
     if len(own) != len(ids):
-        raise not_found("Exercise not found")
+        raise ApiError(ErrorCode.EXERCISE_NOT_FOUND)
     return [
         WorkoutExercise(
             exercise=own[item.exercise_id],

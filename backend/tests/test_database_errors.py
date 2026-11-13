@@ -38,7 +38,8 @@ def test_unreachable_database_returns_503(broken_db_client: TestClient) -> None:
 
     assert response.status_code == 503
     assert response.json() == {
-        "detail": "Service temporarily unavailable, try again shortly"
+        "detail": "Service temporarily unavailable, try again shortly",
+        "code": "database_unavailable",
     }
     assert response.headers["Retry-After"] == "5"
 

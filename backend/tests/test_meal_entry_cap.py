@@ -98,7 +98,10 @@ def test_a_refused_copy_copies_nothing(
     response = client.post("/entries/copy", json=COPY, headers=auth_headers)
 
     assert response.status_code == 409
-    assert response.json()["detail"] == "A meal holds at most 100 entries"
+    assert response.json() == {
+        "detail": "A meal holds at most 100 entries",
+        "code": "meal_full",
+    }
     assert rows(session) == before
 
 

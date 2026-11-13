@@ -1,11 +1,12 @@
 from datetime import date
 from typing import Annotated
 
-from fastapi import APIRouter, HTTPException, Query, Response, status
+from fastapi import APIRouter, Query, Response, status
 from sqlalchemy import case, func, select
 from sqlalchemy.orm import Session, joinedload
 
 from app.auth import CurrentUser, SessionDep
+from app.errors import ApiError, ErrorCode
 from app.foods import get_own_food
 from app.models import MEAL_TYPES, Food, MealEntry, QuickEntry, User
 from app.schemas import (
@@ -133,16 +134,14 @@ def check_room(session: Session, user: User, day: date, meal: str, adding: int) 
             or 0
         )
     if count + adding > MAX_ENTRIES_PER_MEAL:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=MEAL_FULL)
+        raise ApiError(ErrorCode.MEAL_FULL, detail=MEAL_FULL)
 
 
 def get_own_entry(session: Session, user: User, entry_id: int) -> MealEntry:
     """Load one of the user's entries, or reject with 404 (see get_own_food)."""
     entry = session.get(MealEntry, entry_id)
     if entry is None or entry.user_id != user.id:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Entry not found"
-        )
+        raise ApiError(ErrorCode.ENTRY_NOT_FOUND)
     return entry
 
 
@@ -261,9 +260,7 @@ def delete_quick_entry(
     """Delete one of the current user's quick entries."""
     entry = session.get(QuickEntry, entry_id)
     if entry is None or entry.user_id != current_user.id:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Entry not found"
-        )
+        raise ApiError(ErrorCode.ENTRY_NOT_FOUND)
     session.delete(entry)
     session.commit()
     return Response(status_code=status.HTTP_204_NO_CONTENT)

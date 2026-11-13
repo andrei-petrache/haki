@@ -1,11 +1,12 @@
 from typing import Annotated, Any
 
-from fastapi import APIRouter, HTTPException, Query, Response, status
+from fastapi import APIRouter, Query, Response, status
 from sqlalchemy import and_, func, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.auth import CurrentUser, SessionDep
+from app.errors import ApiError, ErrorCode
 from app.foods import commit_or_conflict
 from app.models import (
     CatalogExercise,
@@ -28,17 +29,12 @@ from app.schemas import (
 
 router = APIRouter(prefix="/exercises", tags=["exercises"])
 
-DUPLICATE_NAME = "An exercise with this name already exists"
-IN_USE = "Exercise is used by workouts or programs"
-
 
 def get_own_exercise(session: Session, user: User, exercise_id: int) -> Exercise:
     """Load one of the user's exercises, or reject with 404 (see get_own_food)."""
     exercise = session.get(Exercise, exercise_id)
     if exercise is None or exercise.user_id != user.id:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Exercise not found"
-        )
+        raise ApiError(ErrorCode.EXERCISE_NOT_FOUND)
     return exercise
 
 
@@ -61,7 +57,7 @@ def create_exercise(
     exercise = Exercise(user_id=current_user.id, name=data.name)
     session.add(exercise)
     # The unique index ignores case: "squat" conflicts with "Squat"
-    commit_or_conflict(session, DUPLICATE_NAME)
+    commit_or_conflict(session, ErrorCode.EXERCISE_NAME_TAKEN)
     session.refresh(exercise)
     return exercise
 
@@ -96,9 +92,7 @@ def copy_catalog_exercise(
     """
     item = session.get(CatalogExercise, data.catalog_exercise_id)
     if item is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Catalog exercise not found"
-        )
+        raise ApiError(ErrorCode.CATALOG_EXERCISE_NOT_FOUND)
     existing = find_own_copy(session, current_user, item.id)
     if existing is not None:
         response.status_code = status.HTTP_200_OK
@@ -118,9 +112,7 @@ def copy_catalog_exercise(
         if existing is not None:
             response.status_code = status.HTTP_200_OK
             return existing
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT, detail=DUPLICATE_NAME
-        ) from None
+        raise ApiError(ErrorCode.EXERCISE_NAME_TAKEN) from None
     session.refresh(exercise)
     return exercise
 
@@ -135,7 +127,7 @@ def rename_exercise(
     """Rename one of the current user's exercises; past workouts follow."""
     exercise = get_own_exercise(session, current_user, exercise_id)
     exercise.name = data.name
-    commit_or_conflict(session, DUPLICATE_NAME)
+    commit_or_conflict(session, ErrorCode.EXERCISE_NAME_TAKEN)
     session.refresh(exercise)
     return exercise
 
@@ -149,7 +141,7 @@ def delete_exercise(
     session.delete(exercise)
     # workout_exercises.exercise_id and program_exercises.exercise_id are
     # deferred: the database refuses at commit
-    commit_or_conflict(session, IN_USE)
+    commit_or_conflict(session, ErrorCode.EXERCISE_IN_USE)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
@@ -166,9 +158,7 @@ def earlier_than(session: Session, user: User, workout_id: int | None) -> list[A
         return []
     workout = session.get(Workout, workout_id)
     if workout is None or workout.user_id != user.id:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Workout not found"
-        )
+        raise ApiError(ErrorCode.WORKOUT_NOT_FOUND)
     return [
         or_(
             Workout.performed_on < workout.performed_on,
