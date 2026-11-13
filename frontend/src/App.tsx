@@ -36,6 +36,7 @@ import {
 import type { Locale, LocaleChoice, MessageKey } from './i18n/i18n'
 import ProgramsPage from './ProgramsPage'
 import { dropOwner } from './outbox'
+import Onboarding from './Onboarding'
 import { RestBar } from './RestTimer'
 import { TOKEN_KEY, afterRejected } from './session'
 import TodayPage from './TodayPage'
@@ -45,6 +46,8 @@ import WorkoutsPage from './WorkoutsPage'
 import './App.css'
 
 type Tab = 'today' | 'foods' | 'workouts' | 'programs' | 'profile'
+
+const ONBOARDING_KEY = 'haki_onboarding'
 
 const TABS: { id: Tab; label: MessageKey }[] = [
   { id: 'today', label: 'nav.today' },
@@ -56,7 +59,7 @@ const TABS: { id: Tab; label: MessageKey }[] = [
 
 type Mode = 'login' | 'signup'
 
-function AuthForm({ onLoggedIn }: { onLoggedIn: (token: string) => void }) {
+function AuthForm({ onLoggedIn }: { onLoggedIn: (token: string, isNew: boolean) => void }) {
   const { t } = useI18n()
   const [mode, setMode] = useState<Mode>('login')
   const [email, setEmail] = useState('')
@@ -89,7 +92,7 @@ function AuthForm({ onLoggedIn }: { onLoggedIn: (token: string) => void }) {
         created = true
       }
       const { access_token } = await login(email, password)
-      onLoggedIn(access_token)
+      onLoggedIn(access_token, created)
     } catch (err) {
       // The API's own messages stay in English until it sends error codes
       const message = err instanceof ApiError ? err.message : t('app.cannotReach')
@@ -318,7 +321,9 @@ function Header({
   onTabChange,
   onLogout,
   onSlot,
+  showTabs = true,
 }: {
+  showTabs?: boolean
   tab: Tab
   onTabChange: (tab: Tab) => void
   onLogout: () => void
@@ -330,7 +335,8 @@ function Header({
     <header className="app-header">
       <span className="brand">Haki</span>
       <div className="header-slot" ref={onSlot} />
-      <nav className="tabs">
+      {/* No tabs during the first-run setup: they would lead nowhere yet */}
+      {showTabs && <nav className="tabs">
         {TABS.map(({ id, label }) => (
           <button
             key={id}
@@ -343,7 +349,7 @@ function Header({
             {t(label)}
           </button>
         ))}
-      </nav>
+      </nav>}
       <button type="button" className="link" onClick={onLogout}>
         {t('nav.logOut')}
       </button>
@@ -384,6 +390,9 @@ function App({ resetToken }: { resetToken?: string | null }) {
   const [loadError, setLoadError] = useState<string | null>(null)
   // Bumped by "Try again", to re-run the effect that loads the profile
   const [loadAttempt, setLoadAttempt] = useState(0)
+  // The one-minute setup after signing up; kept for this tab's session so a
+  // reload carries on with it, never shown to an existing account
+  const [onboarding, setOnboarding] = useState(() => sessionStorage.getItem(ONBOARDING_KEY) === '1')
   // Bumped when this tab takes up a token another tab stored: the pages
   // start afresh with it, instead of keeping the error the old one got
   const [adopted, setAdopted] = useState(0)
@@ -482,9 +491,14 @@ function App({ resetToken }: { resetToken?: string | null }) {
           <p className="tagline">{t('app.tagline')}</p>
           {farewell && <p role="status">{t('account.deleted')}</p>}
           <AuthForm
-            onLoggedIn={(newToken) => {
+            onLoggedIn={(newToken, isNew) => {
               setFarewell(false)
               handleLoggedIn(newToken)
+              // A new account starts with the one-minute setup (Onboarding)
+              if (isNew) {
+                sessionStorage.setItem(ONBOARDING_KEY, '1')
+                setOnboarding(true)
+              }
             }}
           />
         </main>
@@ -497,6 +511,7 @@ function App({ resetToken }: { resetToken?: string | null }) {
     <main className="container">
       <Header
         onSlot={setHeaderSlot}
+        showTabs={!onboarding}
         tab={tab}
         onTabChange={(next) => {
           setOpenWorkoutId(null)
@@ -522,6 +537,23 @@ function App({ resetToken }: { resetToken?: string | null }) {
         </section>
       )}
       <Fragment key={adopted}>
+      {user && onboarding && (
+        <Onboarding
+          token={token}
+          unit={weightUnit}
+          onUnitChange={(unit) => {
+            saveWeightUnit(unit)
+            setWeightUnit(unit)
+          }}
+          onUserChange={setUser}
+          onDone={() => {
+            sessionStorage.removeItem(ONBOARDING_KEY)
+            setOnboarding(false)
+            setTab('today')
+          }}
+        />
+      )}
+      {!onboarding && (<>
       {user && tab === 'today' && (
         <TodayPage token={token} headerSlot={headerSlot} weightUnit={weightUnit} userId={user.id} />
       )}
@@ -569,6 +601,7 @@ function App({ resetToken }: { resetToken?: string | null }) {
           onUserChange={setUser}
         />
       )}
+      </>)}
       </Fragment>
     </main>
     </I18nContext.Provider>

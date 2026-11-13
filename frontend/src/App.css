@@ -1726,3 +1726,50 @@ h1 {
   width: 100%;
   box-sizing: border-box;
 }
+
+/* Onboarding: four short steps after signing up */
+.onboarding h2 {
+  font-size: 1.4rem;
+}
+
+.onboarding-progress {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 4px;
+}
+
+.onboarding-progress span {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--raised);
+}
+
+.onboarding-progress span.done {
+  background: var(--accent-fill);
+}
+
+.onboarding-units {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.onboarding-picks {
+  margin: 0;
+  padding: 0;
+}
+
+.onboarding-set-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.onboarding-set-fields input,
+.onboarding input[type='number'] {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 44px;
+}
+
+button.link.onboarding-skip {
+  align-self: center;
+}
