@@ -110,6 +110,8 @@ test('Foods and Today in Romanian fit a phone', async () => {
   await page.setViewportSize({ width: 390, height: 844 })
 
   await tab('Alimente').click()
+  await expect(page.getByPlaceholder('Caută în alimentele tale')).toBeVisible()
+  await page.getByRole('button', { name: '+ Aliment nou' }).click()
   await expect(page.getByRole('heading', { name: 'Adaugă un aliment' })).toBeVisible()
   await expect(page.getByLabel('Carbohidrați (g)')).toBeVisible()
   await expect(page.getByText('Niciun aliment încă. Adaugă-l pe primul mai sus.')).toBeVisible()

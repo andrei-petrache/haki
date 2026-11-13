@@ -45,6 +45,18 @@ export function entryName(
   return displayName({ ...entry, name: entry.food_name }, locale)
 }
 
+/** Text compared loosely: case, accents and Romanian diacritics ignored. */
+function folded(text: string): string {
+  return text.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim()
+}
+
+/** Whether a name holds every word of a filter, in any order ("iaurt gre" finds "Iaurt grecesc"). */
+export function matchesFilter(name: string, filter: string): boolean {
+  const words = folded(filter).split(/\s+/).filter(Boolean)
+  const haystack = folded(name)
+  return words.every((word) => haystack.includes(word))
+}
+
 /**
  * Keep a list in the order first seen: items already known keep their
  * place, new ones go to the end. Today's chips use it, so the chip just

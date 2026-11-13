@@ -303,14 +303,17 @@ test('long food names keep their room: Your foods on a phone, Today on a desktop
   const id = (created.body as { id: number }).id
   expect((await api(page, 'PUT', `/foods/${id}/favourite`)).status).toBe(200)
 
-  // Your foods at 390 px: the name gets most of the row, the buttons wrap under it
+  // Your foods at 390 px: the name gets most of the row, its kcal and the
+  // star stay beside it on the right, inside the row
   await page.getByRole('navigation').getByRole('button', { name: 'Foods', exact: true }).click()
   const row = page.locator('.food-list li', { hasText: name })
   const nameBox = await box(row.locator('.grow'))
   const rowBox = await box(row)
-  expect(nameBox.width).toBeGreaterThan(rowBox.width * 0.75)
-  const editBox = await box(row.getByRole('button', { name: 'Edit' }))
-  expect(editBox.y).toBeGreaterThanOrEqual(nameBox.y + nameBox.height - 1)
+  expect(nameBox.width).toBeGreaterThan(rowBox.width * 0.55)
+  const kcalBox = await box(row.locator('.food-kcal'))
+  const starBox = await box(row.getByRole('button', { name: `Favourite: ${name}` }))
+  expect(kcalBox.x).toBeGreaterThanOrEqual(nameBox.x + nameBox.width - 1)
+  expect(starBox.x + starBox.width).toBeLessThanOrEqual(rowBox.x + rowBox.width + 1)
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390)
 
   // Today on a desktop: the long favourite stays inside the logger's card

@@ -18,9 +18,12 @@ type Notice = { kind: 'ok' | 'info' | 'error'; text: string }
 export default function CatalogFoodPicker({
   token,
   onAdded,
+  embedded = false,
 }: {
   token: string
   onAdded: () => void
+  // Inside another card (Your foods): a panel, not a card of its own
+  embedded?: boolean
 }) {
   const { t, locale } = useI18n()
   const [text, setText] = useState('')
@@ -80,12 +83,13 @@ export default function CatalogFoodPicker({
   const items = q !== '' && found?.q === q ? found.items : null
 
   return (
-    <section className="card catalog-picker">
-      <h2>{t('catalog.foodsTitle')}</h2>
+    <section className={embedded ? 'panel catalog-picker' : 'card catalog-picker'}>
+      {embedded ? <h3>{t('catalog.foodsTitle')}</h3> : <h2>{t('catalog.foodsTitle')}</h2>}
       <label>
         {t('catalog.search')}
         <input
           type="search"
+          autoFocus={embedded}
           value={text}
           placeholder={t('catalog.foodsPlaceholder')}
           onChange={(event) => setText(event.target.value)}
