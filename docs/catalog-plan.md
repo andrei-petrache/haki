@@ -15,7 +15,7 @@ scheduled yet.
 | USDA Foundation Foods | Generic foods, analysed, updated twice a year | a few hundred | CC0-1.0 | proposed |
 | USDA FNDDS 2021-2023 | Prepared foods and dishes as eaten in the US survey | about 5,400 | CC0-1.0 | proposed |
 | USDA Branded Foods | US packaged products | about 450,000 | CC0-1.0 | not proposed: US products |
-| haki-ro-staples | Romanian dishes and staples, our estimates | 109 | proposed CC0-1.0 | names in review (#143) |
+| haki-ro-staples | Romanian dishes and staples, our estimates | 109 | CC0-1.0 | names decided (#143), values next |
 | Open Food Facts, Romania | Packaged products sold in Romania | 50,663, of which 15,009 with complete nutrition facts | ODbL + DbCL, images CC-BY-SA 3.0 | proposed: by barcode, phase 5 |
 | Open Food Facts, world | All products | over 4 million | as above | never in bulk |
 | free-exercise-db | Exercises | about 870 | Unlicense | 88 imported, text only |
@@ -111,7 +111,7 @@ attribution.
 1. **USDA Foundation + FNDDS** (about 5,700 rows, CC0). The import already
    reads in batches. The only decision needed is which FNDDS dishes get a
    Romanian name.
-2. **haki-ro-staples**, once Andrei approves the list in #143, with the
+2. **haki-ro-staples**, names decided in #143: the values next, with the
    `estimated` flag.
 3. **wger**, after the per-item licence columns and Andrei's choice between
    all licences and CC0/CC-BY only.
