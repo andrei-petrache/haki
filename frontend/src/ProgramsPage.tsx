@@ -210,21 +210,12 @@ function ProgramDetail({
           </p>
           {/* By position: the API returns the days in that order */}
           {program.days.map((day) => (
-            <div key={day.id} className="workout-exercise">
-              <h3>
-                {t('programs.dayTitle', { position: day.position, name: day.name })}
-              </h3>
-              <ul className="sets">
-                {day.exercises.map((item, index) => (
-                  // The same exercise may appear twice in a day: the index is the key
-                  <li key={index}>
-                    {item.exercise_name}: {formatPlanned(item.sets, item.reps, item.weight_kg, weightUnit)}
-                  </li>
-                ))}
-              </ul>
-              <div className="actions">
+            <div key={day.id} className="plan-day">
+              <div className="card-head">
+                <h3>{t('programs.dayTitle', { position: day.position, name: day.name })}</h3>
                 <button
                   type="button"
+                  className="start-day-button"
                   disabled={busy}
                   aria-label={t('programs.startDay', { position: day.position, name: day.name })}
                   onClick={() => void handleStart(program, day.id)}
@@ -232,6 +223,15 @@ function ProgramDetail({
                   {startingDay === day.id ? t('programs.starting') : t('programs.start')}
                 </button>
               </div>
+              <ul className="plan-list">
+                {day.exercises.map((item, index) => (
+                  // The same exercise may appear twice in a day: the index is the key
+                  <li key={index}>
+                    <span className="grow">{item.exercise_name}</span>
+                    <span className="plan-dose">{formatPlanned(item.sets, item.reps, item.weight_kg, weightUnit)}</span>
+                  </li>
+                ))}
+              </ul>
             </div>
           ))}
           <div className="actions">
