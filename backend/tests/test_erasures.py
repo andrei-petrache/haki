@@ -3,19 +3,24 @@
 A restore is simulated by putting rows back as an older dump would hold
 them, after the erasure happened through the API."""
 
+import json
+import os
+import subprocess
+import sys
 from datetime import UTC, datetime, timedelta
+from pathlib import Path
 from typing import Any
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import func, select
+from sqlalchemy import create_engine, func, select
 from sqlalchemy.orm import Session
 
 from app import erasures
 from app.body import server_today
 from app.config import settings
 from app.consent import CURRENT_VERSIONS
-from app.models import BodyWeight, Consent, Erasure, Food, User
+from app.models import Base, BodyWeight, Consent, Erasure, Food, User
 from tests.conftest import register_and_login
 from tests.test_delete_account import PASSWORD
 
@@ -186,3 +191,52 @@ def test_a_malformed_entry_stops_everything(session: Session) -> None:
 def test_the_command_needs_a_verb_and_a_file() -> None:
     assert erasures.main([]) == 2
     assert erasures.main(["vacuum", "x.jsonl"]) == 2
+
+
+def run_command(*args: str, database: Path) -> subprocess.CompletedProcess[str]:
+    """`python -m app.erasures` as the CronJob runs it: the database settings
+    only. JWT_SECRET_KEY is set empty, so loading the app's settings would
+    fail even where a local .env has a key; the DB_* are emptied too, so a
+    local .env cannot add a second database setting."""
+    env = {
+        key: value
+        for key, value in os.environ.items()
+        if not key.startswith(("DB_", "DATABASE_URL", "JWT_"))
+    }
+    env |= {"DATABASE_URL": f"sqlite:///{database}", "JWT_SECRET_KEY": ""}
+    env |= dict.fromkeys(("DB_USER", "DB_PASSWORD", "DB_HOST", "DB_NAME"), "")
+    return subprocess.run(
+        [sys.executable, "-m", "app.erasures", *args],
+        cwd=Path(__file__).resolve().parents[1],
+        env=env,
+        capture_output=True,
+        text=True,
+        timeout=60,
+        check=False,
+    )
+
+
+def test_the_command_runs_with_the_database_settings_alone(tmp_path: Path) -> None:
+    database = tmp_path / "haki.db"
+    engine = create_engine(f"sqlite:///{database}")
+    Base.metadata.create_all(engine)
+    with Session(engine) as session:
+        session.add(
+            Erasure(
+                user_id=7,
+                user_created_at=datetime(2026, 11, 1, tzinfo=UTC),
+                kind="account",
+                erased_at=datetime(2026, 11, 13, tzinfo=UTC),
+            )
+        )
+        session.commit()
+    engine.dispose()
+    log = tmp_path / "erasures.jsonl"
+
+    exported = run_command("export", str(log), database=database)
+    reapplied = run_command("reapply", str(log), database=database)
+
+    assert exported.returncode == 0, exported.stderr
+    assert reapplied.returncode == 0, reapplied.stderr
+    entries = [json.loads(line) for line in log.read_text().splitlines()]
+    assert [(e["user_id"], e["kind"]) for e in entries] == [(7, "account")]
