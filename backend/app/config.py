@@ -26,6 +26,11 @@ class Settings(DatabaseSettings):
     # Prometheus metrics are served on this port, never on the API's (see
     # app/metrics.py). 0 turns the metrics server off (most tests).
     metrics_port: int = Field(default=9000, ge=0, le=65535)
+    # Body weight and the adaptive target (app/body.py). Weight is health
+    # data (GDPR Art. 9): off until users can give consent (phase 4), so
+    # off by default and in prod; staging turns it on. Off, every endpoint
+    # of it answers 404 as if it did not exist.
+    body_weight_enabled: bool = False
 
     @field_validator("jwt_secret_key")
     @classmethod

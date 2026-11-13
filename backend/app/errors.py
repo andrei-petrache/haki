@@ -39,6 +39,8 @@ class ErrorCode(StrEnum):
     PROGRAM_NOT_FOUND = "program_not_found"
     PROGRAM_DAY_NOT_FOUND = "program_day_not_found"
     PROGRAM_CONFLICT = "program_conflict"
+    WEIGHT_NOT_FOUND = "weight_not_found"
+    DATE_OUT_OF_RANGE = "date_out_of_range"
     VALIDATION_ERROR = "validation_error"
     DATABASE_UNAVAILABLE = "database_unavailable"
     SERVER_BUSY = "server_busy"
@@ -93,6 +95,12 @@ ERRORS: dict[ErrorCode, tuple[HTTPStatus, str]] = {
         HTTPStatus.CONFLICT,
         "A program with this name already exists, "
         "or two of its days have the same position",
+    ),
+    ErrorCode.WEIGHT_NOT_FOUND: (HTTPStatus.NOT_FOUND, "No weigh-in on that day"),
+    # A date too far from the server's today (app/body.py says how far)
+    ErrorCode.DATE_OUT_OF_RANGE: (
+        HTTPStatus.UNPROCESSABLE_ENTITY,
+        "The date is out of the allowed range",
     ),
     ErrorCode.DATABASE_UNAVAILABLE: (
         HTTPStatus.SERVICE_UNAVAILABLE,

@@ -9,6 +9,7 @@ from sqlalchemy.exc import OperationalError
 from sqlalchemy.exc import TimeoutError as PoolTimeoutError
 
 from app.auth import router as auth_router
+from app.body import router as body_router
 from app.catalog import router as catalog_router
 from app.config import settings
 from app.db import database_is_reachable
@@ -56,6 +57,7 @@ app.include_router(exercises_router)
 app.include_router(workouts_router)
 app.include_router(programs_router)
 app.include_router(catalog_router)
+app.include_router(body_router)
 # Every HTTPException and every 422 answers {"detail", "code"} (app/errors.py)
 install_error_handlers(app)
 # Outermost: it also counts responses from the exception handlers below
