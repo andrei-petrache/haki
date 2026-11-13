@@ -43,6 +43,9 @@ export default function DayChoice({
       >
         {label}
       </button>
+      {/* Transparent over the whole label: a tap reaches the date input
+          itself, so its own picker opens even where showPicker() is
+          missing (older Safari); the button stays for the keyboard */}
       <input
         ref={input}
         type="date"
@@ -50,6 +53,13 @@ export default function DayChoice({
         tabIndex={-1}
         aria-label={fieldLabel}
         value={day}
+        onClick={(event) => {
+          try {
+            event.currentTarget.showPicker()
+          } catch {
+            // Already open, or not supported: the tap itself opens it
+          }
+        }}
         // Clearing the field gives an empty string: keep the current day
         onChange={(event) => event.target.value && onChange(event.target.value)}
       />
