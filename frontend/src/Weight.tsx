@@ -16,6 +16,7 @@ import { formatDayLabel, formatShortDay, localDateString, parseDay } from './for
 import { useI18n } from './i18n/context'
 import { formatNumber } from './i18n/i18n'
 import type { MessageKey } from './i18n/i18n'
+import { TargetStatus } from './Goal'
 import Toast from './Toast'
 import type { ToastMessage } from './Toast'
 import { kgToUnit } from './units'
@@ -106,6 +107,7 @@ export function WeightCard({
         </button>
       </div>
       {loaded.kind === 'error' && <p className="error">{loaded.message}</p>}
+      <TargetStatus token={token} unit={unit} version={version} />
       {latest && (
         <p className="weight-trend">
           <span className="kcal">{formatBodyWeight(latest.trend_kg, unit)}</span>{' '}
