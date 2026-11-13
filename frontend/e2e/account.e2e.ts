@@ -17,12 +17,14 @@ function tab(name: string): Locator {
 }
 
 test.beforeAll(async ({ browser }) => {
-  page = await browser.newPage({ viewport: { width: 390, height: 844 } })
+  // A context of its own, so a second tab can share this one's storage
+  const context = await browser.newContext({ viewport: { width: 390, height: 844 } })
+  page = await context.newPage()
   account = await signUp(page)
 })
 
 test.afterAll(async () => {
-  await page.close()
+  await page.context().close()
 })
 
 test('change the password: checked here first, then by the server', async () => {
@@ -47,6 +49,11 @@ test('change the password: checked here first, then by the server', async () => 
   await page.screenshot({ path: `${SHOTS}/25-change-password-phone.png`, fullPage: true })
 
   const oldToken = await page.evaluate(() => localStorage.getItem('haki_token'))
+  // A second tab, still holding the old token in memory
+  const other = await page.context().newPage()
+  await other.setViewportSize({ width: 390, height: 844 })
+  await other.goto('/')
+  await expect(other.getByRole('navigation').getByRole('button').first()).toBeVisible()
   await form.getByLabel('Current password').fill(account.password)
   await form.getByRole('button', { name: 'Change password' }).click()
   await expect(page.getByRole('status')).toContainText('Password changed.')
@@ -56,6 +63,18 @@ test('change the password: checked here first, then by the server', async () => 
   // like every other device's, is refused
   const newToken = await page.evaluate(() => localStorage.getItem('haki_token'))
   expect(newToken).not.toBe(oldToken)
+
+  // The other tab's next call is refused (401): it takes up the new token
+  // instead of logging out, and leaves it in storage for this tab
+  const refused = other.waitForResponse((response) => response.status() === 401)
+  await other.getByRole('navigation').getByRole('button', { name: 'Foods', exact: true }).click()
+  await refused
+  await expect(other.getByText('No foods yet. Add the first one above.')).toBeVisible()
+  await expect(other.locator('.error')).toHaveCount(0)
+  await expect(other.getByRole('heading', { name: 'Welcome back' })).toHaveCount(0)
+  expect(await page.evaluate(() => localStorage.getItem('haki_token'))).toBe(newToken)
+  await other.close()
+
   await page.reload()
   // Still logged in: the tabs show (Log out sits in Profile on a phone)
   await expect(page.getByRole('navigation').getByRole('button').first()).toBeVisible()
