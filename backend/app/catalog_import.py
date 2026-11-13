@@ -178,6 +178,9 @@ class CatalogKind:
 
 KINDS = (
     CatalogKind("foods.json", "foods", FoodData, CatalogFood),
+    # Our own estimates (scripts/ro_staples_values.py): a source of its own,
+    # flagged estimated, in the same table as USDA's foods
+    CatalogKind("ro_staples.json", "foods", FoodData, CatalogFood),
     CatalogKind("exercises.json", "exercises", ExerciseData, CatalogExercise),
 )
 
@@ -466,7 +469,8 @@ def import_catalog(
     for kind in KINDS:
         source, batches = read_batches(data_dir / kind.file_name, kind, batch_size)
         source_id = upsert_source(session, source, counts["catalog_sources"])
-        table = counts[kind.model.__tablename__] = Counts()
+        # Two files fill catalog_foods: their counts add up
+        table = counts.setdefault(kind.model.__tablename__, Counts())
         for batch in batches:
             upsert_batch(session, kind.model, source_id, batch, table)
     session.commit()
