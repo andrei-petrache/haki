@@ -23,7 +23,15 @@ from sqlalchemy import Engine, Select, Table, select
 from sqlalchemy.orm import Session
 
 from app.auth import CurrentUser, SessionDep, wrong_password
-from app.models import Base, Program, ProgramDay, User, Workout, WorkoutExercise
+from app.models import (
+    SYSTEM_TABLES,
+    Base,
+    Program,
+    ProgramDay,
+    User,
+    Workout,
+    WorkoutExercise,
+)
 from app.schemas import AccountDeleteIn
 from app.security import verify_password
 
@@ -38,11 +46,12 @@ router = APIRouter(prefix="/auth/me", tags=["auth"])
 
 
 def user_tables() -> list[Table]:
-    """Every table that can hold a user's data: all but the shared catalog."""
+    """Every table that can hold a user's data: all but the shared catalog
+    and the system tables (SYSTEM_TABLES)."""
     return [
         table
         for table in Base.metadata.sorted_tables
-        if not table.name.startswith("catalog_")
+        if not table.name.startswith("catalog_") and table.name not in SYSTEM_TABLES
     ]
 
 

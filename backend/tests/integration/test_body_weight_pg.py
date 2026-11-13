@@ -13,6 +13,7 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from app.body import server_today
 from app.config import settings
+from app.consent import CURRENT_VERSIONS
 from app.db import get_session
 from app.main import app
 from app.models import TdeeEstimate, User
@@ -25,6 +26,8 @@ pytestmark = [
 
 TODAY = server_today()
 RACE_EMAIL = "first-read-race@example.com"
+CONSENT_PATH = "/auth/me/consents/health_data"
+CONSENT = {"version": CURRENT_VERSIONS["health_data"], "locale": "en"}
 
 
 @pytest.fixture(autouse=True)
@@ -74,6 +77,7 @@ def test_weights_come_back_as_json_numbers_on_postgresql(
     db: Session, pg_client: TestClient
 ) -> None:
     headers = register_and_login(pg_client, "numbers@example.com")
+    pg_client.put(CONSENT_PATH, json=CONSENT, headers=headers)
 
     put = pg_client.put(
         f"/weights/{TODAY}", json={"weight_kg": 72.456}, headers=headers
@@ -114,6 +118,7 @@ def test_two_first_reads_of_the_week_store_one_estimate(
 ) -> None:
     client = committing_client
     headers = register_and_login(client, RACE_EMAIL)
+    client.put(CONSENT_PATH, json=CONSENT, headers=headers)
     goal = {"target_mode": "adaptive", "goal_kg_per_week": None}
     client.put("/auth/me/goal", json=goal, headers=headers)
     barrier = Barrier(2)

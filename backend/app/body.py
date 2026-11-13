@@ -23,6 +23,7 @@ from sqlalchemy.orm import Session
 from app import adaptive
 from app.auth import CurrentUser, SessionDep
 from app.config import settings
+from app.consent import has_consent, require_consent
 from app.errors import ApiError, ErrorCode
 from app.models import BodyWeight, Food, MealEntry, QuickEntry, TdeeEstimate, User
 from app.schemas import (
@@ -83,8 +84,10 @@ def put_weight(
     current_user: CurrentUser,
     session: SessionDep,
 ) -> BodyWeight:
-    """Record the day's weigh-in: 201 when new, 200 when it replaces one."""
+    """Record the day's weigh-in: 201 when new, 200 when it replaces one.
+    403 consent_required without the health-data consent."""
     check_weigh_in_day(day)
+    require_consent(session, current_user, write=True)
     # Stored to 10 g; rounded here too, so the answer is what is stored
     weight = round(data.weight_kg, 2)
     row = own_weight(session, current_user, day)
@@ -97,8 +100,10 @@ def put_weight(
     try:
         session.commit()
     except IntegrityError:
-        # Another request recorded the same day first: replace its value
+        # Another request recorded the same day first: replace its value,
+        # under the lock and the check again (the rollback released them)
         session.rollback()
+        require_consent(session, current_user, write=True)
         row = own_weight(session, current_user, day)
         if row is None:
             raise
@@ -129,7 +134,9 @@ def list_weights(
     end: Annotated[date | None, Query(alias="to")] = None,
 ) -> list[WeightPoint]:
     """The weigh-ins from `from` to `to` (both included), oldest first, each
-    with the trend line. By default the last 90 days; at most a year."""
+    with the trend line. By default the last 90 days; at most a year.
+    Deleting one (DELETE) needs no consent: erasing is always allowed."""
+    require_consent(session, current_user, write=False)
     end = end or server_today() + timedelta(days=1)
     start = start or end - timedelta(days=DEFAULT_RANGE_DAYS - 1)
     if not timedelta(0) <= end - start < timedelta(days=MAX_RANGE_DAYS):
@@ -161,7 +168,11 @@ def list_weights(
 @router.put("/auth/me/goal", response_model=UserResponse)
 def set_goal(data: GoalIn, current_user: CurrentUser, session: SessionDep) -> User:
     """Choose the target: the user's own number, or the adaptive one with a
-    goal in kg a week. The daily_calorie_target stays, as the fallback."""
+    goal in kg a week. The daily_calorie_target stays, as the fallback.
+    The adaptive one needs the health-data consent; going back to the
+    user's own number never does."""
+    if data.target_mode == "adaptive":
+        require_consent(session, current_user, write=True)
     current_user.target_mode = data.target_mode
     goal = data.goal_kg_per_week
     current_user.goal_kg_per_week = None if goal is None else round(goal, 2)
@@ -176,16 +187,19 @@ def read_target(
     session: SessionDep,
 ) -> TargetResponse:
     """The calorie target for the client's today. In adaptive mode the
-    week's estimate is computed at the first read of the week, then kept."""
+    week's estimate is computed at the first read of the week, then kept.
+    403 consent_required without the health-data consent."""
     check_near_today(day)
+    require_consent(session, current_user, write=True)
     return target_for(session, current_user, day, create=True)
 
 
 def target_for(session: Session, user: User, day: date, create: bool) -> TargetResponse:
     """The target on `day`. Without `create`, a week with no estimate yet
-    reads as still collecting (the user's own number)."""
+    reads as still collecting (the user's own number). Without a valid
+    consent the adaptive mode reads as manual: no health data is used."""
     manual = user.daily_calorie_target
-    if user.target_mode != "adaptive":
+    if user.target_mode != "adaptive" or not has_consent(session, user):
         return TargetResponse(
             target_mode=user.target_mode,
             status="manual",

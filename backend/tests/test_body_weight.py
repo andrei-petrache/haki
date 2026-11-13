@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 
 from app.body import server_today
 from app.config import settings
+from app.consent import CURRENT_VERSIONS
 from app.models import TdeeEstimate
 
 TODAY = server_today()
@@ -20,9 +21,20 @@ WINDOW = [MONDAY - timedelta(days=n) for n in range(21, 0, -1)]
 
 
 @pytest.fixture(autouse=True)
-def enabled(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
+def enabled(
+    monkeypatch: pytest.MonkeyPatch, client: TestClient, auth_headers: dict[str, str]
+) -> Iterator[None]:
+    """The flag on, and the main user's health-data consent given (the
+    consent itself is tested in tests/test_consent.py)."""
     monkeypatch.setattr(settings, "body_weight_enabled", True)
+    consent(client, auth_headers)
     yield
+
+
+def consent(client: TestClient, headers: dict[str, str]) -> None:
+    body = {"version": CURRENT_VERSIONS["health_data"], "locale": "en"}
+    given = client.put("/auth/me/consents/health_data", json=body, headers=headers)
+    assert given.status_code == 200, given.text
 
 
 def weigh(client: TestClient, headers: dict[str, str], day: date, kg: float) -> Any:
@@ -172,6 +184,7 @@ def test_another_users_weigh_ins_stay_theirs(
     auth_headers: dict[str, str],
     other_auth_headers: dict[str, str],
 ) -> None:
+    consent(client, other_auth_headers)
     weigh(client, other_auth_headers, TODAY, 90)
 
     mine = client.get("/weights", headers=auth_headers).json()

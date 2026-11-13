@@ -42,6 +42,8 @@ class ErrorCode(StrEnum):
     PROGRAM_CONFLICT = "program_conflict"
     WEIGHT_NOT_FOUND = "weight_not_found"
     DATE_OUT_OF_RANGE = "date_out_of_range"
+    CONSENT_REQUIRED = "consent_required"
+    CONSENT_VERSION_OUTDATED = "consent_version_outdated"
     VALIDATION_ERROR = "validation_error"
     DATABASE_UNAVAILABLE = "database_unavailable"
     SERVER_BUSY = "server_busy"
@@ -107,6 +109,15 @@ ERRORS: dict[ErrorCode, tuple[HTTPStatus, str]] = {
     ErrorCode.DATE_OUT_OF_RANGE: (
         HTTPStatus.UNPROCESSABLE_ENTITY,
         "The date is out of the allowed range",
+    ),
+    # 403, not 401: the session is fine, and clients sign out on a 401
+    ErrorCode.CONSENT_REQUIRED: (
+        HTTPStatus.FORBIDDEN,
+        "This needs your consent to health data",
+    ),
+    ErrorCode.CONSENT_VERSION_OUTDATED: (
+        HTTPStatus.CONFLICT,
+        "The consent text has changed; show the current one",
     ),
     ErrorCode.DATABASE_UNAVAILABLE: (
         HTTPStatus.SERVICE_UNAVAILABLE,
