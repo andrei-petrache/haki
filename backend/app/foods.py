@@ -1,18 +1,17 @@
 from datetime import UTC, datetime
 from typing import Annotated
 
-from fastapi import APIRouter, HTTPException, Query, Response, status
+from fastapi import APIRouter, Query, Response, status
 from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.auth import CurrentUser, SessionDep
+from app.errors import ApiError, ErrorCode
 from app.models import CatalogFood, Food, MealEntry, User
 from app.schemas import CatalogFoodCopyIn, FoodIn, FoodResponse, IdPath
 
 router = APIRouter(prefix="/foods", tags=["foods"])
-
-DUPLICATE_NAME = "A food with this name already exists"
 
 
 def get_own_food(session: Session, user: User, food_id: int) -> Food:
@@ -23,21 +22,17 @@ def get_own_food(session: Session, user: User, food_id: int) -> Food:
     """
     food = session.get(Food, food_id)
     if food is None or food.user_id != user.id:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Food not found"
-        )
+        raise ApiError(ErrorCode.FOOD_NOT_FOUND)
     return food
 
 
-def commit_or_conflict(session: Session, detail: str) -> None:
-    """Commit, turning a database constraint violation into a 409."""
+def commit_or_conflict(session: Session, code: ErrorCode) -> None:
+    """Commit, turning a database constraint violation into the 409 `code`."""
     try:
         session.commit()
     except IntegrityError:
         session.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT, detail=detail
-        ) from None
+        raise ApiError(code) from None
 
 
 @router.get("", response_model=list[FoodResponse])
@@ -90,7 +85,7 @@ def create_food(data: FoodIn, current_user: CurrentUser, session: SessionDep) ->
     """Add a food to the current user's list."""
     food = Food(user_id=current_user.id, **data.model_dump())
     session.add(food)
-    commit_or_conflict(session, DUPLICATE_NAME)
+    commit_or_conflict(session, ErrorCode.FOOD_NAME_TAKEN)
     session.refresh(food)
     return food
 
@@ -120,9 +115,7 @@ def copy_catalog_food(
     """
     item = session.get(CatalogFood, data.catalog_food_id)
     if item is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Catalog food not found"
-        )
+        raise ApiError(ErrorCode.CATALOG_FOOD_NOT_FOUND)
     existing = find_own_copy(session, current_user, item.id)
     if existing is not None:
         response.status_code = status.HTTP_200_OK
@@ -146,9 +139,7 @@ def copy_catalog_food(
         if existing is not None:
             response.status_code = status.HTTP_200_OK
             return existing
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT, detail=DUPLICATE_NAME
-        ) from None
+        raise ApiError(ErrorCode.FOOD_NAME_TAKEN) from None
     session.refresh(food)
     return food
 
@@ -161,7 +152,7 @@ def update_food(
     food = get_own_food(session, current_user, food_id)
     for field, value in data.model_dump().items():
         setattr(food, field, value)
-    commit_or_conflict(session, DUPLICATE_NAME)
+    commit_or_conflict(session, ErrorCode.FOOD_NAME_TAKEN)
     session.refresh(food)
     return food
 
@@ -174,7 +165,7 @@ def delete_food(
     food = get_own_food(session, current_user, food_id)
     session.delete(food)
     # meal_entries.food_id is ON DELETE RESTRICT, so the database refuses
-    commit_or_conflict(session, "Food is used by meal entries")
+    commit_or_conflict(session, ErrorCode.FOOD_IN_USE)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 

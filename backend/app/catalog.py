@@ -7,7 +7,7 @@ POST /exercises/from-catalog.
 
 from typing import Annotated
 
-from fastapi import APIRouter, HTTPException, Query, status
+from fastapi import APIRouter, Query
 from sqlalchemy import (
     ColumnElement,
     Select,
@@ -23,6 +23,7 @@ from sqlalchemy.orm import Session, joinedload
 
 from app.auth import CurrentUser, SessionDep
 from app.catalog_search import query_words
+from app.errors import ApiError, ErrorCode
 from app.models import CatalogExercise, CatalogFood, CatalogSource
 from app.schemas import (
     CatalogExerciseResponse,
@@ -41,9 +42,6 @@ SearchQuery = Annotated[str, Query(max_length=100)]
 # The source's muscle names: lower-case words, e.g. "chest", "lower back"
 MuscleQuery = Annotated[str | None, Query(pattern=r"^[a-z]+( [a-z]+)*$", max_length=30)]
 LanguageQuery = Annotated[CatalogLanguage, Query()]
-
-CATALOG_FOOD_NOT_FOUND = "Catalog food not found"
-CATALOG_EXERCISE_NOT_FOUND = "Catalog exercise not found"
 
 
 def search_query[M: (CatalogFood, CatalogExercise)](
@@ -72,13 +70,13 @@ def search_query[M: (CatalogFood, CatalogExercise)](
 
 
 def get_catalog_item[M: (CatalogFood, CatalogExercise)](
-    session: Session, model: type[M], item_id: int, detail: str
+    session: Session, model: type[M], item_id: int, code: ErrorCode
 ) -> M:
-    """One catalog item, with its source, or 404."""
+    """One catalog item, with its source, or the 404 `code`."""
     query = select(model).options(joinedload(model.source)).where(model.id == item_id)
     item = session.scalar(query)
     if item is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=detail)
+        raise ApiError(code)
     return item
 
 
@@ -119,7 +117,9 @@ def read_food(
     food_id: IdPath, current_user: CurrentUser, session: SessionDep
 ) -> CatalogFood:
     """One catalog food."""
-    return get_catalog_item(session, CatalogFood, food_id, CATALOG_FOOD_NOT_FOUND)
+    return get_catalog_item(
+        session, CatalogFood, food_id, ErrorCode.CATALOG_FOOD_NOT_FOUND
+    )
 
 
 @router.get("/exercises", response_model=list[CatalogExerciseResponse])
@@ -148,5 +148,5 @@ def read_exercise(
 ) -> CatalogExercise:
     """One catalog exercise."""
     return get_catalog_item(
-        session, CatalogExercise, exercise_id, CATALOG_EXERCISE_NOT_FOUND
+        session, CatalogExercise, exercise_id, ErrorCode.CATALOG_EXERCISE_NOT_FOUND
     )

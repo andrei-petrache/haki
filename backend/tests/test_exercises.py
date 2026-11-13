@@ -3,8 +3,6 @@ from typing import Any
 import pytest
 from fastapi.testclient import TestClient
 
-from app.exercises import IN_USE
-
 SQUAT = {"name": "Squat"}
 
 
@@ -107,7 +105,7 @@ def test_delete_exercise_rejects_exercise_used_by_a_workout(
     response = client.delete(f"/exercises/{exercise['id']}", headers=auth_headers)
 
     assert response.status_code == 409
-    assert response.json()["detail"] == IN_USE
+    assert response.json()["code"] == "exercise_in_use"
     assert client.get("/exercises", headers=auth_headers).json() == [exercise]
     # Once no workout uses it, it can go
     client.delete(f"/workouts/{created.json()['id']}", headers=auth_headers)
@@ -129,7 +127,7 @@ def test_delete_exercise_rejects_exercise_used_by_a_program(
     response = client.delete(f"/exercises/{exercise['id']}", headers=auth_headers)
 
     assert response.status_code == 409
-    assert response.json()["detail"] == IN_USE
+    assert response.json()["code"] == "exercise_in_use"
     assert client.get("/exercises", headers=auth_headers).json() == [exercise]
     stored = client.get(f"/programs/{created['id']}", headers=auth_headers)
     assert stored.json() == created
