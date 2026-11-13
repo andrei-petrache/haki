@@ -331,6 +331,13 @@ EOF
       | select(.name | test("_ENABLED$")) | select(.value == "true") | .name' <<<"$rendered")"
     [[ -z "$flags" ]] || fail "$overlay: feature flags must stay off in prod (got: $(tr '\n' ' ' <<<"$flags"))"
   fi
+  # The backend is told which environment it runs in, named after the
+  # overlay: its guards for prod (a real mail backend before password reset)
+  # only work if prod says it is prod
+  environment="$(yq -N 'select(.kind == "Deployment" and .metadata.name == "haki-backend")
+    | .spec.template.spec.containers[0].env[] | select(.name == "ENVIRONMENT") | .value' <<<"$rendered")"
+  [[ "$environment" == "${overlay##*/}" ]] \
+    || fail "$overlay: the backend must get ENVIRONMENT=${overlay##*/} (got '$environment')"
 
   echo "PostgreSQL: $k8s_db_image"
   echo "Backend URL: $backend_url"
