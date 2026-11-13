@@ -305,6 +305,7 @@ EnvoyProxy=3
 Gateway=3
 HTTPRoute=3
 ClientTrafficPolicy=3
+CronJob=3
 EOF
 )"
   while IFS= read -r line; do
@@ -338,6 +339,21 @@ EOF
     | .spec.template.spec.containers[0].env[] | select(.name == "ENVIRONMENT") | .value' <<<"$rendered")"
   [[ "$environment" == "${overlay##*/}" ]] \
     || fail "$overlay: the backend must get ENVIRONMENT=${overlay##*/} (got '$environment')"
+  # The nightly backup: in prod only, with the database's own PostgreSQL
+  # image for pg_dump, the migration's image for the erasure log, onto the
+  # volume created by hand, never two at once
+  backup="$(yq -N 'select(.kind == "CronJob" and .metadata.name == "haki-backup")' <<<"$rendered")"
+  if [[ "$overlay" == k8s/overlays/prod ]]; then
+    [[ -n "$backup" ]] || fail "$overlay: the nightly backup (CronJob haki-backup) is missing"
+    got="$(yq -N '[.spec.concurrencyPolicy,
+       .spec.jobTemplate.spec.template.spec.initContainers[0].image,
+       .spec.jobTemplate.spec.template.spec.containers[0].image,
+       .spec.jobTemplate.spec.template.spec.volumes[0].persistentVolumeClaim.claimName] | join(" ")' <<<"$backup")"
+    [[ "$got" == "Forbid $db_image $job_image haki-backups" ]] \
+      || fail "$overlay: haki-backup must be Forbid, dump with $db_image, log with $job_image, onto haki-backups (got '$got')"
+  else
+    [[ -z "$backup" ]] || fail "$overlay: the nightly backup belongs to prod only"
+  fi
 
   echo "PostgreSQL: $k8s_db_image"
   echo "Backend URL: $backend_url"
