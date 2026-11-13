@@ -19,6 +19,8 @@ import FoodLogger from './FoodLogger'
 import { MEAL_LABELS, entryName, headline, keepOrder, mealForHour } from './logging'
 import DayChoice from './DayChoice'
 import Toast from './Toast'
+import type { WeightUnit } from './units'
+import { WeightCard, WeightView } from './Weight'
 import type { ToastMessage } from './Toast'
 import { formatDay, formatDecimal, formatKcal, localDateString, shiftDate } from './format'
 import { useI18n } from './i18n/context'
@@ -456,10 +458,12 @@ function EntryList({
 export default function TodayPage({
   token,
   headerSlot,
+  weightUnit,
 }: {
   token: string
   // Where the day picker goes: the app header, next to the wordmark
   headerSlot: HTMLElement | null
+  weightUnit: WeightUnit
 }) {
   const { t, locale } = useI18n()
   const [day, setDay] = useState(localDateString)
@@ -478,6 +482,8 @@ export default function TodayPage({
   // Bumped after every change, to re-run the effect that loads the day
   const [version, setVersion] = useState(0)
   const reload = () => setVersion((v) => v + 1)
+  // The weight's chart and list, instead of the day, until its back link
+  const [showWeight, setShowWeight] = useState(false)
 
   // Reloaded after every change too: a chip shows how much was logged last time
   useEffect(() => {
@@ -588,6 +594,11 @@ export default function TodayPage({
   // Data still showing the previous day counts as not loaded yet
   const current = data?.summary.eaten_on === day ? data : null
 
+  // The weight's trend replaces Today until its back link
+  if (showWeight) {
+    return <WeightView token={token} unit={weightUnit} onBack={() => setShowWeight(false)} />
+  }
+
   return (
     <div className="page">
       {(() => {
@@ -657,6 +668,8 @@ export default function TodayPage({
           }}
         />
       )}
+      {/* Under the meals: logging food stays the first thing on screen */}
+      <WeightCard token={token} day={day} unit={weightUnit} onOpen={() => setShowWeight(true)} />
       <Toast message={toast} onDone={clearToast} />
     </div>
   )
