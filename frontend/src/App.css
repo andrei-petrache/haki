@@ -1484,3 +1484,42 @@ button.start-day-button {
   font-variant-numeric: tabular-nums;
   color: var(--muted);
 }
+
+/* Direction A: Profile and login */
+
+/* The wordmark on the login screen, as in the header */
+h1 {
+  font-family: var(--font-num);
+  letter-spacing: -0.01em;
+}
+
+.profile-email {
+  overflow-wrap: anywhere;
+}
+
+.profile-number {
+  font-size: 1rem;
+}
+
+.profile-number .kcal {
+  font-size: 2.25rem;
+  line-height: 1.1;
+}
+
+/* A select as wide as its card allows, so "Same as the browser (English)" shows whole */
+.pref-field select {
+  width: 100%;
+  max-width: 24rem;
+  box-sizing: border-box;
+  min-height: 44px;
+}
+
+/* Delete account: its own card, last, outlined in the error colour */
+.danger-zone {
+  border-color: color-mix(in srgb, var(--accent-text) 45%, var(--line));
+}
+
+.danger-zone .delete-account {
+  padding: 0;
+  border: none;
+}

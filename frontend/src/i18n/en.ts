@@ -32,6 +32,7 @@ export const en = {
   'auth.created': 'Your account is created; log in to start.',
 
   'profile.title': 'Welcome aboard!',
+  'profile.preferences': 'Preferences',
   'profile.email': 'Email',
   'profile.memberSince': 'Member since',
   'profile.crewNumber': 'Crew number',

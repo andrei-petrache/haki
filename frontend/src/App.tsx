@@ -169,68 +169,86 @@ function Profile({
 }) {
   const { t, locale } = useI18n()
   const [showCredits, setShowCredits] = useState(false)
-  const memberSince = new Date(user.created_at).toLocaleDateString(locale)
+  const memberSince = new Date(user.created_at).toLocaleDateString(locale, {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  })
 
   if (showCredits) return <Credits token={token} onBack={() => setShowCredits(false)} />
 
   return (
-    <section className="card">
-      <h2>{t('profile.title')}</h2>
-      <dl>
-        <dt>{t('profile.email')}</dt>
-        <dd>{user.email}</dd>
-        <dt>{t('profile.memberSince')}</dt>
-        <dd>{memberSince}</dd>
-        <dt>{t('profile.crewNumber')}</dt>
-        <dd>#{user.id}</dd>
-      </dl>
-      <div className="profile-target">
-        <p>
-          {t('today.dailyTarget')}:{' '}
-          <strong>{user.daily_calorie_target === null ? '—' : `${user.daily_calorie_target} kcal`}</strong>
+    <div className="page profile">
+      <section className="card">
+        <h2>{t('profile.title')}</h2>
+        <dl>
+          <dt>{t('profile.email')}</dt>
+          <dd className="profile-email">{user.email}</dd>
+          <dt>{t('profile.memberSince')}</dt>
+          <dd>{memberSince}</dd>
+          <dt>{t('profile.crewNumber')}</dt>
+          <dd>#{user.id}</dd>
+        </dl>
+        {/* Shown on a phone only, where the header has no Log out (App.css) */}
+        <button type="button" className="secondary profile-logout" onClick={onLogout}>
+          {t('nav.logOut')}
+        </button>
+      </section>
+
+      <section className="card profile-target">
+        <h3>{t('today.dailyTarget')}</h3>
+        <p className="profile-number">
+          {user.daily_calorie_target === null ? '—' : <span className="kcal">{user.daily_calorie_target}</span>}
         </p>
         <TargetEditor token={token} target={user.daily_calorie_target} onSaved={onUserChange} />
-      </div>
-      <label className="date-field">
-        {t('profile.weightsIn')}
-        <select
-          value={weightUnit}
-          onChange={(event) => onWeightUnitChange(parseWeightUnit(event.target.value))}
-        >
-          <option value="kg">{t('profile.kilograms')}</option>
-          <option value="lb">{t('profile.pounds')}</option>
-        </select>
-      </label>
-      <p className="muted">{t('profile.unitNote')}</p>
-      <label className="date-field">
-        {t('profile.language')}
-        <select
-          value={localeChoice}
-          onChange={(event) => onLocaleChoiceChange(parseLocaleChoice(event.target.value))}
-        >
-          <option value="auto">
-            {t('profile.languageAuto', { language: LOCALE_NAMES[browserLocale] })}
-          </option>
-          {/* Each language in itself, so anyone can find their own */}
-          <option value="en" lang="en">
-            {LOCALE_NAMES.en}
-          </option>
-          <option value="ro" lang="ro">
-            {LOCALE_NAMES.ro}
-          </option>
-        </select>
-      </label>
-      <p className="muted">{t('profile.languageNote')}</p>
-      <ChangePassword token={token} onNewToken={onNewToken} />
-      <DeleteAccount token={token} email={user.email} onDeleted={onDeleted} />
-      <button type="button" className="link" onClick={() => setShowCredits(true)}>
-        {t('credits.open')}
-      </button>
-      {/* Shown on a phone only, where the header has no Log out (App.css) */}
-      <button type="button" className="secondary profile-logout" onClick={onLogout}>
-        {t('nav.logOut')}
-      </button>
-    </section>
+      </section>
+
+      <section className="card">
+        <h3>{t('profile.preferences')}</h3>
+        <label className="pref-field">
+          {t('profile.weightsIn')}
+          <select
+            value={weightUnit}
+            onChange={(event) => onWeightUnitChange(parseWeightUnit(event.target.value))}
+          >
+            <option value="kg">{t('profile.kilograms')}</option>
+            <option value="lb">{t('profile.pounds')}</option>
+          </select>
+        </label>
+        <p className="muted small">{t('profile.unitNote')}</p>
+        <label className="pref-field">
+          {t('profile.language')}
+          <select
+            value={localeChoice}
+            onChange={(event) => onLocaleChoiceChange(parseLocaleChoice(event.target.value))}
+          >
+            <option value="auto">
+              {t('profile.languageAuto', { language: LOCALE_NAMES[browserLocale] })}
+            </option>
+            {/* Each language in itself, so anyone can find their own */}
+            <option value="en" lang="en">
+              {LOCALE_NAMES.en}
+            </option>
+            <option value="ro" lang="ro">
+              {LOCALE_NAMES.ro}
+            </option>
+          </select>
+        </label>
+        <p className="muted small">{t('profile.languageNote')}</p>
+      </section>
+
+      <section className="card">
+        <ChangePassword token={token} onNewToken={onNewToken} />
+        <button type="button" className="link" onClick={() => setShowCredits(true)}>
+          {t('credits.open')}
+        </button>
+      </section>
+
+      {/* Last and apart: the one step that cannot be undone */}
+      <section className="card danger-zone">
+        <DeleteAccount token={token} email={user.email} onDeleted={onDeleted} />
+      </section>
+    </div>
   )
 }
 
