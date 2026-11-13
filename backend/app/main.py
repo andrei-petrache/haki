@@ -16,6 +16,7 @@ from app.db import database_is_reachable
 from app.entries import router as entries_router
 from app.errors import ErrorCode, error_response, install_error_handlers
 from app.exercises import router as exercises_router
+from app.export import router as export_router
 from app.food_search import router as food_search_router
 from app.foods import router as foods_router
 from app.metrics import record_request, start_metrics_server
@@ -60,6 +61,7 @@ app.include_router(programs_router)
 app.include_router(catalog_router)
 app.include_router(body_router)
 app.include_router(password_reset_router)
+app.include_router(export_router)
 # Every HTTPException and every 422 answers {"detail", "code"} (app/errors.py)
 install_error_handlers(app)
 # Outermost: it also counts responses from the exception handlers below
