@@ -1726,3 +1726,160 @@ h1 {
   width: 100%;
   box-sizing: border-box;
 }
+
+/* The week at a glance: a line on Today, then the week's screen */
+
+button.week-summary,
+button.week-summary:hover:not(:disabled) {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  text-align: left;
+  font-weight: 500;
+  color: var(--text);
+  background: var(--surface);
+}
+
+.week-summary .grow {
+  display: flex;
+  flex-direction: column;
+}
+
+.week-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.week-head button.icon {
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0;
+}
+
+.week-hero .big {
+  font-size: 2.6rem;
+  line-height: 1.1;
+}
+
+/* Columns from one baseline, a mark at each day's target */
+.kcal-columns {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 6px;
+  align-items: end;
+}
+
+.kcal-column {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.kcal-track {
+  position: relative;
+  width: 100%;
+  max-width: 24px;
+  border-bottom: 1px solid var(--line);
+}
+
+.kcal-bar {
+  position: absolute;
+  inset: auto 0 0 0;
+  border-radius: 4px 4px 0 0;
+  background: var(--muted);
+}
+
+.kcal-bar.over {
+  background: var(--accent-fill);
+}
+
+.kcal-target {
+  position: absolute;
+  left: -3px;
+  right: -3px;
+  height: 2px;
+  background: var(--text);
+  box-shadow: 0 0 0 1px var(--surface);
+}
+
+.chart-legend .swatch {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+}
+
+.chart-legend .swatch.target {
+  height: 2px;
+  background: var(--text);
+}
+
+.chart-legend .swatch.over {
+  background: var(--accent-fill);
+}
+
+.week-stats {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.25rem 0.75rem;
+}
+
+.week-stats > div {
+  display: flex;
+  flex-direction: column;
+}
+
+.week-stats dd {
+  font-size: 1.4rem;
+}
+
+/* Volume by muscle: name, a bar against the largest, the value */
+.muscle-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.muscle-bars li {
+  display: grid;
+  grid-template-columns: minmax(6rem, 0.9fr) minmax(0, 1.4fr) auto;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 0.9rem;
+}
+
+.muscle-track {
+  height: 10px;
+  border-radius: 5px;
+  background: var(--raised);
+  overflow: hidden;
+}
+
+.muscle-fill {
+  display: block;
+  height: 100%;
+  border-radius: 5px;
+  background: var(--muted);
+}
+
+.muscle-value {
+  font-family: var(--font-num);
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.week-days > li {
+  flex-wrap: nowrap;
+}
+
+.week-day-workouts {
+  min-width: 6.5rem;
+  text-align: right;
+}
