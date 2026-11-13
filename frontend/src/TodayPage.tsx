@@ -13,11 +13,13 @@ import {
   fetchRecentFoods,
   fetchSummary,
 } from './api'
-import type { DailySummary, Food, MealEntry, MealType } from './api'
+import type { DailySummary, Food, MealEntry, MealEntryInput, MealType, QuickEntryInput } from './api'
 import { defaultCopyDay } from './copyTarget'
 import FoodLogger from './FoodLogger'
 import { MEAL_LABELS, entryName, headline, keepOrder, mealForHour } from './logging'
 import DayChoice from './DayChoice'
+import { flushOutbox, loadOutbox, logOrQueue, newKey } from './outbox'
+import type { OutboxItem } from './outbox'
 import Toast from './Toast'
 import type { WeightUnit } from './units'
 import { WeightCard, WeightView } from './Weight'
@@ -213,13 +215,14 @@ function optionalGrams(value: string): number | undefined {
  * label's kcal. Folded away until asked for; it works with no foods at all.
  */
 function QuickAddForm({
-  token,
   day,
   onAdded,
+  logQuick,
 }: {
-  token: string
   day: string
   onAdded: () => void
+  // Logs now, or (with no answer) keeps it on this device
+  logQuick: (body: QuickEntryInput, name: string) => Promise<unknown>
 }) {
   const { t } = useI18n()
   const [open, setOpen] = useState(false)
@@ -244,16 +247,19 @@ function QuickAddForm({
     setError(null)
     setBusy(true)
     try {
-      await createQuickEntry(token, {
-        eaten_on: day,
-        meal_type: mealType,
-        calories: Number(calories),
-        // Empty name: the server's default ("Quick add")
-        ...(name.trim() && { name: name.trim() }),
-        protein: optionalGrams(protein),
-        carbs: optionalGrams(carbs),
-        fat: optionalGrams(fat),
-      })
+      await logQuick(
+        {
+          eaten_on: day,
+          meal_type: mealType,
+          calories: Number(calories),
+          // Empty name: the server's default ("Quick add")
+          ...(name.trim() && { name: name.trim() }),
+          protein: optionalGrams(protein),
+          carbs: optionalGrams(carbs),
+          fat: optionalGrams(fat),
+        },
+        name.trim() || t('quick.open'),
+      )
       // Keep the meal: the next one is often for the same meal
       setName('')
       setCalories('')
@@ -459,8 +465,11 @@ export default function TodayPage({
   token,
   headerSlot,
   weightUnit,
+  userId,
 }: {
   token: string
+  // Whose entries the offline outbox holds: only theirs go with this token
+  userId: number
   // Where the day picker goes: the app header, next to the wordmark
   headerSlot: HTMLElement | null
   weightUnit: WeightUnit
@@ -484,6 +493,66 @@ export default function TodayPage({
   const reload = () => setVersion((v) => v + 1)
   // The weight's chart and list, instead of the day, until its back link
   const [showWeight, setShowWeight] = useState(false)
+  // Entries logged with no connection, waiting on this device (outbox.ts)
+  const [pending, setPending] = useState<OutboxItem[]>(() => loadOutbox(localStorage).filter((i) => i.owner === userId))
+  const refreshPending = useCallback(
+    () => setPending(loadOutbox(localStorage).filter((i) => i.owner === userId)),
+    [userId],
+  )
+  const sendItem = useCallback(
+    (item: OutboxItem) =>
+      item.kind === 'entry' ? createEntry(token, item.body, item.key) : createQuickEntry(token, item.body, item.key),
+    [token],
+  )
+  const flushing = useRef(false)
+  const flush = useCallback(async () => {
+    if (flushing.current) return
+    flushing.current = true
+    try {
+      const result = await flushOutbox(localStorage, userId, sendItem)
+      refreshPending()
+      if (result.sent > 0) {
+        setVersion((v) => v + 1)
+        setToast({ id: Date.now(), text: t('offline.sent', { count: String(result.sent) }) })
+      }
+      if (result.refused.length > 0) {
+        setError(result.refused.map((r) => t('offline.refused', { name: r.item.name, message: r.message })).join(' '))
+      }
+    } finally {
+      flushing.current = false
+    }
+  }, [userId, sendItem, refreshPending, t])
+
+  // On opening Today, and whenever the connection comes back
+  useEffect(() => {
+    void flush()
+    const online = () => void flush()
+    window.addEventListener('online', online)
+    return () => window.removeEventListener('online', online)
+  }, [flush])
+
+  /** Log now; with no answer, keep it here and say so (the totals wait). */
+  async function logOrKeep(kind: 'entry' | 'quick', body: MealEntryInput | QuickEntryInput, name: string) {
+    const item = {
+      key: newKey(),
+      owner: userId,
+      name,
+      created_at: new Date().toISOString(),
+      kind,
+      body,
+    } as OutboxItem
+    const result = await logOrQueue(localStorage, item, sendItem)
+    if ('queued' in result) {
+      refreshPending()
+      setToast({ id: Date.now(), text: t('offline.queued', { name }) })
+    } else {
+      // A connection again: anything still waiting goes now
+      void flush()
+    }
+    return result
+  }
+  const logEntry = (body: MealEntryInput, name: string) => logOrKeep('entry', body, name)
+  const logQuick = (body: QuickEntryInput, name: string) => logOrKeep('quick', body, name)
 
   // Reloaded after every change too: a chip shows how much was logged last time
   useEffect(() => {
@@ -629,6 +698,7 @@ export default function TodayPage({
           foods={foods}
           recent={recent}
           onMealChange={setMeal}
+          logEntry={logEntry}
           onLogged={(entry, name) => {
             reload()
             setToast({
@@ -650,7 +720,8 @@ export default function TodayPage({
           }}
         />
       )}
-      <QuickAddForm token={token} day={day} onAdded={reload} />
+      <QuickAddForm day={day} onAdded={reload} logQuick={logQuick} />
+      <PendingEntries items={pending.filter((item) => item.body.eaten_on === day)} />
 
       {current && (
         <EntryList
@@ -672,5 +743,28 @@ export default function TodayPage({
       <WeightCard token={token} day={day} unit={weightUnit} onOpen={() => setShowWeight(true)} />
       <Toast message={toast} onDone={clearToast} />
     </div>
+  )
+}
+
+/** What waits on this device for the shown day: not in the totals yet. */
+function PendingEntries({ items }: { items: OutboxItem[] }) {
+  const { t } = useI18n()
+  if (items.length === 0) return null
+  return (
+    <section className="card pending" aria-label={t('offline.pendingTitle')}>
+      <h3>{t('offline.pendingTitle')}</h3>
+      <ul className="rows">
+        {items.map((item) => (
+          <li key={item.key}>
+            <span className="grow">{item.name}</span>
+            <span className="muted small">
+              {t(MEAL_LABELS[item.body.meal_type])}
+              {item.kind === 'entry' ? ` · ${formatDecimal(item.body.grams)} g` : ` · ${formatKcal(item.body.calories)} kcal`}
+            </span>
+          </li>
+        ))}
+      </ul>
+      <p className="muted small">{t('offline.pendingNote')}</p>
+    </section>
   )
 }

@@ -34,6 +34,7 @@ import {
 } from './i18n/i18n'
 import type { Locale, LocaleChoice, MessageKey } from './i18n/i18n'
 import ProgramsPage from './ProgramsPage'
+import { dropOwner } from './outbox'
 import { RestBar } from './RestTimer'
 import { TOKEN_KEY, afterRejected } from './session'
 import TodayPage from './TodayPage'
@@ -513,7 +514,7 @@ function App({ resetToken }: { resetToken?: string | null }) {
       )}
       <Fragment key={adopted}>
       {user && tab === 'today' && (
-        <TodayPage token={token} headerSlot={headerSlot} weightUnit={weightUnit} />
+        <TodayPage token={token} headerSlot={headerSlot} weightUnit={weightUnit} userId={user.id} />
       )}
       {user && tab === 'foods' && <FoodsPage token={token} />}
       {user && tab === 'workouts' && (
@@ -542,6 +543,8 @@ function App({ resetToken }: { resetToken?: string | null }) {
           browserLocale={browserLocale}
           onNewToken={handleLoggedIn}
           onDeleted={() => {
+            // Nothing of the account stays on this device
+            dropOwner(localStorage, user.id)
             handleLogout()
             setFarewell(true)
           }}
