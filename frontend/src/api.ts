@@ -165,10 +165,10 @@ export function describeError(err: unknown): string {
   return err instanceof ApiError ? err.message : tActive('app.cannotReach')
 }
 
-let onUnauthorized: (() => void) | null = null
+let onUnauthorized: ((rejected: string) => void) | null = null
 
-/** Register what to do when the server rejects our token (e.g. it expired). */
-export function setUnauthorizedHandler(handler: (() => void) | null): void {
+/** Register what to do when the server rejects a token (e.g. it expired); it gets that token. */
+export function setUnauthorizedHandler(handler: ((rejected: string) => void) | null): void {
   onUnauthorized = handler
 }
 
@@ -187,7 +187,7 @@ async function send<T>(
 
   if (!response.ok) {
     // Only for authenticated calls: a 401 from /auth/login means wrong password
-    if (response.status === 401 && token) onUnauthorized?.()
+    if (response.status === 401 && token) onUnauthorized?.(token)
     // Our own text for both: they come from Nginx too, as HTML, not our JSON.
     // 429: this client sent too many login/signup attempts (Nginx rate limit)
     if (response.status === 429) {

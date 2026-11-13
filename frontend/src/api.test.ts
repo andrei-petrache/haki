@@ -76,7 +76,8 @@ describe('request errors', () => {
     expect(onUnauthorized).not.toHaveBeenCalled()
 
     await errorFrom(fetchFoods('expired-token'))
-    expect(onUnauthorized).toHaveBeenCalledOnce()
+    // With the token refused: another tab may hold a newer one
+    expect(onUnauthorized).toHaveBeenCalledExactlyOnceWith('expired-token')
   })
 })
 

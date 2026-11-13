@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Fragment, useCallback, useEffect, useMemo, useState } from 'react'
 import DeleteAccount from './DeleteAccount'
 import ChangePassword from './ChangePassword'
 import TargetEditor from './TargetEditor'
@@ -32,13 +32,12 @@ import {
 import type { Locale, LocaleChoice, MessageKey } from './i18n/i18n'
 import ProgramsPage from './ProgramsPage'
 import { RestBar } from './RestTimer'
+import { TOKEN_KEY, afterRejected } from './session'
 import TodayPage from './TodayPage'
 import { loadWeightUnit, parseWeightUnit, saveWeightUnit } from './units'
 import type { WeightUnit } from './units'
 import WorkoutsPage from './WorkoutsPage'
 import './App.css'
-
-const TOKEN_KEY = 'haki_token'
 
 type Tab = 'today' | 'foods' | 'workouts' | 'programs' | 'profile'
 
@@ -329,6 +328,9 @@ function App() {
   const [loadError, setLoadError] = useState<string | null>(null)
   // Bumped by "Try again", to re-run the effect that loads the profile
   const [loadAttempt, setLoadAttempt] = useState(0)
+  // Bumped when this tab takes up a token another tab stored: the pages
+  // start afresh with it, instead of keeping the error the old one got
+  const [adopted, setAdopted] = useState(0)
 
   function handleLoggedIn(newToken: string) {
     localStorage.setItem(TOKEN_KEY, newToken)
@@ -344,9 +346,19 @@ function App() {
     setLoadError(null)
   }, [])
 
-  // Any 401 on an authenticated call means the token expired: log out
+  // A 401 on an authenticated call: the token expired or was signed out. If
+  // another tab stored a newer one meanwhile (a password change there), carry
+  // on with it, and never remove it; else log out
   useEffect(() => {
-    setUnauthorizedHandler(handleLogout)
+    setUnauthorizedHandler((rejected) => {
+      const newer = afterRejected(localStorage, rejected)
+      if (newer) {
+        setToken(newer)
+        setAdopted((count) => count + 1)
+      } else {
+        handleLogout()
+      }
+    })
     return () => setUnauthorizedHandler(null)
   }, [handleLogout])
 
@@ -428,6 +440,7 @@ function App() {
           </button>
         </section>
       )}
+      <Fragment key={adopted}>
       {user && tab === 'today' && (
         <TodayPage token={token} headerSlot={headerSlot} />
       )}
@@ -473,6 +486,7 @@ function App() {
           onUserChange={setUser}
         />
       )}
+      </Fragment>
     </main>
     </I18nContext.Provider>
   )
