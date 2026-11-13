@@ -1544,3 +1544,136 @@ h1 {
   margin: 0;
   cursor: pointer;
 }
+
+/* Body weight: the card on Today, the trend's chart and list */
+
+.weight-trend .kcal {
+  font-size: 1.6rem;
+}
+
+.weigh-in {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 0.5rem 0.75rem;
+}
+
+.weigh-in input {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 44px;
+  font-family: var(--font-num);
+  font-size: 1.1rem;
+}
+
+.weigh-in button {
+  min-height: 44px;
+}
+
+.weigh-in .error,
+.weigh-in .notice {
+  grid-column: 1 / -1;
+}
+
+.range-choice {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.weight-chart {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.chart-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 1rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.chart-legend li {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.chart-frame {
+  position: relative;
+}
+
+.chart-frame svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  touch-action: pan-y;
+}
+
+/* Recessive grid and axis text; the data is the only loud thing */
+.weight-chart .grid {
+  stroke: var(--line);
+  stroke-width: 1;
+}
+
+.weight-chart .tick {
+  font-family: var(--font-num);
+  font-size: 11px;
+  fill: var(--muted);
+}
+
+.weight-chart .trend {
+  fill: none;
+  stroke: var(--text);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* A dot with a ring of the card's colour, legible where it crosses the line */
+.weight-chart .dot {
+  fill: var(--muted);
+  stroke: var(--surface);
+  stroke-width: 2;
+}
+
+.weight-chart .dot.outlier {
+  fill: var(--surface);
+  stroke: var(--muted);
+}
+
+.weight-chart .crosshair {
+  stroke: var(--muted);
+  stroke-width: 1;
+}
+
+.chart-tooltip {
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
+  max-width: 14rem;
+  padding: 0.35rem 0.6rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-cell);
+  font-size: 0.85rem;
+  white-space: nowrap;
+  color: var(--text);
+  background: var(--raised);
+  pointer-events: none;
+}
+
+.weight-list > li {
+  flex-wrap: nowrap;
+}
+
+.weight-list .kcal {
+  font-variant-numeric: tabular-nums;
+}
+
+.weight-list-trend {
+  min-width: 4.5rem;
+  text-align: right;
+}

@@ -460,7 +460,7 @@ function App() {
       )}
       <Fragment key={adopted}>
       {user && tab === 'today' && (
-        <TodayPage token={token} headerSlot={headerSlot} />
+        <TodayPage token={token} headerSlot={headerSlot} weightUnit={weightUnit} />
       )}
       {user && tab === 'foods' && <FoodsPage token={token} />}
       {user && tab === 'workouts' && (
