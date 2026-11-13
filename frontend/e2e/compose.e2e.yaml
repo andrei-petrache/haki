@@ -22,6 +22,18 @@ services:
       # Body weight is off by default (consent comes with phase 4); the
       # end-to-end tests cover it switched on
       BODY_WEIGHT_ENABLED: "true"
+      # The password reset too, its e-mails going to Mailpit below; links
+      # point at the stack's own frontend
+      PASSWORD_RESET_ENABLED: "true"
+      MAIL_BACKEND: smtp
+      SMTP_HOST: mailpit
+      SMTP_PORT: "1025"
+      PUBLIC_BASE_URL: http://frontend:8080
+
+  # Keeps every e-mail the backend sends and sends none on; the tests read
+  # them through its HTTP API (port 8025) on the stack's own network
+  mailpit:
+    image: axllent/mailpit:v1.33.1@sha256:aef2aacc11f075ec0fb6874275ee4a421e688e11a96ebb296134d1735c7761ce
 
   frontend:
     image: haki-frontend:e2e

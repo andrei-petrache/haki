@@ -59,7 +59,7 @@ fi
 } >"$env_file"
 
 compose build backend frontend
-compose up -d --no-build --wait --wait-timeout 300 db migrate backend frontend
+compose up -d --no-build --wait --wait-timeout 300 db migrate backend frontend mailpit
 # The catalog, as staging and prod get it: the import command in the backend
 # image (an upsert from the data files it ships); migrate has the database
 # settings and nothing else

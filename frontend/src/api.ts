@@ -751,3 +751,74 @@ export function fetchCurrentTarget(token: string, day: string): Promise<CurrentT
 export function setGoal(token: string, mode: TargetMode, goalKgPerWeek: number | null): Promise<User> {
   return request<User>('/auth/me/goal', json('PUT', { target_mode: mode, goal_kg_per_week: goalKgPerWeek }), token)
 }
+
+// Trust (phase 4): password reset and data export (backend's
+// feat/reset-and-export). The reset answers 404 while the server has it
+// switched off (PASSWORD_RESET_ENABLED).
+
+/** Ask for a reset link. Always 202 with the same body, whether the e-mail has an account or not. */
+export function requestPasswordReset(email: string): Promise<void> {
+  return request<void>('/auth/password-reset', json('POST', { email }))
+}
+
+/** Set a new password with the link's token; signs out every other session. 400 invalid_reset_token. */
+export function confirmPasswordReset(token: string, newPassword: string): Promise<{ access_token: string }> {
+  return request<{ access_token: string }>(
+    '/auth/password-reset/confirm',
+    json('POST', { token, new_password: newPassword }),
+  )
+}
+
+/** The export's file name from Content-Disposition, else the server's own pattern. */
+export function exportFileName(disposition: string | null, today: string): string {
+  const match = disposition?.match(/filename="?([^";]+)"?/)
+  // Only a plain name (letters, digits, dot, dash, underscore): never a path
+  const name = match?.[1]
+  return name && /^[\w.-]+$/.test(name) ? name : `haki-export-${today}.json`
+}
+
+/**
+ * Whether an export's text is whole: the server ends a complete file with
+ * "complete": true, so a stream cut short by an error lacks it.
+ */
+export function exportIsComplete(text: string): boolean {
+  try {
+    const data: unknown = JSON.parse(text)
+    return typeof data === 'object' && data !== null && (data as { complete?: unknown }).complete === true
+  } catch {
+    return false
+  }
+}
+
+/**
+ * Everything the account holds, as a JSON file: fetched with the token in
+ * the Authorization header (never in a URL) and checked for completeness
+ * before it is offered. 403 wrong_password.
+ */
+export async function exportAccount(token: string, password: string, today: string): Promise<{ blob: Blob; name: string }> {
+  const response = await fetch(`${API_BASE}/auth/me/export`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ password }),
+  })
+  if (!response.ok) {
+    const body: unknown = await response.json().catch(() => null)
+    if (response.status === 401) onUnauthorized?.(token)
+    if (response.status === 429) throw new ApiError(429, tActive('api.tooManyAttempts'))
+    if (response.status === 503) throw new ApiError(503, tActive('api.unavailable'))
+    throw new ApiError(response.status, errorMessage(body))
+  }
+  const text = await response.text()
+  if (!exportIsComplete(text)) throw new ApiError(500, tActive('export.incomplete'))
+  return {
+    blob: new Blob([text], { type: 'application/json' }),
+    name: exportFileName(response.headers.get('Content-Disposition'), today),
+  }
+}
+
+/** Which optional features the server has switched on; no account needed, cached a minute. */
+export type Features = { password_reset: boolean; body_weight: boolean; export: boolean }
+
+export function fetchFeatures(): Promise<Features> {
+  return request<Features>('/features')
+}
