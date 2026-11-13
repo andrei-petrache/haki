@@ -1104,7 +1104,20 @@ def from_recipe(recipe: Recipe, usda: dict[str, dict]) -> tuple[dict, str]:
     )
     if recipe.note:
         description += f" {recipe.note}"
+    if OIL_UPTAKE in recipe.note:
+        description += f" {oil_effect(recipe, usda, cooked)}"
     return values, description
+
+
+def oil_effect(recipe: Recipe, usda: dict[str, dict], cooked: float) -> str:
+    """What our oil uptake assumption weighs: 5 points of the coated raw
+    weight more or less oil, in kcal per 100 g of the dish (review)."""
+    coated = sum(grams for name, grams in recipe.ingredients if name != "oil")
+    kcal = usda[USDA["oil"]]["kcal"] * 0.05 * coated / 100 / cooked * 100
+    return (
+        "Each 5 points of oil uptake more or less move it by about "
+        f"{kcal:.0f} kcal/100 g."
+    )
 
 
 def from_food(name: str, usda: dict[str, dict], prefix: str) -> tuple[dict, str]:
