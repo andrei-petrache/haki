@@ -29,6 +29,20 @@ map "$request_method:$uri" $auth_limit_key {
 # 5 requests per minute per IP; 10 MB of state tracks ~160,000 addresses
 limit_req_zone $auth_limit_key zone=auth:10m rate=5r/m;
 
+# Barcode lookups ask Open Food Facts on a miss: per client IP, apart from
+# the auth budget, 30 a minute with a burst of 10 (the backend also limits
+# per user, 30 a minute)
+limit_req_zone $binary_remote_addr zone=barcode:10m rate=30r/m;
+
+# Every API answer carries the account's data or is about it: never kept in
+# a shared cache (a future CDN or proxy). The /api locations set
+# $api_response; the header itself is added at server level, since an
+# add_header inside a location would drop the security headers below.
+map $api_response $api_cache_control {
+    1       "no-store";
+    default "";
+}
+
 # Retry-After on 429 responses and on the 503 that replaces an unreachable
 # backend (an empty value sends no header). The backend's own 503 already
 # carries one, so $backend_unavailable tells the two apart.
@@ -61,6 +75,8 @@ server {
     # violation (layout.e2e.ts).
     add_header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'" always;
     add_header Retry-After $retry_after always;
+    # Empty (so not sent) outside /api: pages and assets keep "expires"
+    add_header Cache-Control $api_cache_control always;
 
     limit_req_status 429;
     limit_req_log_level warn;
@@ -79,6 +95,7 @@ server {
     # A variable in proxy_pass is what makes Nginx resolve at request time
     set $backend ${BACKEND_URL};
     set $backend_unavailable "";
+    set $api_response "";
 
     # An unreachable backend (no endpoints while every pod fails readiness,
     # a name that does not resolve, a refused connection) makes Nginx itself
@@ -122,6 +139,16 @@ server {
     # rewrite strips it; the backend gets the changed path and the query
     # string.
     location /api/ {
+        set $api_response 1;
+        rewrite ^/api(/.*)$ $1 break;
+        proxy_pass $backend;
+    }
+
+    # Barcode lookups: their own per-IP budget (the zone above), then the
+    # same proxying. A longer prefix wins over /api/.
+    location /api/barcode/ {
+        set $api_response 1;
+        limit_req zone=barcode burst=10 nodelay;
         rewrite ^/api(/.*)$ $1 break;
         proxy_pass $backend;
     }
@@ -131,6 +158,7 @@ server {
     # after this rewrite): a burst of 5 at once, then one every 12 s, else
     # 429. A regex location wins over the /api/ prefix above.
     location ~ ^/api/auth/(login|signup|me|me/password|me/export|password-reset|password-reset/confirm)$ {
+        set $api_response 1;
         limit_req zone=auth burst=5 nodelay;
         rewrite ^/api(/.*)$ $1 break;
         proxy_pass $backend;
@@ -138,6 +166,7 @@ server {
 
     location @backend_unavailable {
         set $backend_unavailable 1;
+        set $api_response 1;
         default_type application/json;
         return 503 '{"detail":"Service temporarily unavailable, try again shortly"}\n';
     }

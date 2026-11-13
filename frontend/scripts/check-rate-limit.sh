@@ -94,6 +94,14 @@ health_csp="$(curl -s -o /dev/null -D - "$base/health" | tr -d '\r' | awk -F': '
 echo "CSP on / , /health, 503:   ${app_csp:+set} ${health_csp:+set} ${csp:+set}"
 [[ "$app_csp" == "$want_csp" && "$health_csp" == "$want_csp" && "$csp" == "$want_csp" ]] ||
   fail "every answer should carry the strict Content-Security-Policy: got '${app_csp}'"
+
+# API answers are never stored in a shared cache; pages and assets keep
+# their own caching ("expires"), with the security headers still there
+api_cc="$(awk -F': ' 'tolower($1) == "cache-control" {print $2}' <<<"$headers")"
+app_cc="$(curl -s -o /dev/null -D - "$base/" | tr -d '\r' | awk -F': ' 'tolower($1) == "cache-control" {print $2}')"
+echo "Cache-Control /api 503, /: ${api_cc:-<missing>}, ${app_cc:-<none>}"
+[[ "$api_cc" == no-store && "$app_cc" != *no-store* ]] ||
+  fail "API answers should carry Cache-Control: no-store, and pages should not"
 stop
 
 start --network-alias backend
@@ -130,6 +138,21 @@ odd+=" $(status POST /api/auth/password%2Dreset) $(status POST /api//auth/me/exp
 echo "Odd spellings x7:          $odd"
 [[ "$odd" == "429 429 429 429 429 429 429" ]] ||
   fail "a double slash or a percent-encoded letter must not escape the limit"
+
+# A 429 from the limit is an API answer too: no-store, and the CSP kept
+limited="$(curl -s -o /dev/null -D - -X POST "$base/api/auth/login" | tr -d '\r')"
+limited_cc="$(awk -F': ' 'tolower($1) == "cache-control" {print $2}' <<<"$limited")"
+limited_csp="$(awk -F': ' 'tolower($1) == "content-security-policy" {print $2}' <<<"$limited")"
+echo "429 Cache-Control, CSP:    ${limited_cc:-<missing>}, ${limited_csp:+set}"
+[[ "$limited_cc" == no-store && "$limited_csp" == "$want_csp" ]] ||
+  fail "a 429 should carry Cache-Control: no-store and the CSP"
+
+# Barcode lookups have their own budget, apart from the exhausted auth one:
+# 30 a minute per IP, a burst of 10, so 11 at once, then 429
+barcode="$(statuses 13 GET /api/barcode/4006381333931)"
+echo "GET /api/barcode x13:      $barcode"
+[[ "$barcode" == "503 503 503 503 503 503 503 503 503 503 503 429 429 " ]] ||
+  fail "barcode lookups: 11 through (1 + burst of 10), then 429, whatever the auth budget"
 
 # By default nothing is trusted: a client's own X-Forwarded-For does not buy
 # it a fresh budget
