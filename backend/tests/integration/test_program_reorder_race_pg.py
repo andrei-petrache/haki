@@ -5,7 +5,7 @@ cannot show two requests racing. This one commits for real, then deletes
 the user, whose rows go with it (ON DELETE CASCADE): the database ends empty.
 """
 
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from concurrent.futures import ThreadPoolExecutor
 from threading import Barrier
 from typing import Any
@@ -107,3 +107,53 @@ def test_two_reorders_at_once_never_fail_with_a_server_error(
     days = client.get(f"/programs/{plan['id']}", headers=headers).json()["days"]
     assert sorted(d["position"] for d in days) == list(range(1, 8))
     assert sorted(d["id"] for d in days) == sorted(d["id"] for d in plan["days"])
+
+
+def after(barrier: Barrier, send: Callable[..., Any], *args: Any, **kwargs: Any) -> int:
+    """Send one request once the other thread is ready too; its status."""
+    barrier.wait()
+    return send(*args, **kwargs).status_code
+
+
+def test_starting_a_day_an_edit_drops_is_201_or_404_never_500(
+    committing_client: TestClient,
+) -> None:
+    client = committing_client
+    headers = register_and_login(client, EMAIL)
+    squat = client.post("/exercises", json={"name": "Squat"}, headers=headers)
+    exercise_id = squat.json()["id"]
+    planned = {"exercise_id": exercise_id, "sets": 3, "reps": 5, "weight_kg": 60}
+
+    starts: list[int] = []
+    for round_ in range(20):
+        body = {
+            "name": f"Plan {round_}",
+            "days": [
+                {"position": 1, "name": "Push", "exercises": [planned]},
+                {"position": 2, "name": "Pull", "exercises": [planned]},
+            ],
+        }
+        plan = client.post("/programs", json=body, headers=headers).json()
+        push = plan["days"][0]
+        # The edit keeps Pull and drops Push
+        kept = {**body, "days": [{"id": plan["days"][1]["id"], **body["days"][1]}]}
+        barrier = Barrier(2)
+        start_url = f"/programs/{plan['id']}/days/{push['id']}/workouts"
+        workout = {"performed_on": "2026-11-13"}
+
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            started = pool.submit(
+                after, barrier, client.post, start_url, json=workout, headers=headers
+            )
+            edited = pool.submit(
+                after,
+                barrier,
+                client.put,
+                f"/programs/{plan['id']}",
+                json=kept,
+                headers=headers,
+            )
+            starts.append(started.result())
+            assert edited.result() == 200
+
+    assert set(starts) <= {201, 404}, starts

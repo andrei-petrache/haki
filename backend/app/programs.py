@@ -1,3 +1,4 @@
+from typing import Literal
 from uuid import uuid4
 
 from fastapi import APIRouter, Response, status
@@ -46,14 +47,21 @@ def check_own(program: Program | None, user: User) -> Program:
 
 
 def get_own_program(
-    session: Session, user: User, program_id: int, lock: bool = False
+    session: Session,
+    user: User,
+    program_id: int,
+    lock: Literal["update", "share"] | None = None,
 ) -> Program:
     """Load one of the user's programs with everything in it, or reject with 404.
 
     The days, their exercises and the exercise names come in a fixed number
-    of queries, however many there are (no query per day or exercise). With
-    `lock`, the program's row is locked until the commit (FOR UPDATE), and
-    its days are read after the lock is held, so they are current.
+    of queries, however many there are (no query per day or exercise).
+
+    With `lock`, the program's row stays locked until the commit: "update"
+    for an edit (FOR UPDATE: one edit at a time), "share" to read a plan
+    that must not change meanwhile (FOR SHARE: waits for an edit, not for
+    other readers). The days are read after the lock is held, so they are
+    current.
     """
     query = (
         select(Program)
@@ -64,10 +72,13 @@ def get_own_program(
         )
         .where(Program.id == program_id)
     )
-    if lock:
+    if lock is not None:
         # The days and exercises come in separate SELECTs (selectinload),
-        # which run after this one, so only the program's row is locked
-        query = query.with_for_update(of=Program)
+        # which run after this one, so only the program's row is locked.
+        # populate_existing: rows already in the session are overwritten
+        # with what is read under the lock, never kept stale.
+        query = query.with_for_update(of=Program, read=lock == "share")
+        query = query.execution_options(populate_existing=True)
     return check_own(session.scalar(query), user)
 
 
@@ -265,7 +276,7 @@ def replace_program(
     # Two edits of one program at once would move the same day rows in
     # opposite orders and could deadlock: the second waits for the first to
     # commit, then works on what it wrote
-    program = get_own_program(session, current_user, program_id, lock=True)
+    program = get_own_program(session, current_user, program_id, lock="update")
     # Everything is checked before anything changes: another program's day
     # (even the user's own) is a 404, as in start_workout
     current = {day.id for day in program.days}
@@ -316,7 +327,10 @@ def start_workout(
     day in program_day_id, for the plan next to it; deleting or replacing
     the day only clears that link (ON DELETE SET NULL).
     """
-    program = get_own_program(session, current_user, program_id)
+    # FOR SHARE: an edit that drops this day meanwhile would make the insert
+    # below fail its foreign key (a 500); this waits for the edit to commit
+    # and then sees the day gone, a clean 404
+    program = get_own_program(session, current_user, program_id, lock="share")
     # A day of another program, even one of the user's own, is a 404 as well
     day = next((day for day in program.days if day.id == day_id), None)
     if day is None:
