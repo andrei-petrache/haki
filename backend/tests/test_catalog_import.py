@@ -17,11 +17,14 @@ from app.catalog_import import (
     EXIT_OK,
     NAME_MAX,
     BadData,
+    FoodData,
+    FoodFile,
     check_files,
     import_catalog,
     load_files,
     main,
     read_data_file,
+    read_json,
 )
 from app.catalog_search import normalize, query_words, search_text
 from app.models import (
@@ -36,10 +39,17 @@ from app.models import (
 EditFile = Callable[[str, Callable[[dict[str, Any]], None]], None]
 
 
+def all_foods(directory: Path = DATA_DIR) -> list[FoodData]:
+    """Every catalog food: USDA's (foods.json) and our estimates."""
+    foods, _ = load_files(directory)
+    staples = FoodFile.model_validate(read_json(directory / "ro_staples.json"))
+    return [*foods.foods, *staples.foods]
+
+
 @pytest.fixture
 def data_dir(tmp_path: Path) -> Path:
     """A copy of the shipped data files, safe to edit."""
-    for name in ("foods.json", "exercises.json"):
+    for name in ("foods.json", "ro_staples.json", "exercises.json"):
         shutil.copy(DATA_DIR / name, tmp_path / name)
     return tmp_path
 
@@ -113,10 +123,10 @@ def test_first_import_inserts_everything(session: Session) -> None:
 
     counts = import_catalog(session)
 
-    assert counts["catalog_sources"].inserted == 2
-    assert counts["catalog_foods"].inserted == len(foods.foods)
+    assert counts["catalog_sources"].inserted == 3
+    assert counts["catalog_foods"].inserted == len(all_foods())
     assert counts["catalog_exercises"].inserted == len(exercises.exercises)
-    assert count(session, CatalogFood) == len(foods.foods)
+    assert count(session, CatalogFood) == len(all_foods())
     assert count(session, CatalogExercise) == len(exercises.exercises)
 
 
@@ -127,7 +137,7 @@ def test_second_import_changes_nothing(session: Session) -> None:
     counts = import_catalog(session)
 
     assert all(c.inserted == c.updated == 0 for c in counts.values())
-    assert counts["catalog_sources"].unchanged == 2
+    assert counts["catalog_sources"].unchanged == 3
     assert set(session.scalars(select(CatalogFood.id))) == ids
 
 
@@ -291,10 +301,10 @@ def test_small_batches_import_the_same_as_one_batch(session: Session) -> None:
 
     counts = import_catalog(session, batch_size=7)
 
-    assert counts["catalog_foods"].inserted == len(foods.foods)
+    assert counts["catalog_foods"].inserted == len(all_foods())
     assert counts["catalog_exercises"].inserted == len(exercises.exercises)
     names = set(session.scalars(select(CatalogFood.name)))
-    assert names == {food.name for food in foods.foods}
+    assert names == {food.name for food in all_foods()}
 
 
 def test_small_batches_update_only_what_changed(
@@ -313,7 +323,7 @@ def test_small_batches_update_only_what_changed(
 
     assert counts["catalog_foods"].updated == 2
     assert counts["catalog_foods"].inserted == 0
-    total = len(load_files(data_dir)[0].foods)
+    total = len(all_foods(data_dir))
     assert counts["catalog_foods"].unchanged == total - 2
     assert catalog_food(session, "171077").protein_per_100g == 23.1
     assert catalog_food(session, last_ref).name_ro == "Ultimul aliment"
@@ -398,6 +408,7 @@ def test_check_files_counts_the_items() -> None:
 
     assert totals == {
         "foods.json": len(foods.foods),
+        "ro_staples.json": len(all_foods()) - len(foods.foods),
         "exercises.json": len(exercises.exercises),
     }
 
@@ -502,7 +513,7 @@ def test_command_imports_and_exits_0(
     assert main() == EXIT_OK
 
     with Session(engine) as check:
-        assert count(check, CatalogFood) == len(load_files(DATA_DIR)[0].foods)
+        assert count(check, CatalogFood) == len(all_foods())
     engine.dispose()
 
 

@@ -393,17 +393,22 @@ RO_STAPLES = [
     # Brânzeturi
     (
         "telemea-de-vaca",
-        "Telemea de vacă",
-        "Cow's milk telemea cheese (Telemea de vacă)",
+        "Telemea de vacă, 21% grăsime",
+        "Cow's milk telemea cheese, 21% fat (Telemea de vacă, 21% grăsime)",
         "analogue",
     ),
     (
         "telemea-de-oaie",
-        "Telemea de oaie",
-        "Sheep's milk telemea cheese (Telemea de oaie)",
+        "Telemea de oaie, 21% grăsime",
+        "Sheep's milk telemea cheese, 21% fat (Telemea de oaie, 21% grăsime)",
         "analogue",
     ),
-    ("cascaval", "Cașcaval", "Cascaval cheese (Cașcaval)", "analogue"),
+    (
+        "cascaval",
+        "Cașcaval, 27% grăsime",
+        "Cascaval cheese, 27% fat (Cașcaval, 27% grăsime)",
+        "analogue",
+    ),
     (
         "branza-de-burduf",
         "Brânză de burduf",
@@ -414,8 +419,8 @@ RO_STAPLES = [
     ("cas", "Caș", "Fresh sheep curd cheese (Caș)", "analogue"),
     (
         "branza-de-vaci",
-        "Brânză de vaci",
-        "Fresh cow's cheese (Brânză de vaci)",
+        "Brânză de vaci, 4% grăsime",
+        "Fresh cow's cheese, 4% fat (Brânză de vaci, 4% grăsime)",
         "analogue",
     ),
     ("branza-topita", "Brânză topită", "Processed cheese (Brânză topită)", "analogue"),
@@ -486,10 +491,10 @@ RO_STAPLES = [
 NOTES = {
     # Fat varies a lot by producer: the name states the fat assumed, so
     # whoever has the label knows to enter their own food instead
-    "branza-de-vaci": "0.1-20% fat by producer: assume about 5%, the most common",
-    "telemea-de-vaca": "fat by producer: state the assumed % in the name",
-    "telemea-de-oaie": "fat by producer: state the assumed % in the name",
-    "cascaval": "fat by producer: state the assumed % in the name",
+    "branza-de-vaci": "0.1-20% fat by producer: the name states 4%, its analogue's",
+    "telemea-de-vaca": "fat by producer: the name states 21%, feta's",
+    "telemea-de-oaie": "fat by producer: the name states 21%, feta's",
+    "cascaval": "fat by producer: the name states 27%, gouda's",
     # USDA's halva is tahini halva: sunflower halva differs in fat and protein
     "halva": "a recipe of sunflower seeds and sugar",
     # Fried: USDA's retention factors have no oil uptake, so cite its source

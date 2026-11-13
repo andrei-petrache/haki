@@ -1,0 +1,1105 @@
+{
+  "source": {
+    "key": "haki-ro-staples",
+    "name": "Haki estimates: Romanian dishes and staples",
+    "url": "https://github.com/andrei-petrache/haki/blob/main/backend/scripts/ro_staples_values.py",
+    "license": "CC0-1.0",
+    "attribution": "Haki's own estimates, computed from recipes of USDA FoodData Central SR Legacy (April 2018) foods, or the nearest SR Legacy food.",
+    "attribution_required": false,
+    "share_alike": false,
+    "version": "2026-11-14",
+    "estimated": true
+  },
+  "foods": [
+    {
+      "ref": "ciorba-de-burta",
+      "name": "Tripe sour soup (Ciorbă de burtă)",
+      "name_ro": "Ciorbă de burtă",
+      "calories_per_100g": 37.9,
+      "protein_per_100g": 2.6,
+      "carbs_per_100g": 2.0,
+      "fat_per_100g": 2.1,
+      "source_description": "Recipe: 500 g Beef, variety meats and by-products, tripe, raw [170599], 2000 g Beverages, water, tap, drinking [173647], 150 g Carrots, raw [170393], 100 g Parsnips, raw [170417], 80 g Celery, raw [169988], 100 g Onions, raw [170000], 200 g Cream, sour, cultured [171257], 60 g Egg, whole, raw, fresh [171287], 20 g Garlic, raw [169230], 30 g Vinegar, distilled [172237]. Cooked weight 0.92 x raw (2981 g of 3240 g)."
+    },
+    {
+      "ref": "ciorba-de-perisoare",
+      "name": "Meatball sour soup (Ciorbă de perișoare)",
+      "name_ro": "Ciorbă de perișoare",
+      "calories_per_100g": 47.6,
+      "protein_per_100g": 2.3,
+      "carbs_per_100g": 3.2,
+      "fat_per_100g": 2.9,
+      "source_description": "Recipe: 300 g Pork, fresh, ground, raw [167902], 40 g Rice, white, long-grain, regular, raw, enriched [168877], 50 g Egg, whole, raw, fresh [171287], 150 g Onions, raw [170000], 150 g Carrots, raw [170393], 80 g Parsnips, raw [170417], 100 g Peppers, sweet, red, raw [170108], 40 g Tomato products, canned, paste, without salt added (Includes foods for USDA's Food Distribution Program) [170459], 2200 g Beverages, water, tap, drinking [173647], 40 g Lemon juice, raw [167747], 15 g Parsley, fresh [170416], 15 g Oil, sunflower, linoleic, (approx. 65%) [171025]. Cooked weight 0.92 x raw (2926 g of 3180 g)."
+    },
+    {
+      "ref": "ciorba-de-vacuta",
+      "name": "Beef and vegetable sour soup (Ciorbă de văcuță)",
+      "name_ro": "Ciorbă de văcuță",
+      "calories_per_100g": 35.1,
+      "protein_per_100g": 2.8,
+      "carbs_per_100g": 3.7,
+      "fat_per_100g": 1.1,
+      "source_description": "Recipe: 400 g Beef, chuck, clod roast, separable lean only, trimmed to 1/4\" fat, all grades, raw [174018], 2200 g Beverages, water, tap, drinking [173647], 150 g Carrots, raw [170393], 100 g Parsnips, raw [170417], 80 g Celery, raw [169988], 150 g Onions, raw [170000], 300 g Potatoes, flesh and skin, raw [170026], 100 g Peppers, sweet, red, raw [170108], 100 g Beans, snap, green, raw [169961], 40 g Tomato products, canned, paste, without salt added (Includes foods for USDA's Food Distribution Program) [170459], 40 g Lemon juice, raw [167747], 15 g Oil, sunflower, linoleic, (approx. 65%) [171025], 15 g Parsley, fresh [170416]. Cooked weight 0.92 x raw (3395 g of 3690 g)."
+    },
+    {
+      "ref": "ciorba-de-pui",
+      "name": "Chicken sour soup (Ciorbă de pui)",
+      "name_ro": "Ciorbă de pui",
+      "calories_per_100g": 46.3,
+      "protein_per_100g": 3.2,
+      "carbs_per_100g": 3.2,
+      "fat_per_100g": 2.3,
+      "source_description": "Recipe: 500 g Chicken, broilers or fryers, meat and skin, raw [171447], 2200 g Beverages, water, tap, drinking [173647], 150 g Carrots, raw [170393], 100 g Parsnips, raw [170417], 80 g Celery, raw [169988], 150 g Onions, raw [170000], 250 g Potatoes, flesh and skin, raw [170026], 100 g Peppers, sweet, red, raw [170108], 30 g Tomato products, canned, paste, without salt added (Includes foods for USDA's Food Distribution Program) [170459], 40 g Lemon juice, raw [167747], 15 g Parsley, fresh [170416]. Cooked weight 0.92 x raw (3326 g of 3615 g)."
+    },
+    {
+      "ref": "ciorba-radauteana",
+      "name": "Radauti chicken sour soup (Ciorbă rădăuțeană)",
+      "name_ro": "Ciorbă rădăuțeană",
+      "calories_per_100g": 63.7,
+      "protein_per_100g": 4.0,
+      "carbs_per_100g": 2.0,
+      "fat_per_100g": 4.4,
+      "source_description": "Recipe: 600 g Chicken, broilers or fryers, meat and skin, raw [171447], 2200 g Beverages, water, tap, drinking [173647], 150 g Carrots, raw [170393], 100 g Parsnips, raw [170417], 60 g Celery, raw [169988], 120 g Onions, raw [170000], 250 g Cream, sour, cultured [171257], 60 g Egg, whole, raw, fresh [171287], 25 g Garlic, raw [169230], 30 g Vinegar, distilled [172237]. Cooked weight 0.92 x raw (3307 g of 3595 g)."
+    },
+    {
+      "ref": "ciorba-de-fasole",
+      "name": "Bean sour soup (Ciorbă de fasole)",
+      "name_ro": "Ciorbă de fasole",
+      "calories_per_100g": 51.7,
+      "protein_per_100g": 2.7,
+      "carbs_per_100g": 8.0,
+      "fat_per_100g": 1.2,
+      "source_description": "Recipe: 300 g Beans, white, mature seeds, raw [175202], 2300 g Beverages, water, tap, drinking [173647], 150 g Onions, raw [170000], 120 g Carrots, raw [170393], 60 g Parsnips, raw [170417], 80 g Peppers, sweet, red, raw [170108], 40 g Tomato products, canned, paste, without salt added (Includes foods for USDA's Food Distribution Program) [170459], 30 g Oil, sunflower, linoleic, (approx. 65%) [171025], 20 g Vinegar, distilled [172237], 10 g Dill weed, fresh [172233]. Cooked weight 0.92 x raw (2861 g of 3110 g)."
+    },
+    {
+      "ref": "ciorba-de-fasole-cu-afumatura",
+      "name": "Bean sour soup with smoked pork (Ciorbă de fasole cu afumătură)",
+      "name_ro": "Ciorbă de fasole cu afumătură",
+      "calories_per_100g": 65.8,
+      "protein_per_100g": 3.8,
+      "carbs_per_100g": 7.6,
+      "fat_per_100g": 2.4,
+      "source_description": "Recipe: 300 g Beans, white, mature seeds, raw [175202], 2300 g Beverages, water, tap, drinking [173647], 150 g Pork, cured, ham, boneless, extra lean and regular, unheated [168295], 100 g Pork, cured, bacon, unprepared [168277], 150 g Onions, raw [170000], 120 g Carrots, raw [170393], 60 g Parsnips, raw [170417], 80 g Peppers, sweet, red, raw [170108], 40 g Tomato products, canned, paste, without salt added (Includes foods for USDA's Food Distribution Program) [170459], 20 g Oil, sunflower, linoleic, (approx. 65%) [171025], 20 g Vinegar, distilled [172237], 10 g Dill weed, fresh [172233]. Cooked weight 0.92 x raw (3082 g of 3350 g)."
+    },
+    {
+      "ref": "ciorba-de-legume",
+      "name": "Vegetable sour soup (Ciorbă de legume)",
+      "name_ro": "Ciorbă de legume",
+      "calories_per_100g": 28.0,
+      "protein_per_100g": 0.8,
+      "carbs_per_100g": 4.7,
+      "fat_per_100g": 0.9,
+      "source_description": "Recipe: 2000 g Beverages, water, tap, drinking [173647], 300 g Potatoes, flesh and skin, raw [170026], 150 g Carrots, raw [170393], 100 g Parsnips, raw [170417], 80 g Celery, raw [169988], 150 g Onions, raw [170000], 100 g Peppers, sweet, red, raw [170108], 150 g Beans, snap, green, raw [169961], 100 g Peas, green, frozen, unprepared (Includes foods for USDA's Food Distribution Program) [170016], 150 g Cauliflower, raw [169986], 150 g Tomatoes, red, ripe, raw, year round average [170457], 30 g Tomato products, canned, paste, without salt added (Includes foods for USDA's Food Distribution Program) [170459], 25 g Oil, sunflower, linoleic, (approx. 65%) [171025], 40 g Lemon juice, raw [167747], 15 g Parsley, fresh [170416]. Cooked weight 0.92 x raw (3257 g of 3540 g)."
+    },
+    {
+      "ref": "ciorba-de-peste",
+      "name": "Fish sour soup (Ciorbă de pește)",
+      "name_ro": "Ciorbă de pește",
+      "calories_per_100g": 36.0,
+      "protein_per_100g": 3.7,
+      "carbs_per_100g": 2.9,
+      "fat_per_100g": 1.1,
+      "source_description": "Recipe: 600 g Fish, carp, raw [171952], 2000 g Beverages, water, tap, drinking [173647], 150 g Onions, raw [170000], 120 g Carrots, raw [170393], 80 g Parsnips, raw [170417], 100 g Peppers, sweet, red, raw [170108], 200 g Tomatoes, red, ripe, raw, year round average [170457], 200 g Potatoes, flesh and skin, raw [170026], 40 g Lemon juice, raw [167747], 15 g Parsley, fresh [170416]. Cooked weight 0.92 x raw (3225 g of 3505 g)."
+    },
+    {
+      "ref": "ciorba-de-miel",
+      "name": "Lamb sour soup (Ciorbă de miel)",
+      "name_ro": "Ciorbă de miel",
+      "calories_per_100g": 56.5,
+      "protein_per_100g": 3.5,
+      "carbs_per_100g": 2.8,
+      "fat_per_100g": 3.5,
+      "source_description": "Recipe: 500 g Lamb, leg, shank half, separable lean and fat, trimmed to 1/4\" fat, choice, raw [174315], 2200 g Beverages, water, tap, drinking [173647], 150 g Onions, spring or scallions (includes tops and bulb), raw [170005], 80 g Onions, raw [170000], 120 g Carrots, raw [170393], 60 g Parsnips, raw [170417], 80 g Peppers, sweet, red, raw [170108], 40 g Rice, white, long-grain, regular, raw, enriched [168877], 200 g Cream, sour, cultured [171257], 60 g Egg, whole, raw, fresh [171287], 40 g Lemon juice, raw [167747], 20 g Dill weed, fresh [172233]. Cooked weight 0.92 x raw (3266 g of 3550 g)."
+    },
+    {
+      "ref": "ciorba-de-cartofi",
+      "name": "Potato sour soup (Ciorbă de cartofi)",
+      "name_ro": "Ciorbă de cartofi",
+      "calories_per_100g": 40.4,
+      "protein_per_100g": 0.7,
+      "carbs_per_100g": 5.1,
+      "fat_per_100g": 2.1,
+      "source_description": "Recipe: 600 g Potatoes, flesh and skin, raw [170026], 2000 g Beverages, water, tap, drinking [173647], 150 g Onions, raw [170000], 120 g Carrots, raw [170393], 80 g Peppers, sweet, red, raw [170108], 30 g Tomato products, canned, paste, without salt added (Includes foods for USDA's Food Distribution Program) [170459], 30 g Oil, sunflower, linoleic, (approx. 65%) [171025], 150 g Cream, sour, cultured [171257], 30 g Lemon juice, raw [167747], 15 g Parsley, fresh [170416]. Cooked weight 0.92 x raw (2949 g of 3205 g)."
+    },
+    {
+      "ref": "supa-de-pui-cu-taitei",
+      "name": "Chicken noodle soup (Supă de pui cu tăiței)",
+      "name_ro": "Supă de pui cu tăiței",
+      "calories_per_100g": 24.0,
+      "protein_per_100g": 1.2,
+      "carbs_per_100g": 3.0,
+      "fat_per_100g": 0.8,
+      "source_description": "USDA dish: Soup, chicken noodle, canned, prepared with equal volume water [172909]."
+    },
+    {
+      "ref": "supa-de-pui-cu-galuste",
+      "name": "Chicken soup with semolina dumplings (Supă de pui cu găluște)",
+      "name_ro": "Supă de pui cu găluște",
+      "calories_per_100g": 63.1,
+      "protein_per_100g": 3.9,
+      "carbs_per_100g": 4.1,
+      "fat_per_100g": 3.4,
+      "source_description": "Recipe: 500 g Chicken, broilers or fryers, meat and skin, raw [171447], 2300 g Beverages, water, tap, drinking [173647], 150 g Carrots, raw [170393], 100 g Parsnips, raw [170417], 80 g Celery, raw [169988], 100 g Onions, raw [170000], 120 g Semolina, enriched [169715], 100 g Egg, whole, raw, fresh [171287], 20 g Oil, sunflower, linoleic, (approx. 65%) [171025]. Cooked weight 0.92 x raw (3192 g of 3470 g)."
+    },
+    {
+      "ref": "supa-crema-de-legume",
+      "name": "Cream of vegetable soup (Supă cremă de legume)",
+      "name_ro": "Supă cremă de legume",
+      "calories_per_100g": 40.0,
+      "protein_per_100g": 0.8,
+      "carbs_per_100g": 5.0,
+      "fat_per_100g": 2.1,
+      "source_description": "Recipe: 300 g Potatoes, flesh and skin, raw [170026], 300 g Carrots, raw [170393], 300 g Squash, summer, zucchini, includes skin, raw [169291], 150 g Onions, raw [170000], 100 g Celery, raw [169988], 30 g Butter, salted [173410], 100 g Cream, sour, cultured [171257], 1200 g Beverages, water, tap, drinking [173647]. Cooked weight 0.9 x raw (2232 g of 2480 g)."
+    },
+    {
+      "ref": "supa-crema-de-ciuperci",
+      "name": "Cream of mushroom soup (Supă cremă de ciuperci)",
+      "name_ro": "Supă cremă de ciuperci",
+      "calories_per_100g": 55.9,
+      "protein_per_100g": 1.6,
+      "carbs_per_100g": 4.8,
+      "fat_per_100g": 3.7,
+      "source_description": "Recipe: 600 g Mushrooms, white, raw [169251], 150 g Onions, raw [170000], 200 g Potatoes, flesh and skin, raw [170026], 40 g Butter, salted [173410], 200 g Cream, sour, cultured [171257], 20 g Wheat flour, white, all-purpose, enriched, bleached [168894], 1000 g Beverages, water, tap, drinking [173647], 10 g Garlic, raw [169230]. Cooked weight 0.9 x raw (1998 g of 2220 g)."
+    },
+    {
+      "ref": "sarmale-varza",
+      "name": "Stuffed cabbage rolls (Sarmale în foi de varză)",
+      "name_ro": "Sarmale în foi de varză",
+      "calories_per_100g": 168.3,
+      "protein_per_100g": 7.8,
+      "carbs_per_100g": 8.5,
+      "fat_per_100g": 11.4,
+      "source_description": "Recipe: 500 g Pork, fresh, ground, raw [167902], 100 g Rice, white, long-grain, regular, raw, enriched [168877], 150 g Onions, raw [170000], 400 g Sauerkraut, canned, solids and liquids [169279], 50 g Tomato products, canned, paste, without salt added (Includes foods for USDA's Food Distribution Program) [170459], 100 g Pork, cured, bacon, unprepared [168277], 20 g Oil, sunflower, linoleic, (approx. 65%) [171025], 600 g Beverages, water, tap, drinking [173647], 3 g Spices, paprika [171329], 10 g Dill weed, fresh [172233]. Cooked weight 0.75 x raw (1450 g of 1933 g)."
+    },
+    {
+      "ref": "sarmale-vita-de-vie",
+      "name": "Stuffed vine leaves (Sarmale în foi de viță)",
+      "name_ro": "Sarmale în foi de viță",
+      "calories_per_100g": 174.3,
+      "protein_per_100g": 8.8,
+      "carbs_per_100g": 11.3,
+      "fat_per_100g": 10.6,
+      "source_description": "Recipe: 300 g Pork, fresh, ground, raw [167902], 200 g Beef, ground, 80% lean meat / 20% fat, raw [174036], 100 g Rice, white, long-grain, regular, raw, enriched [168877], 150 g Onions, raw [170000], 200 g Grape leaves, raw [168575], 40 g Tomato products, canned, paste, without salt added (Includes foods for USDA's Food Distribution Program) [170459], 20 g Oil, sunflower, linoleic, (approx. 65%) [171025], 600 g Beverages, water, tap, drinking [173647], 15 g Dill weed, fresh [172233]. Cooked weight 0.75 x raw (1219 g of 1625 g)."
+    },
+    {
+      "ref": "mici",
+      "name": "Grilled minced meat rolls (Mici)",
+      "name_ro": "Mici",
+      "calories_per_100g": 294.4,
+      "protein_per_100g": 19.5,
+      "carbs_per_100g": 1.8,
+      "fat_per_100g": 22.8,
+      "source_description": "Recipe: 600 g Beef, ground, 80% lean meat / 20% fat, raw [174036], 200 g Pork, fresh, ground, raw [167902], 30 g Garlic, raw [169230], 120 g Beverages, water, tap, drinking [173647], 5 g Spices, paprika [171329]. Cooked weight 0.75 x raw (716 g of 955 g). Grilled: a quarter of the raw weight lost, water and dripping fat."
+    },
+    {
+      "ref": "chiftele-de-carne",
+      "name": "Fried meatballs (Chiftele de carne)",
+      "name_ro": "Chiftele de carne",
+      "calories_per_100g": 318.2,
+      "protein_per_100g": 12.5,
+      "carbs_per_100g": 13.5,
+      "fat_per_100g": 23.7,
+      "source_description": "Recipe: 500 g Pork, fresh, ground, raw [167902], 200 g Potatoes, flesh and skin, raw [170026], 100 g Onions, raw [170000], 100 g Egg, whole, raw, fresh [171287], 80 g Bread, white, commercially prepared (includes soft bread crumbs) [174924], 50 g Wheat flour, white, all-purpose, enriched, bleached [168894], 15 g Parsley, fresh [170416], 10 g Dill weed, fresh [172233], 100 g Oil, sunflower, linoleic, (approx. 65%) [171025]. Cooked weight 0.8 x raw (924 g of 1155 g). Fried: the oil it absorbs is our assumption, about 10% of the coated raw weight (USDA's retention factors give no oil uptake)."
+    },
+    {
+      "ref": "parjoale",
+      "name": "Moldavian meat patties (Pârjoale moldovenești)",
+      "name_ro": "Pârjoale moldovenești",
+      "calories_per_100g": 333.5,
+      "protein_per_100g": 13.3,
+      "carbs_per_100g": 15.2,
+      "fat_per_100g": 24.3,
+      "source_description": "Recipe: 300 g Pork, fresh, ground, raw [167902], 200 g Beef, ground, 80% lean meat / 20% fat, raw [174036], 150 g Potatoes, flesh and skin, raw [170026], 100 g Onions, raw [170000], 100 g Egg, whole, raw, fresh [171287], 80 g Bread, white, commercially prepared (includes soft bread crumbs) [174924], 80 g Bread, crumbs, dry, grated, plain [174928], 10 g Garlic, raw [169230], 15 g Parsley, fresh [170416], 100 g Oil, sunflower, linoleic, (approx. 65%) [171025]. Cooked weight 0.8 x raw (908 g of 1135 g). Fried: the oil it absorbs is our assumption, about 10% of the coated raw weight (USDA's retention factors give no oil uptake)."
+    },
+    {
+      "ref": "snitel-de-pui",
+      "name": "Breaded chicken schnitzel (Șnițel de pui)",
+      "name_ro": "Șnițel de pui",
+      "calories_per_100g": 285.1,
+      "protein_per_100g": 20.6,
+      "carbs_per_100g": 16.1,
+      "fat_per_100g": 14.8,
+      "source_description": "Recipe: 600 g Chicken, broiler or fryers, breast, skinless, boneless, meat only, raw [171077], 100 g Egg, whole, raw, fresh [171287], 60 g Wheat flour, white, all-purpose, enriched, bleached [168894], 120 g Bread, crumbs, dry, grated, plain [174928], 90 g Oil, sunflower, linoleic, (approx. 65%) [171025]. Cooked weight 0.85 x raw (824 g of 970 g). Fried: the oil it absorbs is our assumption, about 10% of the coated raw weight (USDA's retention factors give no oil uptake)."
+    },
+    {
+      "ref": "snitel-de-porc",
+      "name": "Breaded pork schnitzel (Șnițel de porc)",
+      "name_ro": "Șnițel de porc",
+      "calories_per_100g": 321.5,
+      "protein_per_100g": 19.3,
+      "carbs_per_100g": 16.1,
+      "fat_per_100g": 19.5,
+      "source_description": "Recipe: 600 g Pork, fresh, loin, center loin (chops), bone-in, separable lean and fat, raw [168238], 100 g Egg, whole, raw, fresh [171287], 60 g Wheat flour, white, all-purpose, enriched, bleached [168894], 120 g Bread, crumbs, dry, grated, plain [174928], 90 g Oil, sunflower, linoleic, (approx. 65%) [171025]. Cooked weight 0.85 x raw (824 g of 970 g). Fried: the oil it absorbs is our assumption, about 10% of the coated raw weight (USDA's retention factors give no oil uptake)."
+    },
+    {
+      "ref": "tochitura",
+      "name": "Pork stew with sausage (Tochitură)",
+      "name_ro": "Tochitură",
+      "calories_per_100g": 259.5,
+      "protein_per_100g": 13.9,
+      "carbs_per_100g": 2.4,
+      "fat_per_100g": 21.2,
+      "source_description": "Recipe: 600 g Pork, fresh, shoulder, whole, separable lean and fat, raw [167843], 250 g Sausage, smoked link sausage, pork [174584], 100 g Onions, raw [170000], 20 g Garlic, raw [169230], 30 g Tomato products, canned, paste, without salt added (Includes foods for USDA's Food Distribution Program) [170459], 30 g Lard [171401], 200 g Beverages, water, tap, drinking [173647]. Cooked weight 0.8 x raw (984 g of 1230 g)."
+    },
+    {
+      "ref": "tocanita-de-porc",
+      "name": "Pork stew (Tocăniță de porc)",
+      "name_ro": "Tocăniță de porc",
+      "calories_per_100g": 161.7,
+      "protein_per_100g": 9.2,
+      "carbs_per_100g": 4.6,
+      "fat_per_100g": 11.8,
+      "source_description": "Recipe: 700 g Pork, fresh, shoulder, whole, separable lean and fat, raw [167843], 400 g Onions, raw [170000], 150 g Peppers, sweet, red, raw [170108], 60 g Tomato products, canned, paste, without salt added (Includes foods for USDA's Food Distribution Program) [170459], 40 g Oil, sunflower, linoleic, (approx. 65%) [171025], 15 g Garlic, raw [169230], 400 g Beverages, water, tap, drinking [173647], 5 g Spices, paprika [171329]. Cooked weight 0.8 x raw (1416 g of 1770 g)."
+    },
+    {
+      "ref": "ostropel-de-pui",
+      "name": "Chicken in tomato and garlic sauce (Ostropel de pui)",
+      "name_ro": "Ostropel de pui",
+      "calories_per_100g": 214.5,
+      "protein_per_100g": 13.6,
+      "carbs_per_100g": 4.2,
+      "fat_per_100g": 15.8,
+      "source_description": "Recipe: 1000 g Chicken, broilers or fryers, leg, meat and skin, raw [172378], 80 g Tomato products, canned, paste, without salt added (Includes foods for USDA's Food Distribution Program) [170459], 40 g Garlic, raw [169230], 30 g Wheat flour, white, all-purpose, enriched, bleached [168894], 40 g Oil, sunflower, linoleic, (approx. 65%) [171025], 400 g Beverages, water, tap, drinking [173647]. Cooked weight 0.8 x raw (1272 g of 1590 g)."
+    },
+    {
+      "ref": "papricas-de-pui",
+      "name": "Chicken paprikash (Papricaș de pui)",
+      "name_ro": "Papricaș de pui",
+      "calories_per_100g": 191.4,
+      "protein_per_100g": 10.7,
+      "carbs_per_100g": 4.5,
+      "fat_per_100g": 14.5,
+      "source_description": "Recipe: 1000 g Chicken, broilers or fryers, leg, meat and skin, raw [172378], 300 g Onions, raw [170000], 200 g Peppers, sweet, red, raw [170108], 200 g Cream, sour, cultured [171257], 20 g Wheat flour, white, all-purpose, enriched, bleached [168894], 15 g Spices, paprika [171329], 40 g Oil, sunflower, linoleic, (approx. 65%) [171025], 300 g Beverages, water, tap, drinking [173647]. Cooked weight 0.8 x raw (1660 g of 2075 g)."
+    },
+    {
+      "ref": "ciulama-de-pui",
+      "name": "Chicken in white sauce (Ciulama de pui)",
+      "name_ro": "Ciulama de pui",
+      "calories_per_100g": 137.5,
+      "protein_per_100g": 12.5,
+      "carbs_per_100g": 5.5,
+      "fat_per_100g": 7.1,
+      "source_description": "Recipe: 500 g Chicken, broiler or fryers, breast, skinless, boneless, meat only, raw [171077], 300 g Chicken, broilers or fryers, dark meat, thigh, meat only, raw [173627], 50 g Butter, salted [173410], 60 g Wheat flour, white, all-purpose, enriched, bleached [168894], 500 g Milk, whole, 3.25% milkfat, with added vitamin D [171265], 150 g Cream, sour, cultured [171257], 100 g Onions, raw [170000], 200 g Beverages, water, tap, drinking [173647], 10 g Dill weed, fresh [172233]. Cooked weight 0.85 x raw (1590 g of 1870 g)."
+    },
+    {
+      "ref": "ciulama-de-ciuperci",
+      "name": "Mushrooms in white sauce (Ciulama de ciuperci)",
+      "name_ro": "Ciulama de ciuperci",
+      "calories_per_100g": 104.8,
+      "protein_per_100g": 3.9,
+      "carbs_per_100g": 8.3,
+      "fat_per_100g": 6.9,
+      "source_description": "Recipe: 800 g Mushrooms, white, raw [169251], 50 g Butter, salted [173410], 50 g Wheat flour, white, all-purpose, enriched, bleached [168894], 400 g Milk, whole, 3.25% milkfat, with added vitamin D [171265], 150 g Cream, sour, cultured [171257], 100 g Onions, raw [170000], 10 g Garlic, raw [169230], 10 g Dill weed, fresh [172233]. Cooked weight 0.8 x raw (1256 g of 1570 g)."
+    },
+    {
+      "ref": "friptura-de-porc",
+      "name": "Pan-roasted pork (Friptură de porc la tavă)",
+      "name_ro": "Friptură de porc la tavă",
+      "calories_per_100g": 295.0,
+      "protein_per_100g": 22.7,
+      "carbs_per_100g": 0.6,
+      "fat_per_100g": 21.7,
+      "source_description": "Recipe: 1000 g Pork, fresh, shoulder, whole, separable lean and fat, cooked, roasted [167844], 10 g Oil, sunflower, linoleic, (approx. 65%) [171025], 20 g Garlic, raw [169230]. Cooked weight 1 x raw (1030 g of 1030 g). USDA's roasted shoulder: its cooking loss is USDA's."
+    },
+    {
+      "ref": "ceafa-la-gratar",
+      "name": "Grilled pork neck (Ceafă de porc la grătar)",
+      "name_ro": "Ceafă de porc la grătar",
+      "calories_per_100g": 264.0,
+      "protein_per_100g": 25.1,
+      "carbs_per_100g": 0.3,
+      "fat_per_100g": 17.3,
+      "source_description": "Recipe: 1000 g Pork, fresh, shoulder, blade, boston (steaks), separable lean and fat, cooked, broiled [167851], 10 g Oil, sunflower, linoleic, (approx. 65%) [171025], 10 g Garlic, raw [169230]. Cooked weight 1 x raw (1020 g of 1020 g). USDA's broiled shoulder blade steaks, the cut ceafă is."
+    },
+    {
+      "ref": "pulpe-de-pui-la-cuptor",
+      "name": "Roast chicken legs (Pulpe de pui la cuptor)",
+      "name_ro": "Pulpe de pui la cuptor",
+      "calories_per_100g": 194.3,
+      "protein_per_100g": 23.5,
+      "carbs_per_100g": 0.6,
+      "fat_per_100g": 10.3,
+      "source_description": "Recipe: 1000 g Chicken, broilers or fryers, leg, meat and skin, cooked, roasted [173617], 15 g Oil, sunflower, linoleic, (approx. 65%) [171025], 10 g Garlic, raw [169230], 5 g Spices, paprika [171329]. Cooked weight 1 x raw (1030 g of 1030 g). USDA's roasted chicken leg, meat and skin."
+    },
+    {
+      "ref": "ficatei-cu-ceapa",
+      "name": "Chicken livers with onion (Ficăței de pui cu ceapă)",
+      "name_ro": "Ficăței de pui cu ceapă",
+      "calories_per_100g": 156.5,
+      "protein_per_100g": 13.4,
+      "carbs_per_100g": 5.7,
+      "fat_per_100g": 8.7,
+      "source_description": "Recipe: 600 g Chicken, liver, all classes, raw [171060], 400 g Onions, raw [170000], 40 g Oil, sunflower, linoleic, (approx. 65%) [171025], 20 g Tomato products, canned, paste, without salt added (Includes foods for USDA's Food Distribution Program) [170459]. Cooked weight 0.75 x raw (795 g of 1060 g)."
+    },
+    {
+      "ref": "fasole-cu-carnati",
+      "name": "Beans with sausages (Fasole cu cârnați)",
+      "name_ro": "Fasole cu cârnați",
+      "calories_per_100g": 157.2,
+      "protein_per_100g": 7.5,
+      "carbs_per_100g": 14.5,
+      "fat_per_100g": 8.0,
+      "source_description": "Recipe: 400 g Beans, white, mature seeds, raw [175202], 1300 g Beverages, water, tap, drinking [173647], 400 g Sausage, smoked link sausage, pork [174584], 250 g Onions, raw [170000], 60 g Tomato products, canned, paste, without salt added (Includes foods for USDA's Food Distribution Program) [170459], 40 g Oil, sunflower, linoleic, (approx. 65%) [171025], 15 g Garlic, raw [169230], 5 g Spices, paprika [171329]. Cooked weight 0.8 x raw (1976 g of 2470 g)."
+    },
+    {
+      "ref": "iahnie-de-fasole",
+      "name": "Bean stew (Iahnie de fasole)",
+      "name_ro": "Iahnie de fasole",
+      "calories_per_100g": 123.3,
+      "protein_per_100g": 6.0,
+      "carbs_per_100g": 17.4,
+      "fat_per_100g": 3.8,
+      "source_description": "Recipe: 400 g Beans, white, mature seeds, raw [175202], 1200 g Beverages, water, tap, drinking [173647], 300 g Onions, raw [170000], 100 g Carrots, raw [170393], 60 g Tomato products, canned, paste, without salt added (Includes foods for USDA's Food Distribution Program) [170459], 60 g Oil, sunflower, linoleic, (approx. 65%) [171025], 20 g Garlic, raw [169230], 5 g Spices, paprika [171329]. Cooked weight 0.8 x raw (1716 g of 2145 g)."
+    },
+    {
+      "ref": "varza-calita",
+      "name": "Braised cabbage (Varză călită)",
+      "name_ro": "Varză călită",
+      "calories_per_100g": 85.0,
+      "protein_per_100g": 1.8,
+      "carbs_per_100g": 8.9,
+      "fat_per_100g": 5.4,
+      "source_description": "Recipe: 1200 g Cabbage, raw [169975], 200 g Onions, raw [170000], 60 g Tomato products, canned, paste, without salt added (Includes foods for USDA's Food Distribution Program) [170459], 60 g Oil, sunflower, linoleic, (approx. 65%) [171025], 5 g Spices, paprika [171329], 10 g Dill weed, fresh [172233]. Cooked weight 0.75 x raw (1151 g of 1535 g)."
+    },
+    {
+      "ref": "varza-cu-carne",
+      "name": "Braised cabbage with pork (Varză călită cu carne de porc)",
+      "name_ro": "Varză călită cu carne de porc",
+      "calories_per_100g": 127.5,
+      "protein_per_100g": 6.9,
+      "carbs_per_100g": 5.9,
+      "fat_per_100g": 8.8,
+      "source_description": "Recipe: 1000 g Cabbage, raw [169975], 500 g Pork, fresh, shoulder, whole, separable lean and fat, raw [167843], 200 g Onions, raw [170000], 60 g Tomato products, canned, paste, without salt added (Includes foods for USDA's Food Distribution Program) [170459], 40 g Oil, sunflower, linoleic, (approx. 65%) [171025], 200 g Beverages, water, tap, drinking [173647]. Cooked weight 0.75 x raw (1500 g of 2000 g)."
+    },
+    {
+      "ref": "musaca-de-cartofi",
+      "name": "Potato moussaka (Musaca de cartofi)",
+      "name_ro": "Musaca de cartofi",
+      "calories_per_100g": 172.3,
+      "protein_per_100g": 7.8,
+      "carbs_per_100g": 13.2,
+      "fat_per_100g": 9.9,
+      "source_description": "Recipe: 1000 g Potatoes, flesh and skin, raw [170026], 300 g Pork, fresh, ground, raw [167902], 200 g Beef, ground, 80% lean meat / 20% fat, raw [174036], 200 g Onions, raw [170000], 150 g Egg, whole, raw, fresh [171287], 300 g Milk, whole, 3.25% milkfat, with added vitamin D [171265], 30 g Wheat flour, white, all-purpose, enriched, bleached [168894], 50 g Oil, sunflower, linoleic, (approx. 65%) [171025], 40 g Tomato products, canned, paste, without salt added (Includes foods for USDA's Food Distribution Program) [170459]. Cooked weight 0.8 x raw (1816 g of 2270 g)."
+    },
+    {
+      "ref": "musaca-de-vinete",
+      "name": "Aubergine moussaka (Musaca de vinete)",
+      "name_ro": "Musaca de vinete",
+      "calories_per_100g": 161.3,
+      "protein_per_100g": 6.7,
+      "carbs_per_100g": 6.7,
+      "fat_per_100g": 12.2,
+      "source_description": "Recipe: 1000 g Eggplant, raw [169228], 300 g Pork, fresh, ground, raw [167902], 200 g Beef, ground, 80% lean meat / 20% fat, raw [174036], 200 g Onions, raw [170000], 300 g Tomatoes, red, ripe, raw, year round average [170457], 100 g Egg, whole, raw, fresh [171287], 200 g Milk, whole, 3.25% milkfat, with added vitamin D [171265], 30 g Wheat flour, white, all-purpose, enriched, bleached [168894], 100 g Oil, sunflower, linoleic, (approx. 65%) [171025]. Cooked weight 0.75 x raw (1822 g of 2430 g)."
+    },
+    {
+      "ref": "ardei-umpluti",
+      "name": "Stuffed peppers (Ardei umpluți)",
+      "name_ro": "Ardei umpluți",
+      "calories_per_100g": 107.2,
+      "protein_per_100g": 5.0,
+      "carbs_per_100g": 8.6,
+      "fat_per_100g": 6.0,
+      "source_description": "Recipe: 800 g Peppers, sweet, green, raw [170427], 400 g Pork, fresh, ground, raw [167902], 100 g Rice, white, long-grain, regular, raw, enriched [168877], 150 g Onions, raw [170000], 300 g Tomatoes, red, ripe, raw, year round average [170457], 60 g Tomato products, canned, paste, without salt added (Includes foods for USDA's Food Distribution Program) [170459], 20 g Oil, sunflower, linoleic, (approx. 65%) [171025], 400 g Beverages, water, tap, drinking [173647], 10 g Dill weed, fresh [172233]. Cooked weight 0.8 x raw (1792 g of 2240 g)."
+    },
+    {
+      "ref": "mancare-de-mazare-cu-pui",
+      "name": "Pea stew with chicken (Mâncare de mazăre cu pui)",
+      "name_ro": "Mâncare de mazăre cu pui",
+      "calories_per_100g": 135.4,
+      "protein_per_100g": 8.1,
+      "carbs_per_100g": 8.3,
+      "fat_per_100g": 7.8,
+      "source_description": "Recipe: 800 g Peas, green, frozen, unprepared (Includes foods for USDA's Food Distribution Program) [170016], 600 g Chicken, broilers or fryers, leg, meat and skin, raw [172378], 200 g Onions, raw [170000], 100 g Carrots, raw [170393], 50 g Tomato products, canned, paste, without salt added (Includes foods for USDA's Food Distribution Program) [170459], 40 g Oil, sunflower, linoleic, (approx. 65%) [171025], 15 g Dill weed, fresh [172233], 300 g Beverages, water, tap, drinking [173647]. Cooked weight 0.85 x raw (1789 g of 2105 g)."
+    },
+    {
+      "ref": "tocana-de-cartofi",
+      "name": "Potato stew (Tocană de cartofi)",
+      "name_ro": "Tocană de cartofi",
+      "calories_per_100g": 91.4,
+      "protein_per_100g": 1.8,
+      "carbs_per_100g": 14.1,
+      "fat_per_100g": 3.5,
+      "source_description": "Recipe: 1200 g Potatoes, flesh and skin, raw [170026], 250 g Onions, raw [170000], 150 g Peppers, sweet, red, raw [170108], 60 g Tomato products, canned, paste, without salt added (Includes foods for USDA's Food Distribution Program) [170459], 60 g Oil, sunflower, linoleic, (approx. 65%) [171025], 5 g Spices, paprika [171329], 400 g Beverages, water, tap, drinking [173647], 15 g Parsley, fresh [170416]. Cooked weight 0.85 x raw (1819 g of 2140 g)."
+    },
+    {
+      "ref": "ghiveci",
+      "name": "Vegetable stew (Ghiveci de legume)",
+      "name_ro": "Ghiveci de legume",
+      "calories_per_100g": 82.9,
+      "protein_per_100g": 1.6,
+      "carbs_per_100g": 9.0,
+      "fat_per_100g": 5.1,
+      "source_description": "Recipe: 300 g Eggplant, raw [169228], 300 g Squash, summer, zucchini, includes skin, raw [169291], 300 g Peppers, sweet, red, raw [170108], 300 g Potatoes, flesh and skin, raw [170026], 200 g Carrots, raw [170393], 250 g Onions, raw [170000], 200 g Beans, snap, green, raw [169961], 400 g Tomatoes, red, ripe, raw, year round average [170457], 200 g Cauliflower, raw [169986], 100 g Oil, sunflower, linoleic, (approx. 65%) [171025], 40 g Tomato products, canned, paste, without salt added (Includes foods for USDA's Food Distribution Program) [170459]. Cooked weight 0.8 x raw (2072 g of 2590 g)."
+    },
+    {
+      "ref": "pilaf-de-pui",
+      "name": "Chicken pilaf (Pilaf de pui)",
+      "name_ro": "Pilaf de pui",
+      "calories_per_100g": 125.9,
+      "protein_per_100g": 7.1,
+      "carbs_per_100g": 15.5,
+      "fat_per_100g": 3.7,
+      "source_description": "Recipe: 500 g Chicken, broilers or fryers, dark meat, thigh, meat only, raw [173627], 300 g Rice, white, long-grain, regular, raw, enriched [168877], 750 g Beverages, water, tap, drinking [173647], 150 g Onions, raw [170000], 100 g Carrots, raw [170393], 80 g Peppers, sweet, red, raw [170108], 40 g Oil, sunflower, linoleic, (approx. 65%) [171025]. Cooked weight 0.9 x raw (1728 g of 1920 g)."
+    },
+    {
+      "ref": "drob-de-miel",
+      "name": "Lamb offal loaf (Drob de miel)",
+      "name_ro": "Drob de miel",
+      "calories_per_100g": 158.0,
+      "protein_per_100g": 13.8,
+      "carbs_per_100g": 7.3,
+      "fat_per_100g": 8.0,
+      "source_description": "Recipe: 400 g Lamb, variety meats and by-products, liver, raw [172531], 200 g Lamb, leg, shank half, separable lean and fat, trimmed to 1/4\" fat, choice, raw [174315], 300 g Onions, spring or scallions (includes tops and bulb), raw [170005], 50 g Dill weed, fresh [172233], 30 g Parsley, fresh [170416], 250 g Egg, whole, raw, fresh [171287], 100 g Bread, white, commercially prepared (includes soft bread crumbs) [174924], 100 g Milk, whole, 3.25% milkfat, with added vitamin D [171265], 20 g Oil, sunflower, linoleic, (approx. 65%) [171025]. Cooked weight 0.85 x raw (1232 g of 1450 g). Lamb liver and meat stand in for the mixed offal."
+    },
+    {
+      "ref": "stufat-de-miel",
+      "name": "Lamb and green onion stew (Stufat de miel)",
+      "name_ro": "Stufat de miel",
+      "calories_per_100g": 166.8,
+      "protein_per_100g": 12.2,
+      "carbs_per_100g": 4.5,
+      "fat_per_100g": 11.2,
+      "source_description": "Recipe: 800 g Lamb, leg, shank half, separable lean and fat, trimmed to 1/4\" fat, choice, raw [174315], 400 g Onions, spring or scallions (includes tops and bulb), raw [170005], 60 g Garlic, raw [169230], 50 g Tomato products, canned, paste, without salt added (Includes foods for USDA's Food Distribution Program) [170459], 40 g Oil, sunflower, linoleic, (approx. 65%) [171025], 300 g Beverages, water, tap, drinking [173647], 20 g Dill weed, fresh [172233]. Cooked weight 0.8 x raw (1336 g of 1670 g)."
+    },
+    {
+      "ref": "saramura-de-crap",
+      "name": "Grilled carp in brine (Saramură de crap)",
+      "name_ro": "Saramură de crap",
+      "calories_per_100g": 108.0,
+      "protein_per_100g": 12.7,
+      "carbs_per_100g": 1.8,
+      "fat_per_100g": 5.3,
+      "source_description": "Recipe: 800 g Fish, carp, cooked, dry heat [174185], 300 g Beverages, water, tap, drinking [173647], 40 g Garlic, raw [169230], 200 g Tomatoes, red, ripe, raw, year round average [170457], 100 g Peppers, sweet, red, raw [170108], 20 g Oil, sunflower, linoleic, (approx. 65%) [171025], 20 g Vinegar, distilled [172237]. Cooked weight 1 x raw (1480 g of 1480 g). USDA's carp cooked by dry heat, with the brine it is served in."
+    },
+    {
+      "ref": "crap-prajit",
+      "name": "Fried carp (Crap prăjit)",
+      "name_ro": "Crap prăjit",
+      "calories_per_100g": 271.0,
+      "protein_per_100g": 19.4,
+      "carbs_per_100g": 7.9,
+      "fat_per_100g": 17.5,
+      "source_description": "Recipe: 800 g Fish, carp, raw [171952], 80 g Wheat flour, white, all-purpose, enriched, bleached [168894], 90 g Oil, sunflower, linoleic, (approx. 65%) [171025]. Cooked weight 0.8 x raw (776 g of 970 g). Fried: the oil it absorbs is our assumption, about 10% of the coated raw weight (USDA's retention factors give no oil uptake)."
+    },
+    {
+      "ref": "shaorma-de-pui",
+      "name": "Chicken shawarma wrap (Shaorma de pui)",
+      "name_ro": "Shaorma de pui",
+      "calories_per_100g": 207.6,
+      "protein_per_100g": 10.3,
+      "carbs_per_100g": 20.5,
+      "fat_per_100g": 9.2,
+      "source_description": "Recipe: 300 g Chicken, broilers or fryers, dark meat, thigh, meat only, raw [173627], 200 g Bread, pita, white, enriched [174915], 100 g Cabbage, raw [169975], 80 g Tomatoes, red, ripe, raw, year round average [170457], 60 g Pickles, cucumber, dill or kosher dill [168558], 100 g Fast foods, potato, french fried in vegetable oil [170698], 40 g Salad dressing, mayonnaise, regular [171009], 10 g Garlic, raw [169230], 15 g Oil, sunflower, linoleic, (approx. 65%) [171025]. Cooked weight 0.9 x raw (814 g of 905 g). USDA's fast-food french fries, as they come in the wrap."
+    },
+    {
+      "ref": "mamaliga",
+      "name": "Cornmeal porridge (Mămăligă)",
+      "name_ro": "Mămăligă",
+      "calories_per_100g": 80.4,
+      "protein_per_100g": 1.5,
+      "carbs_per_100g": 17.3,
+      "fat_per_100g": 0.4,
+      "source_description": "Recipe: 250 g Cornmeal, degermed, enriched, yellow [168867], 1000 g Beverages, water, tap, drinking [173647]. Cooked weight 0.92 x raw (1150 g of 1250 g)."
+    },
+    {
+      "ref": "mamaliga-cu-branza-si-smantana",
+      "name": "Mamaliga with cheese and sour cream (Mămăligă cu brânză și smântână)",
+      "name_ro": "Mămăligă cu brânză și smântână",
+      "calories_per_100g": 130.8,
+      "protein_per_100g": 3.3,
+      "carbs_per_100g": 13.7,
+      "fat_per_100g": 7.0,
+      "source_description": "Recipe: 250 g Cornmeal, degermed, enriched, yellow [168867], 1000 g Beverages, water, tap, drinking [173647], 200 g Cheese, feta [173420], 200 g Cream, sour, cultured [171257], 30 g Butter, salted [173410]. Cooked weight 0.94 x raw (1579 g of 1680 g). Feta stands in for telemea (see the telemea analogue)."
+    },
+    {
+      "ref": "bulz",
+      "name": "Baked mamaliga with cheese (Bulz)",
+      "name_ro": "Bulz",
+      "calories_per_100g": 143.1,
+      "protein_per_100g": 4.5,
+      "carbs_per_100g": 15.4,
+      "fat_per_100g": 6.9,
+      "source_description": "Recipe: 200 g Cornmeal, degermed, enriched, yellow [168867], 800 g Beverages, water, tap, drinking [173647], 200 g Cheese, feta [173420], 30 g Butter, salted [173410], 50 g Egg, whole, raw, fresh [171287]. Cooked weight 0.85 x raw (1088 g of 1280 g)."
+    },
+    {
+      "ref": "piure-de-cartofi",
+      "name": "Mashed potatoes (Piure de cartofi)",
+      "name_ro": "Piure de cartofi",
+      "calories_per_100g": 113.0,
+      "protein_per_100g": 1.9,
+      "carbs_per_100g": 16.8,
+      "fat_per_100g": 4.2,
+      "source_description": "USDA dish: Potatoes, mashed, home-prepared, whole milk and butter added [168555]."
+    },
+    {
+      "ref": "cartofi-prajiti",
+      "name": "French fries (Cartofi prăjiți)",
+      "name_ro": "Cartofi prăjiți",
+      "calories_per_100g": 312.0,
+      "protein_per_100g": 3.4,
+      "carbs_per_100g": 41.4,
+      "fat_per_100g": 14.7,
+      "source_description": "USDA dish: Fast foods, potato, french fried in vegetable oil [170698]."
+    },
+    {
+      "ref": "cartofi-taranesti",
+      "name": "Country-style potatoes (Cartofi țărănești)",
+      "name_ro": "Cartofi țărănești",
+      "calories_per_100g": 178.9,
+      "protein_per_100g": 3.7,
+      "carbs_per_100g": 19.3,
+      "fat_per_100g": 10.0,
+      "source_description": "Recipe: 1000 g Potatoes, flesh and skin, raw [170026], 150 g Onions, raw [170000], 100 g Pork, cured, bacon, unprepared [168277], 60 g Oil, sunflower, linoleic, (approx. 65%) [171025], 3 g Spices, paprika [171329]. Cooked weight 0.75 x raw (985 g of 1313 g)."
+    },
+    {
+      "ref": "orez-cu-legume",
+      "name": "Rice with vegetables (Orez cu legume)",
+      "name_ro": "Orez cu legume",
+      "calories_per_100g": 118.1,
+      "protein_per_100g": 2.3,
+      "carbs_per_100g": 20.2,
+      "fat_per_100g": 3.1,
+      "source_description": "Recipe: 300 g Rice, white, long-grain, regular, raw, enriched [168877], 700 g Beverages, water, tap, drinking [173647], 100 g Carrots, raw [170393], 150 g Peas, green, frozen, unprepared (Includes foods for USDA's Food Distribution Program) [170016], 100 g Peppers, sweet, red, raw [170108], 100 g Onions, raw [170000], 40 g Oil, sunflower, linoleic, (approx. 65%) [171025]. Cooked weight 0.95 x raw (1416 g of 1490 g)."
+    },
+    {
+      "ref": "mujdei",
+      "name": "Garlic sauce (Mujdei de usturoi)",
+      "name_ro": "Mujdei de usturoi",
+      "calories_per_100g": 180.1,
+      "protein_per_100g": 2.8,
+      "carbs_per_100g": 14.4,
+      "fat_per_100g": 13.3,
+      "source_description": "Recipe: 100 g Garlic, raw [169230], 100 g Beverages, water, tap, drinking [173647], 30 g Oil, sunflower, linoleic, (approx. 65%) [171025]. Cooked weight 1 x raw (230 g of 230 g)."
+    },
+    {
+      "ref": "salata-de-vinete",
+      "name": "Aubergine spread (Salată de vinete)",
+      "name_ro": "Salată de vinete",
+      "calories_per_100g": 179.0,
+      "protein_per_100g": 1.4,
+      "carbs_per_100g": 8.8,
+      "fat_per_100g": 16.3,
+      "source_description": "Recipe: 1000 g Eggplant, raw [169228], 120 g Oil, sunflower, linoleic, (approx. 65%) [171025], 80 g Onions, raw [170000]. Cooked weight 0.625 x raw (750 g of 1200 g). Baked and drained, the aubergine loses about 45% of its weight."
+    },
+    {
+      "ref": "zacusca",
+      "name": "Roasted vegetable spread (Zacuscă)",
+      "name_ro": "Zacuscă",
+      "calories_per_100g": 182.9,
+      "protein_per_100g": 1.8,
+      "carbs_per_100g": 10.8,
+      "fat_per_100g": 15.8,
+      "source_description": "Recipe: 1000 g Eggplant, raw [169228], 1000 g Peppers, sweet, red, raw [170108], 300 g Onions, raw [170000], 150 g Tomato products, canned, paste, without salt added (Includes foods for USDA's Food Distribution Program) [170459], 250 g Oil, sunflower, linoleic, (approx. 65%) [171025]. Cooked weight 0.6 x raw (1620 g of 2700 g)."
+    },
+    {
+      "ref": "salata-de-icre",
+      "name": "Carp roe spread (Salată de icre de crap)",
+      "name_ro": "Salată de icre de crap",
+      "calories_per_100g": 568.8,
+      "protein_per_100g": 6.1,
+      "carbs_per_100g": 3.9,
+      "fat_per_100g": 60.1,
+      "source_description": "Recipe: 150 g Fish, roe, mixed species, raw [175132], 350 g Oil, sunflower, linoleic, (approx. 65%) [171025], 50 g Onions, raw [170000], 20 g Lemon juice, raw [167747], 30 g Bread, white, commercially prepared (includes soft bread crumbs) [174924]. Cooked weight 1 x raw (600 g of 600 g)."
+    },
+    {
+      "ref": "fasole-batuta",
+      "name": "Mashed bean spread (Fasole bătută)",
+      "name_ro": "Fasole bătută",
+      "calories_per_100g": 201.2,
+      "protein_per_100g": 7.9,
+      "carbs_per_100g": 21.9,
+      "fat_per_100g": 9.7,
+      "source_description": "Recipe: 750 g Beans, white, mature seeds, cooked, boiled, without salt [175203], 20 g Garlic, raw [169230], 90 g Oil, sunflower, linoleic, (approx. 65%) [171025], 150 g Onions, raw [170000], 3 g Spices, paprika [171329]. Cooked weight 0.95 x raw (962 g of 1013 g). USDA's boiled white beans."
+    },
+    {
+      "ref": "salata-de-boeuf",
+      "name": "Beef and vegetable salad (Salată de boeuf)",
+      "name_ro": "Salată de boeuf",
+      "calories_per_100g": 175.4,
+      "protein_per_100g": 6.3,
+      "carbs_per_100g": 8.4,
+      "fat_per_100g": 13.0,
+      "source_description": "Recipe: 300 g Chicken, broiler or fryers, breast, skinless, boneless, meat only, raw [171077], 400 g Potatoes, flesh and skin, raw [170026], 200 g Carrots, raw [170393], 100 g Parsnips, raw [170417], 100 g Peas, green, frozen, unprepared (Includes foods for USDA's Food Distribution Program) [170016], 150 g Pickles, cucumber, dill or kosher dill [168558], 100 g Peppers, sweet, red, raw [170108], 250 g Salad dressing, mayonnaise, regular [171009], 15 g Mustard, prepared, yellow [172234], 100 g Egg, whole, raw, fresh [171287]. Cooked weight 0.93 x raw (1595 g of 1715 g)."
+    },
+    {
+      "ref": "salata-orientala",
+      "name": "Potato, egg and onion salad (Salată orientală)",
+      "name_ro": "Salată orientală",
+      "calories_per_100g": 123.0,
+      "protein_per_100g": 3.3,
+      "carbs_per_100g": 14.5,
+      "fat_per_100g": 5.9,
+      "source_description": "Recipe: 800 g Potatoes, boiled, cooked without skin, flesh, without salt [170440], 200 g Egg, whole, cooked, hard-boiled [173424], 150 g Onions, raw [170000], 50 g Oil, sunflower, linoleic, (approx. 65%) [171025], 10 g Vinegar, distilled [172237], 15 g Parsley, fresh [170416]. Cooked weight 1 x raw (1225 g of 1225 g). USDA's boiled potatoes and hard-boiled eggs."
+    },
+    {
+      "ref": "salata-de-cartofi",
+      "name": "Potato salad (Salată de cartofi)",
+      "name_ro": "Salată de cartofi",
+      "calories_per_100g": 143.0,
+      "protein_per_100g": 2.7,
+      "carbs_per_100g": 11.2,
+      "fat_per_100g": 8.2,
+      "source_description": "USDA dish: Potato salad, home-prepared [169269]."
+    },
+    {
+      "ref": "salata-de-varza",
+      "name": "Cabbage salad (Salată de varză)",
+      "name_ro": "Salată de varză",
+      "calories_per_100g": 71.1,
+      "protein_per_100g": 1.2,
+      "carbs_per_100g": 5.3,
+      "fat_per_100g": 5.5,
+      "source_description": "Recipe: 500 g Cabbage, raw [169975], 30 g Oil, sunflower, linoleic, (approx. 65%) [171025], 20 g Vinegar, distilled [172237], 10 g Dill weed, fresh [172233]. Cooked weight 1 x raw (560 g of 560 g)."
+    },
+    {
+      "ref": "salata-de-rosii-cu-castraveti",
+      "name": "Tomato and cucumber salad (Salată de roșii cu castraveți)",
+      "name_ro": "Salată de roșii cu castraveți",
+      "calories_per_100g": 45.8,
+      "protein_per_100g": 0.8,
+      "carbs_per_100g": 4.0,
+      "fat_per_100g": 3.3,
+      "source_description": "Recipe: 400 g Tomatoes, red, ripe, raw, year round average [170457], 300 g Cucumber, with peel, raw [168409], 50 g Onions, raw [170000], 25 g Oil, sunflower, linoleic, (approx. 65%) [171025], 10 g Vinegar, distilled [172237]. Cooked weight 1 x raw (785 g of 785 g)."
+    },
+    {
+      "ref": "ardei-copti",
+      "name": "Roasted peppers in vinegar (Ardei copți în oțet)",
+      "name_ro": "Ardei copți în oțet",
+      "calories_per_100g": 81.0,
+      "protein_per_100g": 1.2,
+      "carbs_per_100g": 7.3,
+      "fat_per_100g": 5.8,
+      "source_description": "Recipe: 1000 g Peppers, sweet, red, raw [170108], 50 g Oil, sunflower, linoleic, (approx. 65%) [171025], 50 g Vinegar, distilled [172237], 20 g Garlic, raw [169230], 100 g Beverages, water, tap, drinking [173647]. Cooked weight 0.75 x raw (915 g of 1220 g). Roasted and peeled, the peppers lose about 30% of their weight."
+    },
+    {
+      "ref": "oua-umplute",
+      "name": "Stuffed eggs (Ouă umplute)",
+      "name_ro": "Ouă umplute",
+      "calories_per_100g": 227.3,
+      "protein_per_100g": 10.8,
+      "carbs_per_100g": 1.1,
+      "fat_per_100g": 19.6,
+      "source_description": "Recipe: 600 g Egg, whole, cooked, hard-boiled [173424], 80 g Salad dressing, mayonnaise, regular [171009], 10 g Mustard, prepared, yellow [172234], 20 g Butter, salted [173410], 5 g Parsley, fresh [170416]. Cooked weight 1 x raw (715 g of 715 g)."
+    },
+    {
+      "ref": "piftie",
+      "name": "Pork aspic (Piftie)",
+      "name_ro": "Piftie",
+      "calories_per_100g": 122.8,
+      "protein_per_100g": 12.5,
+      "carbs_per_100g": 1.7,
+      "fat_per_100g": 7.1,
+      "source_description": "Recipe: 1000 g Pork, fresh, variety meats and by-products, feet, raw [167859], 300 g Pork, fresh, variety meats and by-products, ears, frozen, raw [167857], 2500 g Beverages, water, tap, drinking [173647], 60 g Garlic, raw [169230], 100 g Carrots, raw [170393], 100 g Onions, raw [170000]. Cooked weight 0.6 x raw (2436 g of 4060 g). Boiled down to the set aspic; the vegetables stay in the count."
+    },
+    {
+      "ref": "muraturi-asortate",
+      "name": "Mixed pickles (Murături asortate)",
+      "name_ro": "Murături asortate",
+      "calories_per_100g": 12.0,
+      "protein_per_100g": 0.5,
+      "carbs_per_100g": 2.4,
+      "fat_per_100g": 0.3,
+      "source_description": "Analogue: Pickles, cucumber, dill or kosher dill [168558]. Mostly cucumbers in brine and vinegar, as dill pickles are."
+    },
+    {
+      "ref": "gogonele-murate",
+      "name": "Pickled green tomatoes (Gogonele murate)",
+      "name_ro": "Gogonele murate",
+      "calories_per_100g": 23.0,
+      "protein_per_100g": 1.2,
+      "carbs_per_100g": 5.1,
+      "fat_per_100g": 0.2,
+      "source_description": "Analogue: Tomatoes, green, raw [170456]. Green tomatoes; brining changes little but the salt."
+    },
+    {
+      "ref": "carnati-afumati",
+      "name": "Smoked pork sausages (Cârnați afumați de porc)",
+      "name_ro": "Cârnați afumați de porc",
+      "calories_per_100g": 309.0,
+      "protein_per_100g": 12.0,
+      "carbs_per_100g": 0.9,
+      "fat_per_100g": 28.2,
+      "source_description": "Analogue: Sausage, smoked link sausage, pork [174584]. A smoked pork sausage."
+    },
+    {
+      "ref": "carnati-plescoi",
+      "name": "Plescoi sausages (Cârnați de Pleșcoi)",
+      "name_ro": "Cârnați de Pleșcoi",
+      "calories_per_100g": 301.0,
+      "protein_per_100g": 12.1,
+      "carbs_per_100g": 2.0,
+      "fat_per_100g": 26.6,
+      "source_description": "Analogue: Sausage, Polish, pork and beef, smoked [172954]. A smoked, spiced sausage; Pleșcoi's mutton and beef are not in USDA."
+    },
+    {
+      "ref": "salam-de-sibiu",
+      "name": "Sibiu dry salami (Salam de Sibiu)",
+      "name_ro": "Salam de Sibiu",
+      "calories_per_100g": 407.0,
+      "protein_per_100g": 22.6,
+      "carbs_per_100g": 1.6,
+      "fat_per_100g": 33.7,
+      "source_description": "Analogue: Salami, dry or hard, pork [172938]. A dry-cured pork salami."
+    },
+    {
+      "ref": "parizer",
+      "name": "Bologna-style sausage (Parizer)",
+      "name_ro": "Parizer",
+      "calories_per_100g": 308.0,
+      "protein_per_100g": 15.2,
+      "carbs_per_100g": 5.5,
+      "fat_per_100g": 24.6,
+      "source_description": "Analogue: Bologna, beef and pork [172013]. A fine emulsified cooked sausage, as bologna is."
+    },
+    {
+      "ref": "crenvursti",
+      "name": "Frankfurters (Crenvurști)",
+      "name_ro": "Crenvurști",
+      "calories_per_100g": 290.0,
+      "protein_per_100g": 10.3,
+      "carbs_per_100g": 4.2,
+      "fat_per_100g": 25.8,
+      "source_description": "Analogue: Frankfurter, meat [172968]. Frankfurters."
+    },
+    {
+      "ref": "kaizer",
+      "name": "Smoked cured pork belly (Kaizer)",
+      "name_ro": "Kaizer",
+      "calories_per_100g": 393.0,
+      "protein_per_100g": 13.7,
+      "carbs_per_100g": 0.0,
+      "fat_per_100g": 37.1,
+      "source_description": "Analogue: Pork, cured, bacon, unprepared [168277]. Smoked cured pork belly, as bacon is."
+    },
+    {
+      "ref": "sunca-presata",
+      "name": "Pressed ham (Șuncă presată)",
+      "name_ro": "Șuncă presată",
+      "calories_per_100g": 164.0,
+      "protein_per_100g": 16.6,
+      "carbs_per_100g": 3.6,
+      "fat_per_100g": 8.8,
+      "source_description": "Analogue: Ham, sliced, regular (approximately 11% fat) [173864]. Pressed sliced ham, about 11% fat."
+    },
+    {
+      "ref": "pastrama-de-oaie",
+      "name": "Mutton pastrami (Pastramă de oaie)",
+      "name_ro": "Pastramă de oaie",
+      "calories_per_100g": 147.0,
+      "protein_per_100g": 21.8,
+      "carbs_per_100g": 0.4,
+      "fat_per_100g": 5.8,
+      "source_description": "Analogue: Beef, cured, pastrami [170204]. Cured, spiced, smoked meat; USDA has no mutton pastrami, which is fattier."
+    },
+    {
+      "ref": "slanina-afumata",
+      "name": "Smoked pork fatback (Slănină afumată)",
+      "name_ro": "Slănină afumată",
+      "calories_per_100g": 748.0,
+      "protein_per_100g": 5.0,
+      "carbs_per_100g": 0.0,
+      "fat_per_100g": 80.5,
+      "source_description": "Analogue: Pork, cured, salt pork, raw [168287]. Cured pork fatback."
+    },
+    {
+      "ref": "caltabos",
+      "name": "Liver sausage (Caltaboș)",
+      "name_ro": "Caltaboș",
+      "calories_per_100g": 327.0,
+      "protein_per_100g": 14.5,
+      "carbs_per_100g": 3.1,
+      "fat_per_100g": 28.5,
+      "source_description": "Analogue: Braunschweiger (a liver sausage), pork [171621]. A pork liver sausage."
+    },
+    {
+      "ref": "toba",
+      "name": "Head cheese (Tobă)",
+      "name_ro": "Tobă",
+      "calories_per_100g": 157.0,
+      "protein_per_100g": 13.8,
+      "carbs_per_100g": 0.0,
+      "fat_per_100g": 10.9,
+      "source_description": "Analogue: Headcheese, pork [171630]. Pork head cheese."
+    },
+    {
+      "ref": "pate-de-ficat",
+      "name": "Liver pâté (Pate de ficat)",
+      "name_ro": "Pate de ficat",
+      "calories_per_100g": 319.0,
+      "protein_per_100g": 14.2,
+      "carbs_per_100g": 1.5,
+      "fat_per_100g": 28.0,
+      "source_description": "Analogue: Pate, liver, not specified, canned [172930]. A liver pâté."
+    },
+    {
+      "ref": "telemea-de-vaca",
+      "name": "Cow's milk telemea cheese, 21% fat (Telemea de vacă, 21% grăsime)",
+      "name_ro": "Telemea de vacă, 21% grăsime",
+      "calories_per_100g": 265.0,
+      "protein_per_100g": 14.2,
+      "carbs_per_100g": 3.9,
+      "fat_per_100g": 21.5,
+      "source_description": "Analogue: Cheese, feta [173420]. A brined white cheese like feta, 21% fat; makers range widely."
+    },
+    {
+      "ref": "telemea-de-oaie",
+      "name": "Sheep's milk telemea cheese, 21% fat (Telemea de oaie, 21% grăsime)",
+      "name_ro": "Telemea de oaie, 21% grăsime",
+      "calories_per_100g": 265.0,
+      "protein_per_100g": 14.2,
+      "carbs_per_100g": 3.9,
+      "fat_per_100g": 21.5,
+      "source_description": "Analogue: Cheese, feta [173420]. A brined white sheep's cheese like feta, 21% fat; makers range widely."
+    },
+    {
+      "ref": "cascaval",
+      "name": "Cascaval cheese, 27% fat (Cașcaval, 27% grăsime)",
+      "name_ro": "Cașcaval, 27% grăsime",
+      "calories_per_100g": 356.0,
+      "protein_per_100g": 24.9,
+      "carbs_per_100g": 2.2,
+      "fat_per_100g": 27.4,
+      "source_description": "Analogue: Cheese, gouda [171241]. A semi-hard yellow cheese like gouda, 27% fat."
+    },
+    {
+      "ref": "branza-de-burduf",
+      "name": "Burduf sheep cheese (Brânză de burduf)",
+      "name_ro": "Brânză de burduf",
+      "calories_per_100g": 387.0,
+      "protein_per_100g": 31.8,
+      "carbs_per_100g": 3.6,
+      "fat_per_100g": 26.9,
+      "source_description": "Analogue: Cheese, romano [171249]. A strong aged sheep's cheese; romano is the nearest USDA has."
+    },
+    {
+      "ref": "urda",
+      "name": "Whey cheese (Urdă)",
+      "name_ro": "Urdă",
+      "calories_per_100g": 138.0,
+      "protein_per_100g": 11.4,
+      "carbs_per_100g": 5.1,
+      "fat_per_100g": 7.9,
+      "source_description": "Analogue: Cheese, ricotta, part skim milk [171248]. A whey cheese, as ricotta is."
+    },
+    {
+      "ref": "cas",
+      "name": "Fresh sheep curd cheese (Caș)",
+      "name_ro": "Caș",
+      "calories_per_100g": 299.0,
+      "protein_per_100g": 18.1,
+      "carbs_per_100g": 3.0,
+      "fat_per_100g": 23.8,
+      "source_description": "Analogue: Cheese, fresh, queso fresco [172223]. A fresh unripened curd cheese."
+    },
+    {
+      "ref": "branza-de-vaci",
+      "name": "Fresh cow's cheese, 4% fat (Brânză de vaci, 4% grăsime)",
+      "name_ro": "Brânză de vaci, 4% grăsime",
+      "calories_per_100g": 98.0,
+      "protein_per_100g": 11.1,
+      "carbs_per_100g": 3.4,
+      "fat_per_100g": 4.3,
+      "source_description": "Analogue: Cheese, cottage, creamed, large or small curd [172179]. A fresh cow's curd cheese, about 4% fat like creamed cottage cheese."
+    },
+    {
+      "ref": "branza-topita",
+      "name": "Processed cheese (Brânză topită)",
+      "name_ro": "Brânză topită",
+      "calories_per_100g": 366.0,
+      "protein_per_100g": 18.1,
+      "carbs_per_100g": 4.8,
+      "fat_per_100g": 30.7,
+      "source_description": "Analogue: Cheese, pasteurized process, American, fortified with vitamin D [170853]. A processed cheese."
+    },
+    {
+      "ref": "covrigi",
+      "name": "Pretzel rings (Covrigi)",
+      "name_ro": "Covrigi",
+      "calories_per_100g": 298.3,
+      "protein_per_100g": 7.9,
+      "carbs_per_100g": 57.1,
+      "fat_per_100g": 3.7,
+      "source_description": "Recipe: 1000 g Wheat flour, white, all-purpose, enriched, bleached [168894], 550 g Beverages, water, tap, drinking [173647], 15 g Leavening agents, yeast, baker's, active dry [175043], 40 g Oil, sunflower, linoleic, (approx. 65%) [171025], 20 g Sugars, granulated [169655]. Cooked weight 0.85 x raw (1381 g of 1625 g)."
+    },
+    {
+      "ref": "placinta-cu-branza",
+      "name": "Cheese pie (Plăcintă cu brânză)",
+      "name_ro": "Plăcintă cu brânză",
+      "calories_per_100g": 257.9,
+      "protein_per_100g": 8.7,
+      "carbs_per_100g": 29.0,
+      "fat_per_100g": 12.0,
+      "source_description": "Recipe: 400 g Phyllo dough [172791], 600 g Cheese, cottage, creamed, large or small curd [172179], 150 g Egg, whole, raw, fresh [171287], 120 g Sugars, granulated [169655], 100 g Butter, salted [173410], 50 g Raisins, dark, seedless (Includes foods for USDA's Food Distribution Program) [168165], 100 g Cream, sour, cultured [171257]. Cooked weight 0.9 x raw (1368 g of 1520 g)."
+    },
+    {
+      "ref": "placinta-cu-mere",
+      "name": "Apple pie (Plăcintă cu mere)",
+      "name_ro": "Plăcintă cu mere",
+      "calories_per_100g": 282.1,
+      "protein_per_100g": 3.6,
+      "carbs_per_100g": 41.2,
+      "fat_per_100g": 12.0,
+      "source_description": "Recipe: 400 g Wheat flour, white, all-purpose, enriched, bleached [168894], 200 g Butter, salted [173410], 150 g Sugars, granulated [169655], 50 g Egg, whole, raw, fresh [171287], 1000 g Apples, raw, with skin (Includes foods for USDA's Food Distribution Program) [171688]. Cooked weight 0.8 x raw (1440 g of 1800 g)."
+    },
+    {
+      "ref": "langosi",
+      "name": "Fried dough with cheese (Langoși cu brânză)",
+      "name_ro": "Langoși cu brânză",
+      "calories_per_100g": 359.1,
+      "protein_per_100g": 9.6,
+      "carbs_per_100g": 43.1,
+      "fat_per_100g": 16.3,
+      "source_description": "Recipe: 500 g Wheat flour, white, all-purpose, enriched, bleached [168894], 250 g Milk, whole, 3.25% milkfat, with added vitamin D [171265], 10 g Leavening agents, yeast, baker's, active dry [175043], 10 g Sugars, granulated [169655], 200 g Cheese, feta [173420], 100 g Oil, sunflower, linoleic, (approx. 65%) [171025]. Cooked weight 0.9 x raw (963 g of 1070 g). Fried: the oil it absorbs is our assumption, about 10% of the coated raw weight (USDA's retention factors give no oil uptake)."
+    },
+    {
+      "ref": "gogosi",
+      "name": "Fried doughnuts (Gogoși)",
+      "name_ro": "Gogoși",
+      "calories_per_100g": 421.0,
+      "protein_per_100g": 6.1,
+      "carbs_per_100g": 47.9,
+      "fat_per_100g": 22.7,
+      "source_description": "USDA dish: Doughnuts, yeast-leavened, glazed, enriched (includes honey buns) [172758]."
+    },
+    {
+      "ref": "cozonac-cu-nuca",
+      "name": "Sweet bread with walnuts (Cozonac cu nucă)",
+      "name_ro": "Cozonac cu nucă",
+      "calories_per_100g": 412.7,
+      "protein_per_100g": 9.3,
+      "carbs_per_100g": 54.6,
+      "fat_per_100g": 18.8,
+      "source_description": "Recipe: 1000 g Wheat flour, white, all-purpose, enriched, bleached [168894], 400 g Milk, whole, 3.25% milkfat, with added vitamin D [171265], 450 g Sugars, granulated [169655], 200 g Butter, salted [173410], 300 g Egg, whole, raw, fresh [171287], 30 g Leavening agents, yeast, baker's, active dry [175043], 400 g Nuts, walnuts, english [170187], 30 g Cocoa, dry powder, unsweetened [169593], 100 g Raisins, dark, seedless (Includes foods for USDA's Food Distribution Program) [168165]. Cooked weight 0.88 x raw (2561 g of 2910 g)."
+    },
+    {
+      "ref": "pasca",
+      "name": "Easter cheese cake (Pască)",
+      "name_ro": "Pască",
+      "calories_per_100g": 246.2,
+      "protein_per_100g": 9.5,
+      "carbs_per_100g": 35.2,
+      "fat_per_100g": 7.7,
+      "source_description": "Recipe: 500 g Wheat flour, white, all-purpose, enriched, bleached [168894], 200 g Milk, whole, 3.25% milkfat, with added vitamin D [171265], 300 g Sugars, granulated [169655], 80 g Butter, salted [173410], 300 g Egg, whole, raw, fresh [171287], 15 g Leavening agents, yeast, baker's, active dry [175043], 1000 g Cheese, cottage, creamed, large or small curd [172179], 100 g Raisins, dark, seedless (Includes foods for USDA's Food Distribution Program) [168165], 150 g Cream, sour, cultured [171257]. Cooked weight 0.88 x raw (2328 g of 2645 g)."
+    },
+    {
+      "ref": "papanasi",
+      "name": "Cheese doughnuts with sour cream and jam (Papanași cu smântână și dulceață)",
+      "name_ro": "Papanași cu smântână și dulceață",
+      "calories_per_100g": 266.1,
+      "protein_per_100g": 7.6,
+      "carbs_per_100g": 29.9,
+      "fat_per_100g": 12.9,
+      "source_description": "Recipe: 500 g Cheese, cottage, creamed, large or small curd [172179], 100 g Egg, whole, raw, fresh [171287], 200 g Wheat flour, white, all-purpose, enriched, bleached [168894], 50 g Sugars, granulated [169655], 50 g Semolina, enriched [169715], 85 g Oil, sunflower, linoleic, (approx. 65%) [171025], 300 g Cream, sour, cultured [171257], 200 g Jams and preserves [169641]. Cooked weight 0.92 x raw (1366 g of 1485 g). Fried: the oil it absorbs is our assumption, about 10% of the coated raw weight (USDA's retention factors give no oil uptake). Served with sour cream and jam, counted in."
+    },
+    {
+      "ref": "clatite-cu-dulceata",
+      "name": "Crêpes with jam (Clătite cu dulceață)",
+      "name_ro": "Clătite cu dulceață",
+      "calories_per_100g": 231.7,
+      "protein_per_100g": 5.5,
+      "carbs_per_100g": 39.3,
+      "fat_per_100g": 5.6,
+      "source_description": "Recipe: 250 g Wheat flour, white, all-purpose, enriched, bleached [168894], 500 g Milk, whole, 3.25% milkfat, with added vitamin D [171265], 150 g Egg, whole, raw, fresh [171287], 30 g Oil, sunflower, linoleic, (approx. 65%) [171025], 20 g Sugars, granulated [169655], 300 g Jams and preserves [169641]. Cooked weight 0.9 x raw (1125 g of 1250 g)."
+    },
+    {
+      "ref": "clatite-cu-branza",
+      "name": "Crêpes with sweet cheese (Clătite cu brânză)",
+      "name_ro": "Clătite cu brânză",
+      "calories_per_100g": 190.4,
+      "protein_per_100g": 8.4,
+      "carbs_per_100g": 25.4,
+      "fat_per_100g": 6.1,
+      "source_description": "Recipe: 250 g Wheat flour, white, all-purpose, enriched, bleached [168894], 500 g Milk, whole, 3.25% milkfat, with added vitamin D [171265], 200 g Egg, whole, raw, fresh [171287], 30 g Oil, sunflower, linoleic, (approx. 65%) [171025], 100 g Sugars, granulated [169655], 500 g Cheese, cottage, creamed, large or small curd [172179], 50 g Raisins, dark, seedless (Includes foods for USDA's Food Distribution Program) [168165]. Cooked weight 0.9 x raw (1467 g of 1630 g)."
+    },
+    {
+      "ref": "cornulete",
+      "name": "Filled crescent cookies (Cornulețe)",
+      "name_ro": "Cornulețe",
+      "calories_per_100g": 432.6,
+      "protein_per_100g": 5.8,
+      "carbs_per_100g": 61.5,
+      "fat_per_100g": 18.3,
+      "source_description": "Recipe: 500 g Wheat flour, white, all-purpose, enriched, bleached [168894], 200 g Butter, salted [173410], 150 g Cream, sour, cultured [171257], 150 g Sugars, granulated [169655], 50 g Egg, whole, raw, fresh [171287], 200 g Jams and preserves [169641]. Cooked weight 0.88 x raw (1100 g of 1250 g)."
+    },
+    {
+      "ref": "salam-de-biscuiti",
+      "name": "Biscuit chocolate log (Salam de biscuiți)",
+      "name_ro": "Salam de biscuiți",
+      "calories_per_100g": 461.3,
+      "protein_per_100g": 5.6,
+      "carbs_per_100g": 51.6,
+      "fat_per_100g": 27.8,
+      "source_description": "Recipe: 500 g Cookies, butter, commercially prepared, enriched [174950], 150 g Butter, salted [173410], 150 g Sugars, granulated [169655], 40 g Cocoa, dry powder, unsweetened [169593], 100 g Nuts, walnuts, english [170187], 100 g Milk, whole, 3.25% milkfat, with added vitamin D [171265]. Cooked weight 1 x raw (1040 g of 1040 g)."
+    },
+    {
+      "ref": "chec",
+      "name": "Pound cake (Chec)",
+      "name_ro": "Chec",
+      "calories_per_100g": 353.0,
+      "protein_per_100g": 5.0,
+      "carbs_per_100g": 53.6,
+      "fat_per_100g": 14.0,
+      "source_description": "USDA dish: Cake, pound, commercially prepared, butter (includes fresh and frozen) [172704]."
+    },
+    {
+      "ref": "orez-cu-lapte",
+      "name": "Rice pudding (Orez cu lapte)",
+      "name_ro": "Orez cu lapte",
+      "calories_per_100g": 108.0,
+      "protein_per_100g": 3.2,
+      "carbs_per_100g": 18.4,
+      "fat_per_100g": 2.1,
+      "source_description": "USDA dish: Puddings, rice, ready-to-eat [168782]."
+    },
+    {
+      "ref": "gris-cu-lapte",
+      "name": "Semolina pudding (Griș cu lapte)",
+      "name_ro": "Griș cu lapte",
+      "calories_per_100g": 128.9,
+      "protein_per_100g": 4.0,
+      "carbs_per_100g": 18.2,
+      "fat_per_100g": 4.5,
+      "source_description": "Recipe: 100 g Semolina, enriched [169715], 1000 g Milk, whole, 3.25% milkfat, with added vitamin D [171265], 80 g Sugars, granulated [169655], 20 g Butter, salted [173410]. Cooked weight 0.92 x raw (1104 g of 1200 g)."
+    },
+    {
+      "ref": "coliva",
+      "name": "Boiled wheat with walnuts (Colivă)",
+      "name_ro": "Colivă",
+      "calories_per_100g": 248.7,
+      "protein_per_100g": 5.1,
+      "carbs_per_100g": 40.0,
+      "fat_per_100g": 9.4,
+      "source_description": "Recipe: 500 g Wheat, soft white [169720], 750 g Beverages, water, tap, drinking [173647], 250 g Nuts, walnuts, english [170187], 250 g Sugars, granulated [169655], 100 g Raisins, dark, seedless (Includes foods for USDA's Food Distribution Program) [168165]. Cooked weight 1 x raw (1850 g of 1850 g). The water the boiled wheat takes up is counted in."
+    },
+    {
+      "ref": "dulceata-de-visine",
+      "name": "Sour cherry preserve (Dulceață de vișine)",
+      "name_ro": "Dulceață de vișine",
+      "calories_per_100g": 308.0,
+      "protein_per_100g": 0.7,
+      "carbs_per_100g": 79.1,
+      "fat_per_100g": 0.2,
+      "source_description": "Recipe: 1000 g Cherries, sour, red, raw [173954], 1000 g Sugars, granulated [169655], 30 g Lemon juice, raw [167747]. Cooked weight 0.7 x raw (1421 g of 2030 g)."
+    },
+    {
+      "ref": "magiun-de-prune",
+      "name": "Plum butter (Magiun de prune)",
+      "name_ro": "Magiun de prune",
+      "calories_per_100g": 153.3,
+      "protein_per_100g": 2.3,
+      "carbs_per_100g": 38.1,
+      "fat_per_100g": 0.9,
+      "source_description": "Recipe: 3000 g Plums, raw [169949]. Cooked weight 0.3 x raw (900 g of 3000 g). Plums cooked down to a third of their weight, no sugar added."
+    },
+    {
+      "ref": "halva",
+      "name": "Sunflower halva (Halva)",
+      "name_ro": "Halva",
+      "calories_per_100g": 500.6,
+      "protein_per_100g": 11.6,
+      "carbs_per_100g": 56.0,
+      "fat_per_100g": 28.8,
+      "source_description": "Recipe: 500 g Seeds, sunflower seed kernels, dried [170562], 400 g Sugars, granulated [169655], 150 g Beverages, water, tap, drinking [173647]. Cooked weight 0.85 x raw (892 g of 1050 g). Sunflower halva; USDA's halva is tahini (sesame)."
+    }
+  ]
+}
