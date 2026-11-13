@@ -3,6 +3,7 @@ from datetime import date, datetime
 
 from sqlalchemy import (
     JSON,
+    BigInteger,
     CheckConstraint,
     DateTime,
     ForeignKey,
@@ -135,9 +136,36 @@ class Erasure(Base):
     erased_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
 
 
-# Tables that hold no user's data, though they name users: left out of the
-# export and of the deletion (see Erasure)
-SYSTEM_TABLES = {"erasures"}
+class OffProduct(Base):
+    """A product from Open Food Facts, cached as it came (app/barcode.py).
+
+    A database of its own under the ODbL: never mixed with the catalog or
+    with users' foods, nothing of ours added, published unmodified on
+    request. Only products found are stored. Not user data: no user_id."""
+
+    __tablename__ = "off_products"
+
+    # The barcode as a GTIN-14, zero-padded (a UPC-A and its EAN-13 match)
+    gtin: Mapped[str] = mapped_column(String(14), primary_key=True)
+    name: Mapped[str | None] = mapped_column(String(200), default=None)
+    name_ro: Mapped[str | None] = mapped_column(String(200), default=None)
+    brand: Mapped[str | None] = mapped_column(String(200), default=None)
+    quantity: Mapped[str | None] = mapped_column(String(100), default=None)
+    # As Open Food Facts gives them; null where it gives none. Out-of-range
+    # values are kept here and left out of the answer
+    calories_per_100g: Mapped[float | None] = mapped_column(default=None)
+    protein_per_100g: Mapped[float | None] = mapped_column(default=None)
+    carbs_per_100g: Mapped[float | None] = mapped_column(default=None)
+    fat_per_100g: Mapped[float | None] = mapped_column(default=None)
+    # Open Food Facts' own last change, a Unix time
+    off_last_modified: Mapped[int | None] = mapped_column(BigInteger, default=None)
+    fetched_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+
+
+# Tables that hold no user's data: left out of the export and of the
+# deletion (Erasure names users, but must outlive them; OffProduct names
+# no one)
+SYSTEM_TABLES = {"erasures", "off_products"}
 
 
 class BodyWeight(Base):

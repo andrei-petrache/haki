@@ -33,6 +33,12 @@ class Settings(DatabaseSettings):
     # off by default and in prod; staging turns it on. Off, every endpoint
     # of it answers 404 as if it did not exist.
     body_weight_enabled: bool = False
+    # Barcode lookup through Open Food Facts (app/barcode.py); off, 404
+    barcode_enabled: bool = False
+    # Calls to Open Food Facts per pod and minute. It allows 100 a minute
+    # per address and every pod leaves through the same one: keep the sum
+    # over the replicas below 100
+    off_requests_per_minute: int = Field(default=45, ge=1, le=100)
     # Password reset by e-mail (app/password_reset.py). Off by default and in
     # prod until a real mail provider exists (phase 7, Andrei's choice: it
     # costs money); off, its endpoints answer 404.

@@ -16,6 +16,7 @@ CACHE_SECONDS = 60
 class FeaturesResponse(BaseModel):
     password_reset: bool
     body_weight: bool
+    barcode: bool
     export: bool
 
 
@@ -26,6 +27,7 @@ def features(response: Response) -> FeaturesResponse:
     return FeaturesResponse(
         password_reset=settings.password_reset_enabled,
         body_weight=settings.body_weight_enabled,
+        barcode=settings.barcode_enabled,
         # The export is a right (GDPR Art. 15 and 20): always on
         export=True,
     )

@@ -17,6 +17,7 @@ def test_the_flags_follow_the_settings_without_a_login(
     assert response.json() == {
         "password_reset": on,
         "body_weight": not on,
+        "barcode": False,
         "export": True,
     }
 
