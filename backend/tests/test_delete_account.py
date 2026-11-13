@@ -49,7 +49,13 @@ def fill_account(client: TestClient, headers: dict[str, str]) -> None:
         "/entries",
         {"food_id": food["id"], "eaten_on": DAY, "meal_type": "lunch", "grams": 150},
     )
-    post("/entries/quick", {"eaten_on": DAY, "meal_type": "snack", "calories": 200})
+    # With an Idempotency-Key, so the export also meets a stored UUID
+    quick = client.post(
+        "/entries/quick",
+        json={"eaten_on": DAY, "meal_type": "snack", "calories": 200},
+        headers=headers | {"Idempotency-Key": "8f14e45f-ceea-467f-a0e6-ab2e1b2a9c3d"},
+    )
+    assert quick.status_code == 201, quick.text
     squat = post("/exercises", {"name": "Squat"})
     post(
         "/workouts",

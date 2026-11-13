@@ -44,6 +44,8 @@ class ErrorCode(StrEnum):
     DATE_OUT_OF_RANGE = "date_out_of_range"
     CONSENT_REQUIRED = "consent_required"
     CONSENT_VERSION_OUTDATED = "consent_version_outdated"
+    INVALID_IDEMPOTENCY_KEY = "invalid_idempotency_key"
+    IDEMPOTENCY_KEY_REUSED = "idempotency_key_reused"
     VALIDATION_ERROR = "validation_error"
     DATABASE_UNAVAILABLE = "database_unavailable"
     SERVER_BUSY = "server_busy"
@@ -118,6 +120,14 @@ ERRORS: dict[ErrorCode, tuple[HTTPStatus, str]] = {
     ErrorCode.CONSENT_VERSION_OUTDATED: (
         HTTPStatus.CONFLICT,
         "The consent text has changed; show the current one",
+    ),
+    ErrorCode.INVALID_IDEMPOTENCY_KEY: (
+        HTTPStatus.UNPROCESSABLE_ENTITY,
+        "Idempotency-Key must be a UUID",
+    ),
+    ErrorCode.IDEMPOTENCY_KEY_REUSED: (
+        HTTPStatus.CONFLICT,
+        "This Idempotency-Key was used for another entry",
     ),
     ErrorCode.DATABASE_UNAVAILABLE: (
         HTTPStatus.SERVICE_UNAVAILABLE,
