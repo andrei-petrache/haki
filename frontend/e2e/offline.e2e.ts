@@ -2,6 +2,8 @@
  * Offline logging on a 390 px phone: with no connection, a one-tap chip
  * and a quick entry wait on the device ("Waiting for a connection"), and
  * go by themselves once the connection is back, each saved once.
+ * An answer lost after the server saved is resent under the same
+ * Idempotency-Key and the meal stays logged once.
  */
 import { expect, test } from '@playwright/test'
 import type { BrowserContext, Page } from '@playwright/test'
@@ -81,4 +83,38 @@ test('back online, both go by themselves, each once', async () => {
   await expect(page.getByRole('navigation').getByRole('button').first()).toBeVisible()
   await page.waitForTimeout(500)
   expect(await todayEntries()).toBe(2)
+})
+
+test('an answer lost after the server saved: queued, resent under the same key, saved once', async () => {
+  const before = await todayEntries()
+  // The request reaches the server and is saved; its answer never arrives
+  let reachedServer = 0
+  await page.route('**/api/entries', async (route) => {
+    if (route.request().method() !== 'POST') return route.continue()
+    await route.fetch()
+    reachedServer += 1
+    await route.abort('connectionreset')
+  })
+  const chip = page.getByRole('group', { name: 'Recent foods' }).getByRole('button', { name: /Oats/ })
+  await chip.click()
+  await expect(page.locator('.toast')).toContainText('No connection: Oats is saved on this device')
+  expect(reachedServer).toBe(1)
+  expect(await todayEntries()).toBe(before + 1)
+  const queued = await page.evaluate(() => JSON.parse(localStorage.getItem('haki_outbox') ?? '[]') as { key: string }[])
+  expect(queued).toHaveLength(1)
+  await page.unroute('**/api/entries')
+
+  // Today sends the queue on opening: the server knows the key and returns
+  // the entry it made (200, the same id) instead of a second one
+  const replay = page.waitForResponse(
+    (response) =>
+      response.url().endsWith('/api/entries') &&
+      response.request().method() === 'POST' &&
+      response.request().headers()['idempotency-key'] === queued[0].key,
+  )
+  await page.reload()
+  expect((await replay).status()).toBe(200)
+  await expect(page.locator('.toast')).toContainText('Back online: what you logged offline is saved (1).')
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem('haki_outbox') ?? '[]').length)).toBe(0)
+  expect(await todayEntries()).toBe(before + 1)
 })
