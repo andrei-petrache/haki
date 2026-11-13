@@ -49,6 +49,13 @@ test('on a phone: five tabs in a bar at the bottom, Log out in Profile', async (
   await expect(page.getByRole('button', { name: 'Log out' })).toHaveCount(0)
   await tabs().nth(4).click()
   await expect(page.getByRole('button', { name: 'Log out' })).toHaveCount(1)
+  // Profile in cards: Log out with the account at the top, deleting the
+  // account last and apart; the language's choice shows whole
+  const cards = page.locator('.profile > section')
+  await expect(cards.first().getByRole('button', { name: 'Log out' })).toBeVisible()
+  await expect(cards.last()).toHaveClass(/danger-zone/)
+  const language = page.getByLabel('Language')
+  expect(await language.evaluate((select: HTMLSelectElement) => select.scrollWidth <= select.clientWidth + 1)).toBe(true)
   await page.screenshot({ path: `${SHOTS}/28-bottom-nav-phone.png`, fullPage: true })
 
   // The last content is not hidden under the bar
