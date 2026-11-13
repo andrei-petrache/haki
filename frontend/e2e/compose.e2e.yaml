@@ -18,6 +18,10 @@ services:
 
   backend:
     image: haki-backend:e2e
+    environment:
+      # Body weight is off by default (consent comes with phase 4); the
+      # end-to-end tests cover it switched on
+      BODY_WEIGHT_ENABLED: "true"
 
   frontend:
     image: haki-frontend:e2e

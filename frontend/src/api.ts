@@ -679,3 +679,31 @@ export async function copyCatalogExercise(
   )
   return { item: body, created: status === 201 }
 }
+
+// Body weight (phase 3, backend/app/body.py). Behind a server flag: while
+// it is off every one of these answers 404, and the app shows nothing of it.
+
+/** One weigh-in, with the trend line at that day; outlier: far (2%) from the trend. */
+export type WeightPoint = {
+  measured_on: string
+  weight_kg: number
+  trend_kg: number
+  outlier: boolean
+}
+
+export type Weight = { measured_on: string; weight_kg: number }
+
+/** Weigh-ins from `from` to `to` (both days included), oldest first. */
+export function fetchWeights(token: string, from: string, to: string): Promise<WeightPoint[]> {
+  const query = new URLSearchParams({ from, to })
+  return request<WeightPoint[]>(`/weights?${query}`, {}, token)
+}
+
+/** The day's weigh-in, new or replacing that day's (one per day). */
+export function putWeight(token: string, day: string, weightKg: number): Promise<Weight> {
+  return request<Weight>(`/weights/${day}`, json('PUT', { weight_kg: weightKg }), token)
+}
+
+export function deleteWeight(token: string, day: string): Promise<void> {
+  return request<void>(`/weights/${day}`, { method: 'DELETE' }, token)
+}
