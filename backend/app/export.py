@@ -16,6 +16,7 @@ from collections.abc import Iterator
 from datetime import UTC, date, datetime
 from decimal import Decimal
 from typing import Any
+from uuid import UUID
 
 from fastapi import APIRouter, status
 from fastapi.responses import StreamingResponse
@@ -95,6 +96,8 @@ def to_json(value: Any) -> Any:
         return value.isoformat()
     if isinstance(value, Decimal):
         return float(value)
+    if isinstance(value, UUID):
+        return str(value)
     raise TypeError(f"cannot export a {type(value).__name__}")
 
 

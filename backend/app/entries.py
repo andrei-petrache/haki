@@ -1,8 +1,10 @@
+import uuid
 from datetime import date
 from typing import Annotated
 
-from fastapi import APIRouter, Query, Response, status
+from fastapi import APIRouter, Header, Query, Response, status
 from sqlalchemy import case, func, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload
 
 from app.auth import CurrentUser, SessionDep
@@ -156,11 +158,78 @@ def list_entries(
     return day_entries(session, current_user, day)
 
 
+# Idempotency-Key: a UUID the client makes once per entry it queues (offline
+# logging), so the same request sent again, after its answer got lost,
+# returns the entry made the first time instead of logging the meal twice
+IdempotencyKey = Annotated[str | None, Header(alias="Idempotency-Key", max_length=64)]
+
+
+def parse_key(raw: str | None) -> uuid.UUID | None:
+    if raw is None:
+        return None
+    try:
+        return uuid.UUID(raw)
+    except ValueError:
+        raise ApiError(ErrorCode.INVALID_IDEMPOTENCY_KEY) from None
+
+
+def keyed[E: (MealEntry, QuickEntry)](
+    session: Session, model: type[E], user: User, key: uuid.UUID
+) -> E | None:
+    """The user's entry made with this key, if any; never another user's."""
+    query = select(model).where(model.user_id == user.id, model.client_key == key)
+    return session.scalar(query)
+
+
+def replay[E: (MealEntry, QuickEntry)](
+    existing: E, data: MealEntryIn | QuickEntryIn, response: Response
+) -> E:
+    """The entry made the first time, with 200, if the body is the same;
+    409 if the key comes back with another body (a client bug)."""
+    for field, value in data.model_dump().items():
+        if getattr(existing, field) != value:
+            raise ApiError(ErrorCode.IDEMPOTENCY_KEY_REUSED)
+    response.status_code = status.HTTP_200_OK
+    return existing
+
+
+def create_once[E: (MealEntry, QuickEntry)](
+    session: Session,
+    user: User,
+    entry: E,
+    data: MealEntryIn | QuickEntryIn,
+    response: Response,
+) -> E:
+    """Commit a new entry. With a key, two requests at once both pass the
+    lookup; the unique index lets one in, and the other gets its entry."""
+    session.add(entry)
+    try:
+        session.commit()
+    except IntegrityError:
+        session.rollback()
+        existing = None
+        if entry.client_key is not None:
+            existing = keyed(session, type(entry), user, entry.client_key)
+        if existing is None:
+            raise
+        return replay(existing, data, response)
+    return entry
+
+
 @router.post("", status_code=status.HTTP_201_CREATED, response_model=MealEntryResponse)
 def create_entry(
-    data: MealEntryIn, current_user: CurrentUser, session: SessionDep
+    data: MealEntryIn,
+    response: Response,
+    current_user: CurrentUser,
+    session: SessionDep,
+    idempotency_key: IdempotencyKey = None,
 ) -> MealEntryResponse:
-    """Log an amount of one of the current user's foods."""
+    """Log an amount of one of the current user's foods: 201. With an
+    Idempotency-Key already used for the same body: 200 and that entry;
+    for another body: 409 idempotency_key_reused."""
+    key = parse_key(idempotency_key)
+    if key is not None and (existing := keyed(session, MealEntry, current_user, key)):
+        return to_response(replay(existing, data, response))
     # Checking only the entry isn't enough: the food must be the user's too
     food = get_own_food(session, current_user, data.food_id)
     check_room(session, current_user, data.eaten_on, data.meal_type, 1)
@@ -170,24 +239,29 @@ def create_entry(
         eaten_on=data.eaten_on,
         meal_type=data.meal_type,
         grams=data.grams,
+        client_key=key,
     )
-    session.add(entry)
-    session.commit()
-    return to_response(entry)
+    return to_response(create_once(session, current_user, entry, data, response))
 
 
 @router.post(
     "/quick", status_code=status.HTTP_201_CREATED, response_model=MealEntryResponse
 )
 def create_quick_entry(
-    data: QuickEntryIn, current_user: CurrentUser, session: SessionDep
+    data: QuickEntryIn,
+    response: Response,
+    current_user: CurrentUser,
+    session: SessionDep,
+    idempotency_key: IdempotencyKey = None,
 ) -> MealEntryResponse:
-    """Log calories (and maybe macros) without a food."""
+    """Log calories (and maybe macros) without a food. Idempotency-Key as
+    for POST /entries."""
+    key = parse_key(idempotency_key)
+    if key is not None and (existing := keyed(session, QuickEntry, current_user, key)):
+        return quick_to_response(replay(existing, data, response))
     check_room(session, current_user, data.eaten_on, data.meal_type, 1)
-    entry = QuickEntry(user_id=current_user.id, **data.model_dump())
-    session.add(entry)
-    session.commit()
-    return quick_to_response(entry)
+    entry = QuickEntry(user_id=current_user.id, client_key=key, **data.model_dump())
+    return quick_to_response(create_once(session, current_user, entry, data, response))
 
 
 @router.post(

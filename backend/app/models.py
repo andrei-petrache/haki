@@ -1,3 +1,4 @@
+import uuid
 from datetime import date, datetime
 
 from sqlalchemy import (
@@ -9,8 +10,10 @@ from sqlalchemy import (
     Numeric,
     String,
     UniqueConstraint,
+    Uuid,
     false,
     func,
+    text,
 )
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
@@ -408,6 +411,19 @@ class Food(Base):
         return self.favourited_at is not None
 
 
+def client_key_index(table: str) -> Index:
+    """One entry per user and Idempotency-Key; entries without a key (null)
+    are not indexed at all."""
+    return Index(
+        f"uq_{table}_user_id_client_key",
+        "user_id",
+        "client_key",
+        unique=True,
+        postgresql_where=text("client_key IS NOT NULL"),
+        sqlite_where=text("client_key IS NOT NULL"),
+    )
+
+
 class MealEntry(Base):
     """An amount of a food eaten by a user on a given day and meal."""
 
@@ -419,6 +435,7 @@ class MealEntry(Base):
             name="ck_meal_entries_meal_type",
         ),
         Index("ix_meal_entries_user_id_eaten_on", "user_id", "eaten_on"),
+        client_key_index("meal_entries"),
     )
 
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -432,6 +449,10 @@ class MealEntry(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
+    # The client's Idempotency-Key, so a request sent again (an offline
+    # queue whose answer got lost) returns this entry instead of a second
+    # one; null when the client sent none (app/entries.py)
+    client_key: Mapped[uuid.UUID | None] = mapped_column(Uuid, default=None)
 
     food: Mapped[Food] = relationship()
 
@@ -456,6 +477,7 @@ class QuickEntry(Base):
             name="ck_quick_entries_meal_type",
         ),
         Index("ix_quick_entries_user_id_eaten_on", "user_id", "eaten_on"),
+        client_key_index("quick_entries"),
     )
 
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -471,6 +493,8 @@ class QuickEntry(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
+    # As on MealEntry: the client's Idempotency-Key, or null
+    client_key: Mapped[uuid.UUID | None] = mapped_column(Uuid, default=None)
 
 
 class Exercise(Base):
