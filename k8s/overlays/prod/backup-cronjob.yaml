@@ -1,7 +1,10 @@
 # Nightly backup of prod's database: a custom-format pg_dump, then the
 # erasure log exported next to it (newer than the dump, so a restore can
 # erase again what was erased after it), then files older than 30 days
-# deleted (the retention of 12 November). Prod only.
+# deleted (the retention of 12 November). Prod only. Files are 0600. Any
+# step that fails fails the Job (sh -e, backoffLimit 1): the failed Job
+# stays listed with its logs (failedJobsHistoryLimit) until prod is
+# monitored and alerting exists (go-live).
 #
 # The files go to the PersistentVolumeClaim haki-backups, created by hand
 # like the Secrets (k8s/README.md, "Nightly backups"): ArgoCD may not touch
@@ -63,6 +66,8 @@ spec:
                 - sh
                 - -ceu
                 - |
+                  # Every file readable by its owner only (0600)
+                  umask 077
                   ts="$(date -u +%Y%m%d-%H%M%S)"
                   f="/backups/haki-$ts.dump"
                   pg_dump -Fc -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -f "$f.part"
@@ -127,6 +132,7 @@ spec:
                 - sh
                 - -ceu
                 - |
+                  umask 077
                   ts="$(cat /backups/.last)"
                   python -m app.erasures export "/backups/erasures-$ts.jsonl"
                   find /backups -maxdepth 1 -type f \
