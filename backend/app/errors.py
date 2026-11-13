@@ -46,6 +46,10 @@ class ErrorCode(StrEnum):
     CONSENT_VERSION_OUTDATED = "consent_version_outdated"
     INVALID_IDEMPOTENCY_KEY = "invalid_idempotency_key"
     IDEMPOTENCY_KEY_REUSED = "idempotency_key_reused"
+    INVALID_BARCODE = "invalid_barcode"
+    PRODUCT_NOT_FOUND = "product_not_found"
+    BARCODE_RATE_LIMITED = "barcode_rate_limited"
+    BARCODE_UNAVAILABLE = "barcode_unavailable"
     VALIDATION_ERROR = "validation_error"
     DATABASE_UNAVAILABLE = "database_unavailable"
     SERVER_BUSY = "server_busy"
@@ -128,6 +132,22 @@ ERRORS: dict[ErrorCode, tuple[HTTPStatus, str]] = {
     ErrorCode.IDEMPOTENCY_KEY_REUSED: (
         HTTPStatus.CONFLICT,
         "This Idempotency-Key was used for another entry",
+    ),
+    ErrorCode.INVALID_BARCODE: (
+        HTTPStatus.UNPROCESSABLE_ENTITY,
+        "Not a valid EAN-8, UPC-A, EAN-13 or GTIN-14 barcode",
+    ),
+    ErrorCode.PRODUCT_NOT_FOUND: (
+        HTTPStatus.NOT_FOUND,
+        "Open Food Facts has no product with this barcode",
+    ),
+    ErrorCode.BARCODE_RATE_LIMITED: (
+        HTTPStatus.TOO_MANY_REQUESTS,
+        "Too many barcode lookups; try again in a minute",
+    ),
+    ErrorCode.BARCODE_UNAVAILABLE: (
+        HTTPStatus.SERVICE_UNAVAILABLE,
+        "Open Food Facts cannot be reached; try again later",
     ),
     ErrorCode.DATABASE_UNAVAILABLE: (
         HTTPStatus.SERVICE_UNAVAILABLE,
