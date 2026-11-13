@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Full bleed: the launcher cuts its own shape; the H stays in the
+       central 80% safe zone -->
+  <rect width="512" height="512" fill="#c93a2e"/>
+  <rect x="176" y="160" width="52" height="192" rx="8" fill="#ffffff"/>
+  <rect x="284" y="160" width="52" height="192" rx="8" fill="#ffffff"/>
+  <rect x="176" y="232" width="160" height="48" rx="6" fill="#ffffff"/>
+</svg>

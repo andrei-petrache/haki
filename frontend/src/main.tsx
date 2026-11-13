@@ -17,6 +17,14 @@ import { takeResetToken } from './reset'
 // /reset the token leaves the address bar and history right away
 const resetToken = takeResetToken(window.location, window.history)
 
+// Installable, and the app shell opens offline (public/sw.js). Only in a
+// built app: the dev server's modules are not hashed files to cache
+if (import.meta.env.PROD && 'serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch(() => {})
+  })
+}
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <App resetToken={resetToken} />
