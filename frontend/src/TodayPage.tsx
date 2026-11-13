@@ -17,9 +17,10 @@ import type { DailySummary, Food, MealEntry, MealType } from './api'
 import { defaultCopyDay } from './copyTarget'
 import FoodLogger from './FoodLogger'
 import { MEAL_LABELS, entryName, headline, keepOrder, mealForHour } from './logging'
+import DayChoice from './DayChoice'
 import Toast from './Toast'
 import type { ToastMessage } from './Toast'
-import { formatDay, formatDayLabel, formatDecimal, formatKcal, localDateString, shiftDate } from './format'
+import { formatDay, formatDecimal, formatKcal, localDateString, shiftDate } from './format'
 import { useI18n } from './i18n/context'
 import type { MessageKey } from './i18n/i18n'
 
@@ -28,12 +29,6 @@ type DayData = { summary: DailySummary; entries: MealEntry[] }
 function DayPicker({ day, onChange }: { day: string; onChange: (day: string) => void }) {
   const { t } = useI18n()
   const today = localDateString()
-  const input = useRef<HTMLInputElement>(null)
-  const label = formatDayLabel(day, today, {
-    today: t('today.today'),
-    yesterday: t('today.yesterday'),
-    tomorrow: t('today.tomorrow'),
-  })
 
   return (
     <div className="day-picker">
@@ -45,35 +40,7 @@ function DayPicker({ day, onChange }: { day: string; onChange: (day: string) => 
       >
         ‹
       </button>
-      {/* The label opens the browser's own date picker, kept invisible under it */}
-      <span className="day-choice">
-        <button
-          type="button"
-          className="day-label"
-          aria-label={t('today.chooseDay', { day: label })}
-          onClick={() => {
-            const field = input.current
-            if (!field) return
-            try {
-              field.showPicker()
-            } catch {
-              field.focus()
-            }
-          }}
-        >
-          {label}
-        </button>
-        <input
-          ref={input}
-          type="date"
-          className="day-input"
-          tabIndex={-1}
-          aria-label={t('today.day')}
-          value={day}
-          // Clearing the field gives an empty string: keep the current day
-          onChange={(event) => event.target.value && onChange(event.target.value)}
-        />
-      </span>
+      <DayChoice day={day} onChange={onChange} fieldLabel={t('today.day')} />
       <button
         type="button"
         className="icon"

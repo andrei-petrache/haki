@@ -70,6 +70,24 @@ export function formatDayLabel(
   return `${word}, ${dayMonth}`
 }
 
+/**
+ * A day in a list: "Wed 11 Nov" / "mie. 11 nov.", with the year only
+ * when it is not the current one ("Fri 6 Dec 2025").
+ */
+export function formatShortDay(day: string, today: string = localDateString()): string {
+  const locale = activeLocale() === 'en' ? 'en-GB' : activeLocale()
+  const date = parseDay(day)
+  const sameYear = day.slice(0, 4) === today.slice(0, 4)
+  // Weekday and date apart: ICU adds a comma before them only with a year
+  const weekday = date.toLocaleDateString(locale, { weekday: 'short' })
+  const dayMonth = date.toLocaleDateString(locale, {
+    day: 'numeric',
+    month: 'short',
+    ...(sameYear ? {} : { year: 'numeric' }),
+  })
+  return `${weekday} ${dayMonth}`
+}
+
 export function formatDay(day: string): string {
   return parseDay(day).toLocaleDateString(activeLocale(), {
     weekday: 'short',

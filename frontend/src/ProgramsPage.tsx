@@ -8,6 +8,7 @@ import {
   startWorkout,
 } from './api'
 import type { Program, ProgramSummary } from './api'
+import DayChoice from './DayChoice'
 import { formatPlanned, localDateString } from './format'
 import { useI18n } from './i18n/context'
 import ProgramEditor from './ProgramEditor'
@@ -199,14 +200,10 @@ function ProgramDetail({
       {program && (
         <>
           <h2>{program.name}</h2>
-          <label className="date-field">
-            {t('programs.workoutDate')}
-            <input
-              type="date"
-              value={performedOn}
-              onChange={(event) => setPerformedOn(event.target.value)}
-            />
-          </label>
+          <p className="start-day">
+            <span className="muted">{t('programs.workoutDate')}</span>
+            <DayChoice day={performedOn} onChange={setPerformedOn} fieldLabel={t('programs.workoutDate')} />
+          </p>
           {dateProblem && <p className="error">{dateProblem}</p>}
           <p className="muted">
             {t('programs.copyNote')}
