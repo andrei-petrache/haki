@@ -2,12 +2,11 @@ import { useEffect, useState } from 'react'
 import {
   MEAL_TYPES,
   copyCatalogFood,
-  createEntry,
   describeError,
   fetchCatalogSources,
   searchFoods,
 } from './api'
-import type { Food, FoodSearchResult, MealEntry, MealType } from './api'
+import type { Food, FoodSearchResult, MealEntry, MealType, MealEntryInput } from './api'
 import { catalogLanguage } from './catalog'
 import { foodPicks } from './foodPicks'
 import { formatDecimal, formatKcal } from './format'
@@ -118,6 +117,7 @@ export default function FoodLogger({
   recent,
   onMealChange,
   onLogged,
+  logEntry,
 }: {
   token: string
   day: string
@@ -126,6 +126,8 @@ export default function FoodLogger({
   recent: Food[]
   onMealChange: (meal: MealType) => void
   onLogged: (entry: MealEntry, name: string) => void
+  // Logs now, or (with no answer) keeps it on this device: Today's outbox
+  logEntry: (body: MealEntryInput, name: string) => Promise<{ entry: MealEntry } | { queued: unknown }>
 }) {
   const { t, locale } = useI18n()
   const language = catalogLanguage(locale)
@@ -182,13 +184,14 @@ export default function FoodLogger({
         candidate.origin === 'own'
           ? candidate.food.id
           : (await copyCatalogFood(token, candidate.food.id, language)).item.id
-      const entry = await createEntry(token, { food_id: foodId, eaten_on: day, meal_type: meal, grams })
       const name = candidate.origin === 'own' ? displayName(candidate.food, locale) : candidate.food.name
+      const result = await logEntry({ food_id: foodId, eaten_on: day, meal_type: meal, grams }, name)
       setOpen(null)
       // Done with this search: the field empties, the results close
       setQ('')
       setResults(null)
-      onLogged(entry, name)
+      // Queued offline: Today says so itself
+      if ('entry' in result) onLogged(result.entry, name)
     } catch (err) {
       setError(describeError(err))
     } finally {

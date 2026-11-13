@@ -328,8 +328,16 @@ export function fetchEntries(token: string, day: string): Promise<MealEntry[]> {
   return request<MealEntry[]>(`/entries?${query}`, {}, token)
 }
 
-export function createEntry(token: string, entry: MealEntryInput): Promise<MealEntry> {
-  return request<MealEntry>('/entries', json('POST', entry), token)
+/**
+ * The Idempotency-Key for a meal entry: the server makes the entry once per
+ * key and returns that same entry for a resend (offline logging, outbox.ts).
+ */
+function withKey(init: RequestInit, key?: string): RequestInit {
+  return key ? { ...init, headers: { ...Object.fromEntries(new Headers(init.headers)), 'Idempotency-Key': key } } : init
+}
+
+export function createEntry(token: string, entry: MealEntryInput, key?: string): Promise<MealEntry> {
+  return request<MealEntry>('/entries', withKey(json('POST', entry), key), token)
 }
 
 export type MealCopy = { from_day: string; from_meal: MealType; to_day: string; to_meal: MealType }
@@ -343,8 +351,8 @@ export function copyMeal(token: string, copy: MealCopy): Promise<MealEntry[]> {
   return request<MealEntry[]>('/entries/copy', json('POST', copy), token)
 }
 
-export function createQuickEntry(token: string, entry: QuickEntryInput): Promise<MealEntry> {
-  return request<MealEntry>('/entries/quick', json('POST', entry), token)
+export function createQuickEntry(token: string, entry: QuickEntryInput, key?: string): Promise<MealEntry> {
+  return request<MealEntry>('/entries/quick', withKey(json('POST', entry), key), token)
 }
 
 /** Delete a food entry or a quick one: each kind has its own path. */
