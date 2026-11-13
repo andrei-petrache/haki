@@ -16,7 +16,9 @@ import { formatDayLabel, formatShortDay, localDateString, parseDay } from './for
 import { useI18n } from './i18n/context'
 import { formatNumber } from './i18n/i18n'
 import type { MessageKey } from './i18n/i18n'
+import { ConsentCard } from './Consent'
 import { TargetStatus } from './Goal'
+import { useConsent } from './useConsent'
 import Toast from './Toast'
 import type { ToastMessage } from './Toast'
 import { kgToUnit } from './units'
@@ -72,10 +74,42 @@ function dayWords(t: (key: MessageKey) => string, day: string): string {
 }
 
 /**
- * On Today, under the meals: the shown day's weigh-in, typed in the user's
- * unit, and where the trend is going; "Trend ›" opens the chart.
+ * On Today, under the meals: body weight only with a valid health data
+ * consent. Without one, the consent's text to agree to (or "Not now", which
+ * folds it to one line for this visit); off on the server (404), nothing.
  */
-export function WeightCard({
+export function WeightCard(props: { token: string; day: string; unit: WeightUnit; onOpen: () => void }) {
+  const { t } = useI18n()
+  const [version, setVersion] = useState(0)
+  const consent = useConsent(props.token, version)
+  const [later, setLater] = useState(false)
+  if (consent.kind === 'off' || consent.kind === 'loading') return null
+  if (consent.kind === 'error') return <p className="error">{consent.message}</p>
+  if (!consent.status.valid) {
+    if (later) {
+      return (
+        <section className="card weight-later">
+          <span className="grow">{t('weight.title')}</span>
+          <button type="button" className="link" onClick={() => setLater(false)}>
+            {t('consent.show')}
+          </button>
+        </section>
+      )
+    }
+    return (
+      <ConsentCard
+        token={props.token}
+        status={consent.status}
+        onGiven={() => setVersion((v) => v + 1)}
+        onLater={() => setLater(true)}
+      />
+    )
+  }
+  return <WeightCardBody {...props} />
+}
+
+/** The shown day's weigh-in, typed in the user's unit, and where the trend is going; "Trend ›" opens the chart. */
+function WeightCardBody({
   token,
   day,
   unit,

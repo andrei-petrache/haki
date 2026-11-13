@@ -143,11 +143,20 @@ type TokenResponse = {
 /** An error returned by the backend, with its HTTP status code. */
 export class ApiError extends Error {
   status: number
+  // The server's stable code (e.g. consent_required), when it sent one
+  code?: string
 
-  constructor(status: number, message: string) {
+  constructor(status: number, message: string, code?: string) {
     super(message)
     this.status = status
+    this.code = code
   }
+}
+
+/** The stable error code in the server's body, if any. */
+function errorCode(body: unknown): string | undefined {
+  const code = body && typeof body === 'object' && 'code' in body ? (body as { code: unknown }).code : undefined
+  return typeof code === 'string' ? code : undefined
 }
 
 /** Turn FastAPI's error body into a readable message. */
@@ -201,7 +210,7 @@ async function send<T>(
     if (response.status === 503) {
       throw new ApiError(503, tActive('api.unavailable'))
     }
-    throw new ApiError(response.status, errorMessage(body))
+    throw new ApiError(response.status, errorMessage(body), errorCode(body))
   }
   return { status: response.status, body: body as T }
 }
@@ -814,7 +823,7 @@ export async function exportAccount(token: string, password: string, today: stri
     if (response.status === 401) onUnauthorized?.(token)
     if (response.status === 429) throw new ApiError(429, tActive('api.tooManyAttempts'))
     if (response.status === 503) throw new ApiError(503, tActive('api.unavailable'))
-    throw new ApiError(response.status, errorMessage(body))
+    throw new ApiError(response.status, errorMessage(body), errorCode(body))
   }
   const text = await response.text()
   if (!exportIsComplete(text)) throw new ApiError(500, tActive('export.incomplete'))
@@ -829,4 +838,38 @@ export type Features = { password_reset: boolean; body_weight: boolean; export: 
 
 export function fetchFeatures(): Promise<Features> {
   return request<Features>('/features')
+}
+
+// Consent for health data (phase 4; backend's feat/consent). Behind the
+// body weight switch: off, every one of these answers 404.
+
+/** The consent's exact text, in a language, with its version. */
+export type ConsentText = { purpose: string; version: string; locale: string; text: string; sha256: string }
+
+/** Whether the account's consent is valid for the current version. */
+export type ConsentStatus = {
+  purpose: string
+  required_version: string
+  valid: boolean
+  given_version: string | null
+  given_at: string | null
+  withdrawn_at: string | null
+}
+
+export function fetchConsentText(token: string, locale: string): Promise<ConsentText> {
+  return request<ConsentText>(`/auth/me/consents/health_data/text?${new URLSearchParams({ locale })}`, {}, token)
+}
+
+export function fetchConsent(token: string): Promise<ConsentStatus> {
+  return request<ConsentStatus>('/auth/me/consents/health_data', {}, token)
+}
+
+/** Agree to the text of `version` as shown in `locale`. 409 consent_version_outdated: reload the text. */
+export function giveConsent(token: string, version: string, locale: string): Promise<ConsentStatus> {
+  return request<ConsentStatus>('/auth/me/consents/health_data', json('PUT', { version, locale }), token)
+}
+
+/** Withdraw: the server deletes every weigh-in and estimate at once, and the target goes back to manual. */
+export function withdrawConsent(token: string): Promise<void> {
+  return request<void>('/auth/me/consents/health_data', { method: 'DELETE' }, token)
 }

@@ -27,6 +27,9 @@ function card(): Locator {
 test.beforeAll(async ({ browser }) => {
   page = await browser.newPage({ viewport: { width: 390, height: 844 }, hasTouch: true })
   await signUp(page)
+  // Body weight needs the health data consent (consent.e2e.ts covers the card)
+  const text = (await api(page, 'GET', '/auth/me/consents/health_data/text?locale=en')).body as { version: string }
+  expect((await api(page, 'PUT', '/auth/me/consents/health_data', { version: text.version, locale: 'en' })).status).toBe(200)
   // Three weeks of weigh-ins, slowly down, one far off the line
   for (let offset = -20; offset <= -1; offset++) {
     if (offset % 2 !== 0) continue

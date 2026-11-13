@@ -2,6 +2,7 @@ import { Fragment, useCallback, useEffect, useMemo, useState } from 'react'
 import DeleteAccount from './DeleteAccount'
 import ChangePassword from './ChangePassword'
 import TargetEditor from './TargetEditor'
+import { ConsentProfile } from './Consent'
 import { GoalEditor } from './Goal'
 import { ExportData, ForgotPassword, ResetPassword } from './Trust'
 import {
@@ -227,6 +228,11 @@ function Profile({
         </p>
         <TargetEditor token={token} target={user.daily_calorie_target} onSaved={onUserChange} />
         <GoalEditor token={token} user={user} unit={weightUnit} onSaved={onUserChange} />
+        <ConsentProfile
+          token={token}
+          // Withdrawing sets the target back to manual: read the account again
+          onChanged={() => void fetchMe(token).then(onUserChange).catch(() => {})}
+        />
       </section>
 
       <section className="card">

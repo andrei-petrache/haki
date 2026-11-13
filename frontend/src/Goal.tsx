@@ -12,6 +12,7 @@ import type { WeightUnit } from './units'
 type Loaded =
   | { kind: 'loading' }
   | { kind: 'off' }
+  | { kind: 'no-consent' }
   | { kind: 'error'; message: string }
   | { kind: 'ok'; target: CurrentTarget }
 
@@ -32,6 +33,8 @@ function useCurrentTarget(token: string, version: number): Loaded {
         if (cancelled) return
         if (err instanceof ApiError && err.status === 404) setLoaded({ kind: 'off' })
         else if (err instanceof ApiError && err.status === 422) setLoaded({ kind: 'error', message: 'clock' })
+        // No valid health data consent: the weight card asks for it
+        else if (err instanceof ApiError && err.code === 'consent_required') setLoaded({ kind: 'no-consent' })
         else setLoaded({ kind: 'error', message: describeError(err) })
       })
     return () => {
@@ -70,6 +73,7 @@ export function GoalEditor({
   const [error, setError] = useState<string | null>(null)
   const [saved, setSaved] = useState(false)
 
+  if (loaded.kind === 'no-consent') return <p className="muted small">{t('consent.forAdaptive')}</p>
   if (loaded.kind !== 'ok' && loaded.kind !== 'error') return null
 
   async function save() {
