@@ -390,6 +390,10 @@ class ProgramExerciseIn(BaseModel):
 
 
 class ProgramDayIn(BaseModel):
+    # PUT only: the id of a day the program already has, which is then kept
+    # and changed in place, so workouts started from it stay linked to it.
+    # No id means a new day. POST ignores it.
+    id: DbId | None = None
     position: int = Field(ge=1, le=MAX_DAYS_PER_PROGRAM)
     name: ProgramName
     exercises: list[ProgramExerciseIn] = Field(
@@ -403,6 +407,14 @@ class ProgramIn(BaseModel):
     name: ProgramName
     # Two days with the same position are a 409, from the database
     days: list[ProgramDayIn] = Field(min_length=1, max_length=MAX_DAYS_PER_PROGRAM)
+
+    @model_validator(mode="after")
+    def no_day_twice(self) -> ProgramIn:
+        """One day sent twice would be changed twice: refuse it instead."""
+        ids = [day.id for day in self.days if day.id is not None]
+        if len(ids) != len(set(ids)):
+            raise ValueError("The same day id is sent twice")
+        return self
 
 
 class ProgramExerciseResponse(BaseModel):
