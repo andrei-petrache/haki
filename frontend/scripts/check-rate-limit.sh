@@ -116,12 +116,19 @@ delete="$(statuses 1 DELETE /api/auth/me)"
 echo "DELETE /api/auth/me x1:    $delete"
 [[ "$delete" == "429 " ]] || fail "deleting the account should share the login budget"
 
+export_="$(statuses 1 POST /api/auth/me/export)"
+reset="$(statuses 1 POST /api/auth/password-reset) $(statuses 1 POST /api/auth/password-reset/confirm)"
+echo "POST export, reset, confirm: $export_$reset"
+[[ "$export_$reset" == "429 429  429 " ]] ||
+  fail "the data export, a reset request and its confirmation should share the login budget"
+
 # The same routes spelled differently reach the same location: they must
 # not escape the limit (a key from the raw request line once let them)
 odd="$(status POST /api//auth/login) $(status POST /api/auth/%6cogin) $(status POST /api/auth/sign%75p)"
 odd+=" $(status PUT /api/auth//me/password) $(status DELETE /api//auth/me)"
-echo "Odd spellings x5:          $odd"
-[[ "$odd" == "429 429 429 429 429" ]] ||
+odd+=" $(status POST /api/auth/password%2Dreset) $(status POST /api//auth/me/export)"
+echo "Odd spellings x7:          $odd"
+[[ "$odd" == "429 429 429 429 429 429 429" ]] ||
   fail "a double slash or a percent-encoded letter must not escape the limit"
 
 # By default nothing is trusted: a client's own X-Forwarded-For does not buy
