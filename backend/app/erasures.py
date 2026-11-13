@@ -29,9 +29,10 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from sqlalchemy import delete, exists, select, update
+from sqlalchemy import create_engine, delete, exists, select, update
 from sqlalchemy.orm import Session
 
+from app.db_config import DatabaseSettings
 from app.models import BodyWeight, Consent, Erasure, TdeeEstimate, User
 
 logger = logging.getLogger("app.erasures")
@@ -147,25 +148,31 @@ def reapply_withdrawal(session: Session, user: User, purpose: str, at: datetime)
 
 
 def main(argv: list[str]) -> int:
-    from app.db import SessionLocal
-
+    """The command. It reads only the database settings (DatabaseSettings,
+    as the migrations and the catalog import do), never the app's: the
+    nightly export and a restore run with DB_* alone, no signing key."""
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
     if len(argv) != 2 or argv[0] not in {"export", "reapply"}:
         print("usage: python -m app.erasures export|reapply FILE", file=sys.stderr)
         return 2
     command, path = argv[0], Path(argv[1])
-    with SessionLocal() as session:
-        if command == "export":
-            lines = [json.dumps(entry) for entry in read_log(session)]
-            path.write_text("".join(f"{line}\n" for line in lines), encoding="utf-8")
-            logger.info("%d erasures written to %s", len(lines), path)
-            return 0
-        entries = [
-            json.loads(line)
-            for line in path.read_text(encoding="utf-8").splitlines()
-            if line.strip()
-        ]
-        counts = reapply(session, entries)
+    engine = create_engine(DatabaseSettings().db_url, pool_pre_ping=True)
+    try:
+        with Session(engine) as session:
+            if command == "export":
+                lines = [json.dumps(entry) for entry in read_log(session)]
+                text = "".join(f"{line}\n" for line in lines)
+                path.write_text(text, encoding="utf-8")
+                logger.info("%d erasures written to %s", len(lines), path)
+                return 0
+            entries = [
+                json.loads(line)
+                for line in path.read_text(encoding="utf-8").splitlines()
+                if line.strip()
+            ]
+            counts = reapply(session, entries)
+    finally:
+        engine.dispose()
     logger.info(
         "erased again: %d accounts, %d consents withdrawn, %d health rows; "
         "%d entries added to the log",
