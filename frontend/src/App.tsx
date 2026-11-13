@@ -410,6 +410,9 @@ function App({ resetToken }: { resetToken?: string | null }) {
       const newer = afterRejected(localStorage, rejected)
       if (newer) {
         setToken(newer)
+        // It may be another account's (logged in from the other tab): no
+        // page shows, nor sends anything, until the account is read again
+        setUser(null)
         setAdopted((count) => count + 1)
       } else {
         handleLogout()

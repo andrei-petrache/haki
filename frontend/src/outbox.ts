@@ -99,10 +99,23 @@ export type FlushResult = { sent: number; refused: { item: OutboxItem; message: 
  * takes an item out: resending would only get the same answer. No answer,
  * a 5xx or a 429 stops the round: the rest waits, in order, for the next.
  * A 401 stops it too; the app logs out and the items wait for the owner.
+ *
+ * tokenOwner is the account the token to send with belongs to (its "sub"):
+ * unless it is the owner, nothing is sent and the items stay. Another
+ * tab's token taken up after a 401 may be another account's.
  */
-export async function flushOutbox(store: Store, owner: number, send: SendFn): Promise<FlushResult> {
+export async function flushOutbox(
+  store: Store,
+  owner: number,
+  send: SendFn,
+  tokenOwner: string | null,
+): Promise<FlushResult> {
   const result: FlushResult = { sent: 0, refused: [], left: 0 }
   const mine = loadOutbox(store).filter((item) => item.owner === owner)
+  if (tokenOwner !== String(owner)) {
+    result.left = mine.length
+    return result
+  }
   for (const [index, item] of mine.entries()) {
     try {
       await send(item)

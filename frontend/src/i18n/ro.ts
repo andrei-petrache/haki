@@ -235,7 +235,7 @@ export const ro: Dictionary = {
   'offline.sent': 'Din nou online: ce ai notat offline e salvat ({count}).',
   'offline.refused': 'Nesalvat: {name} ({message}).',
   'offline.pendingTitle': 'Așteaptă conexiunea',
-  'offline.pendingNote': 'Salvate pe acest dispozitiv, trimise în ordine când revii online; încă nu sunt în totaluri.',
+  'offline.pendingNote': 'Salvate pe acest dispozitiv, trimise în ordine când revii online; încă nu sunt în totaluri. Rămân pe acest dispozitiv până sunt trimise, și dacă ieși din cont, și pleacă doar cu contul tău.',
   'log.chipLog': 'Adaugă {name}, {grams} g',
   'log.source': 'Sursa valorilor: {source}',
   'today.copyOpen': 'Copiază…',

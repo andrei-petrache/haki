@@ -59,7 +59,7 @@ describe('flushOutbox', () => {
     const s = store()
     for (const [key, owner] of [['a', 1], ['b', 2], ['c', 1]] as const) enqueue(s, item(key, owner))
     const send = vi.fn<(item: OutboxItem) => Promise<MealEntry>>(() => Promise.resolve(entry))
-    expect(await flushOutbox(s, 1, send)).toEqual({ sent: 2, refused: [], left: 0 })
+    expect(await flushOutbox(s, 1, send, '1')).toEqual({ sent: 2, refused: [], left: 0 })
     expect(send.mock.calls.map(([i]) => i.key)).toEqual(['a', 'c'])
     expect(loadOutbox(s).map((i) => i.key)).toEqual(['b'])
   })
@@ -70,7 +70,7 @@ describe('flushOutbox', () => {
       for (const key of ['a', 'b', 'c']) enqueue(s, item(key))
       let calls = 0
       const send = () => (++calls === 2 ? failure() : Promise.resolve(entry))
-      expect(await flushOutbox(s, 1, send)).toEqual({ sent: 1, refused: [], left: 2 })
+      expect(await flushOutbox(s, 1, send, '1')).toEqual({ sent: 1, refused: [], left: 2 })
       expect(loadOutbox(s).map((i) => i.key)).toEqual(['b', 'c'])
     }
   })
@@ -80,7 +80,7 @@ describe('flushOutbox', () => {
     for (const key of ['a', 'b']) enqueue(s, item(key))
     let calls = 0
     const send = () => (++calls === 1 ? Promise.reject(new ApiError(404, 'Food not found')) : Promise.resolve(entry))
-    const result = await flushOutbox(s, 1, send)
+    const result = await flushOutbox(s, 1, send, '1')
     expect(result.sent).toBe(1)
     expect(result.refused.map((r) => [r.item.key, r.message])).toEqual([['a', 'Food not found']])
     expect(loadOutbox(s)).toEqual([])
@@ -89,7 +89,7 @@ describe('flushOutbox', () => {
   it('stops at a 401 and keeps the items for their owner', async () => {
     const s = store()
     enqueue(s, item('a'))
-    expect(await flushOutbox(s, 1, () => Promise.reject(new ApiError(401, 'expired')))).toEqual({
+    expect(await flushOutbox(s, 1, () => Promise.reject(new ApiError(401, 'expired')), '1')).toEqual({
       sent: 0,
       refused: [],
       left: 1,
@@ -105,5 +105,17 @@ describe('dropOwner', () => {
     enqueue(s, item('b', 2))
     dropOwner(s, 1)
     expect(loadOutbox(s).map((i) => i.key)).toEqual(['b'])
+  })
+})
+
+describe("sending only with the owner's token", () => {
+  it("sends nothing, and keeps every item, with another account's token", async () => {
+    const s = store()
+    for (const key of ['a', 'b']) enqueue(s, item(key, 1))
+    const send = vi.fn<(item: OutboxItem) => Promise<MealEntry>>(() => Promise.resolve(entry))
+    expect(await flushOutbox(s, 1, send, '2')).toEqual({ sent: 0, refused: [], left: 2 })
+    expect(await flushOutbox(s, 1, send, null)).toEqual({ sent: 0, refused: [], left: 2 })
+    expect(send).not.toHaveBeenCalled()
+    expect(loadOutbox(s).map((i) => i.key)).toEqual(['a', 'b'])
   })
 })

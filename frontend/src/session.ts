@@ -14,3 +14,21 @@ export function afterRejected(storage: Pick<Storage, 'getItem' | 'removeItem'>, 
   if (stored === rejected) storage.removeItem(TOKEN_KEY)
   return null
 }
+
+/**
+ * The account a token belongs to: its "sub" claim (the user id), read from
+ * the payload without verifying anything. Only to compare, e.g. that the
+ * offline queue sends an account's entries with that account's token; the
+ * server is what checks tokens. Null for anything that is not a JWT.
+ */
+export function tokenSubject(token: string): string | null {
+  try {
+    const part = token.split('.')[1]
+    if (!part) return null
+    const json = atob(part.replace(/-/g, '+').replace(/_/g, '/').padEnd(Math.ceil(part.length / 4) * 4, '='))
+    const sub = (JSON.parse(json) as { sub?: unknown }).sub
+    return typeof sub === 'string' || typeof sub === 'number' ? String(sub) : null
+  } catch {
+    return null
+  }
+}

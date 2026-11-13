@@ -235,7 +235,7 @@ export const en = {
   'offline.sent': 'Back online: what you logged offline is saved ({count}).',
   'offline.refused': 'Not saved: {name} ({message}).',
   'offline.pendingTitle': 'Waiting for a connection',
-  'offline.pendingNote': 'Saved on this device, sent in order once you are back online; not in the totals yet.',
+  'offline.pendingNote': 'Saved on this device, sent in order once you are back online; not in the totals yet. They stay on this device until sent, also if you log out, and go only with your account.',
   'log.chipLog': 'Log {name}, {grams} g',
   'log.source': 'Values from {source}',
   'today.copyOpen': 'Copy…',
