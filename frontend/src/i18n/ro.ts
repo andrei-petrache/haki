@@ -32,6 +32,7 @@ export const ro: Dictionary = {
   'auth.created': 'Contul e creat; intră ca să începi.',
 
   'profile.title': 'Bine ai venit!',
+  'profile.preferences': 'Preferințe',
   'profile.email': 'Email',
   'profile.memberSince': 'Membru din',
   'profile.crewNumber': 'Nr. în echipaj',
