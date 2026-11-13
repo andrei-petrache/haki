@@ -19,6 +19,7 @@ import FoodLogger from './FoodLogger'
 import { MEAL_LABELS, entryName, headline, keepOrder, mealForHour } from './logging'
 import DayChoice from './DayChoice'
 import { flushOutbox, loadOutbox, logOrQueue, newKey } from './outbox'
+import { tokenSubject } from './session'
 import type { OutboxItem } from './outbox'
 import Toast from './Toast'
 import type { WeightUnit } from './units'
@@ -509,7 +510,7 @@ export default function TodayPage({
     if (flushing.current) return
     flushing.current = true
     try {
-      const result = await flushOutbox(localStorage, userId, sendItem)
+      const result = await flushOutbox(localStorage, userId, sendItem, tokenSubject(token))
       refreshPending()
       if (result.sent > 0) {
         setVersion((v) => v + 1)
@@ -521,7 +522,7 @@ export default function TodayPage({
     } finally {
       flushing.current = false
     }
-  }, [userId, sendItem, refreshPending, t])
+  }, [userId, sendItem, refreshPending, t, token])
 
   // On opening Today, and whenever the connection comes back
   useEffect(() => {
