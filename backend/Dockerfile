@@ -4,7 +4,7 @@
 # variables at runtime; nothing secret is baked into the image.
 
 # ---- Builder: install runtime dependencies into a virtual environment ----
-FROM python:3.14.9-slim-trixie AS builder
+FROM python:3.14.10-slim-trixie AS builder
 
 ENV PIP_NO_CACHE_DIR=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1
@@ -22,7 +22,7 @@ RUN pip install --require-hashes --no-deps -r requirements.txt \
     && pip uninstall --yes pip
 
 # ---- Runtime: only the venv and the code, no build tooling ----
-FROM python:3.14.9-slim-trixie
+FROM python:3.14.10-slim-trixie
 
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \

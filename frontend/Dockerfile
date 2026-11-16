@@ -5,7 +5,7 @@
 # when the container starts and resolved per request through DNS.
 
 # ---- Build: compile the app into static files in dist/ ----
-FROM node:22.23.3-trixie-slim AS build
+FROM node:22.23.4-trixie-slim AS build
 
 WORKDIR /app
 
